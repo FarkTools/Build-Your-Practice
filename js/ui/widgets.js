@@ -112,7 +112,8 @@
       if (c.then) {
         // The conversation continues: same event, next beat.
         const said = h('div', { class: 'said' }, '› ' + c.label);
-        PP.ui.runScene(host, { id: ev.id, title: ev.title, at: ev.at, text: c.then.text, choices: c.then.choices, cont: true }, ctx);
+        const firstKind = ctx.firstKind || c.kind;
+        PP.ui.runScene(host, { id: ev.id, title: ev.title, at: ev.at, text: c.then.text, choices: c.then.choices, cont: true }, Object.assign({}, ctx, { firstKind }));
         host.querySelector('.scene').insertBefore(said, host.querySelector('.scene-text'));
         ctx.onStep && ctx.onStep();
         return;
@@ -146,7 +147,7 @@
         h('p', { class: 'scene-text' }, text || 'Done.'),
         PP.ui.effectChips(Object.assign({}, delta, { fact: learned, days: eff && eff.days, item: eff && eff.item, skill: eff && eff.skill, cash: eff && eff.cash }), { client: s.client, hideDebt: !ctx.lab }),
         ctx.lab && eff && (eff.debt || eff.missed || eff.style) ? h('div', { class: 'lab-reveal' }, h('span', { class: 'eyebrow' }, 'Hidden from the player'), PP.ui.effectChips({ debt: eff.debt, missed: eff.missed, style: eff.style }, { showStyle: true })) : null,
-        h('button', { class: 'btn primary', onclick: () => ctx.onDone && ctx.onDone(c) }, 'Continue'));
+        h('button', { class: 'btn primary', onclick: () => ctx.onDone && ctx.onDone(ctx.firstKind ? Object.assign({}, c, { kind: ctx.firstKind }) : c) }, 'Continue'));
       host.appendChild(res);
       res.querySelector('.btn').focus({ preventScroll: true });
     }

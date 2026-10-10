@@ -1,4 +1,4 @@
-/* The trail scene: a side-scrolling, hand-inked view of the wagon on the trail,
+/* The trail scene: a side-scrolling, hand-inked view of you and your client on the trail,
  * plus cut scenes for landmarks, encounters, and risk debt catching up.
  *
  *   const scene = new PP.TrailScene(canvas);
@@ -126,12 +126,11 @@
       // Landmark when stopped at one
       if (this.landmark && !(cs && cs.key === 'arrive')) this.drawLandmark(this.landmark, 760, GROUND, 1, t);
 
-      // Cut-scene background art (behind the wagon)
+      // Cut-scene background art (behind the hikers)
       if (cs) this.cutBack(cs, cutP, t);
 
-      // Wagon
-      const wx = cs && cs.key === 'breakdown' ? 300 : 300;
-      this.wagon(wx, 258, this.moving || (cs && cs.key === 'depart'), cs && cs.key === 'breakdown' ? cutP : 0);
+      // You and your client
+      this.hikers(320, 268, this.moving || (cs && cs.key === 'depart'), cs && cs.key === 'breakdown' ? cutP : 0);
 
       // Foreground props
       this.props(terr, this.off * 1.35, 1.15, H - 6, true);
@@ -287,49 +286,47 @@
       c.restore();
     }
 
-    wagon(x, y, moving, broken) {
+    /* You (leading, big pack, walking stick) and your client (behind, daypack). */
+    hikers(x, y, moving, broken) {
       const c = this.c;
-      const bob = moving ? Math.sin(this.t * 10) * 1.6 : 0;
-      const spin = this.off / 16;
-      // Ox
-      c.save(); c.translate(x + 120, y + bob * 0.6); ink(c, 2.2);
-      c.fillStyle = '#b07a43';
-      c.beginPath(); c.ellipse(0, -16, 30, 15, 0, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.beginPath(); c.ellipse(32, -24, 11, 9, 0.3, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.beginPath(); c.moveTo(30, -32); c.lineTo(26, -40); c.moveTo(38, -31); c.lineTo(44, -38); c.stroke();
-      const leg = moving ? Math.sin(this.t * 10) * 5 : 0;
-      c.beginPath(); c.moveTo(-18, -4); c.lineTo(-18 + leg, 10); c.moveTo(-8, -3); c.lineTo(-8 - leg, 10); c.moveTo(12, -3); c.lineTo(12 + leg, 10); c.moveTo(20, -4); c.lineTo(20 - leg, 10); c.stroke();
-      c.fillStyle = INK; c.beginPath(); c.arc(36, -26, 1.6, 0, Math.PI * 2); c.fill();
-      c.restore();
-      // Hitch
-      ink(c, 2); c.beginPath(); c.moveTo(x + 62, y - 14 + bob); c.lineTo(x + 92, y - 16 + bob); c.stroke();
-      // Wagon body
-      c.save(); c.translate(x, y + bob);
-      ink(c, 2.5);
-      c.fillStyle = '#9c6a3a'; c.fillRect(-62, -34, 124, 24); c.strokeRect(-62, -34, 124, 24);
-      c.beginPath(); c.moveTo(-62, -22); c.lineTo(62, -22); c.stroke();
-      // Canvas cover
-      c.fillStyle = '#fbf3e1';
-      c.beginPath(); c.moveTo(-58, -34); c.bezierCurveTo(-58, -92, 58, -92, 58, -34); c.closePath(); c.fill(); c.stroke();
-      for (const k of [-28, 0, 28]) { c.beginPath(); c.moveTo(k, -34); c.quadraticCurveTo(k * 1.05, -70, k * 0.9, -80); c.stroke(); }
-      // Sign on canvas
-      c.fillStyle = NAVY; c.font = `16px ${FONT}`; c.textAlign = 'center'; c.fillText('PROSPECT', 0, -46);
-      // Driver (agent) and client peeking
-      c.fillStyle = '#f2c79a'; ink(c, 2);
-      c.beginPath(); c.arc(56, -48, 7, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.fillStyle = NAVY; c.fillRect(48, -58, 16, 4); c.fillRect(52, -64, 8, 7);
-      c.fillStyle = '#e8b48a'; c.beginPath(); c.arc(-50, -50, 7, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.restore();
-      // Wheels
-      const wheel = (wx, wy, rot) => {
-        c.save(); c.translate(wx, wy); c.rotate(rot); ink(c, 2.5); c.fillStyle = 'rgba(156,106,58,.25)';
-        c.beginPath(); c.arc(0, 0, 15, 0, Math.PI * 2); c.fill(); c.stroke();
-        for (let k = 0; k < 6; k++) { c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(k * Math.PI / 3) * 15, Math.sin(k * Math.PI / 3) * 15); c.stroke(); }
+      const walk = moving ? this.t * 7 : 0;
+      const person = (px, o) => {
+        const sw = moving ? Math.sin(walk + o.phase) * 9 : 0;
+        const bob = moving ? -Math.abs(Math.sin(walk + o.phase)) * 2.5 : 0;
+        c.save(); c.translate(px, y + bob);
+        // legs and boots
+        c.strokeStyle = INK; c.lineWidth = 4.5; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(0, -30); c.lineTo(-sw * 0.7, -2); c.moveTo(0, -30); c.lineTo(sw * 0.7, -2); c.stroke();
+        c.fillStyle = INK; c.fillRect(-sw * 0.7 - 2, -4, 8, 4); c.fillRect(sw * 0.7 - 2, -4, 8, 4);
+        // backpack
+        ink(c, 2.2); c.fillStyle = o.pack;
+        const ph = o.bigPack ? 34 : 20;
+        c.fillRect(-23, -64, 15, ph); c.strokeRect(-23, -64, 15, ph);
+        if (o.bigPack) { c.fillStyle = '#c4532d'; c.beginPath(); c.ellipse(-15, -68, 10, 5, 0, 0, Math.PI * 2); c.fill(); c.stroke(); }
+        // torso
+        c.fillStyle = o.coat;
+        c.beginPath(); c.moveTo(-9, -30); c.lineTo(-8, -64); c.lineTo(8, -64); c.lineTo(10, -30); c.closePath(); c.fill(); c.stroke();
+        // arm, with walking stick or rolled map
+        const hx = 14 + sw * 0.35, hy = -42;
+        c.beginPath(); c.moveTo(4, -58); c.lineTo(hx, hy); c.stroke();
+        if (o.stick) { c.strokeStyle = '#7a5a3a'; c.lineWidth = 3; c.beginPath(); c.moveTo(hx, hy - 6); c.lineTo(hx + 6, -1); c.stroke(); }
+        if (o.map) { ink(c, 1.5); c.fillStyle = '#f5e2bd'; c.fillRect(hx - 2, hy - 8, 12, 9); c.strokeRect(hx - 2, hy - 8, 12, 9); }
+        // head, hair, hat
+        ink(c, 2.2); c.fillStyle = o.skin;
+        c.beginPath(); c.arc(1, -74, 9, 0, Math.PI * 2); c.fill(); c.stroke();
+        if (o.hair) { c.fillStyle = o.hair; c.beginPath(); c.arc(1, -76, 9.5, Math.PI * 1.05, Math.PI * 1.95); c.fill(); }
+        if (o.hat) { c.fillStyle = NAVY; c.beginPath(); c.ellipse(1, -81, 13, 3.5, 0, 0, Math.PI * 2); c.fill(); c.fillRect(-6, -91, 14, 10); }
+        c.fillStyle = INK; c.beginPath(); c.arc(5, -75, 1.4, 0, Math.PI * 2); c.fill();
         c.restore();
       };
-      wheel(x + 40, y - 4 + bob, spin);
-      if (broken) wheel(x - 40 + broken * 500, y - 4 + Math.abs(Math.sin(broken * 14)) * -20 * (1 - broken), spin + broken * 30);
-      else wheel(x - 40, y - 4 + bob, spin);
+      person(x - 72, { coat: '#6f9a54', pack: '#b07a43', skin: '#e8b48a', hair: '#4a2e14', phase: 1.7, map: true });
+      person(x, { coat: NAVY, pack: ORANGE, skin: '#f2c79a', hat: true, bigPack: !broken, stick: true, phase: 0 });
+      if (broken) {
+        c.save();
+        c.translate(x - 15 + broken * 520, y - 40 - Math.abs(Math.sin(broken * 12)) * 40 * (1 - broken));
+        c.rotate(broken * 14); ink(c, 2.2); c.fillStyle = ORANGE; c.fillRect(-8, -16, 16, 32); c.strokeRect(-8, -16, 16, 32);
+        c.restore();
+      }
     }
 
     fog(a) {
@@ -470,7 +467,7 @@
       c.restore();
     }
 
-    /* Cut-scene art drawn behind the wagon. */
+    /* Cut-scene art drawn behind the hikers. */
     cutBack(cs, p, t) {
       const c = this.c;
       const k = cs.key;
@@ -496,16 +493,14 @@
         c.font = `18px ${FONT}`; c.fillStyle = '#fdf3d6'; c.textAlign = 'center'; c.fillText('Steve', sx, GROUND - 68);
       }
       if (k === 'mail') {
-        const x = 1000 - ease * 520, bob = Math.abs(Math.sin(t * 12)) * -6;
-        c.save(); c.translate(x, GROUND + bob); ink(c, 2.5);
-        c.fillStyle = '#7a5a3a'; c.beginPath(); c.ellipse(0, -30, 34, 14, 0, 0, Math.PI * 2); c.fill(); c.stroke();
-        c.beginPath(); c.ellipse(-36, -44, 12, 9, -0.5, 0, Math.PI * 2); c.fill(); c.stroke();
-        const lg = Math.sin(t * 16) * 10;
-        c.beginPath(); c.moveTo(-20, -20); c.lineTo(-20 + lg, 2); c.moveTo(-8, -18); c.lineTo(-8 - lg, 2); c.moveTo(14, -18); c.lineTo(14 + lg, 2); c.moveTo(24, -20); c.lineTo(24 - lg, 2); c.stroke();
-        c.fillStyle = '#10196b'; c.fillRect(-6, -70, 16, 26); c.strokeRect(-6, -70, 16, 26);
-        c.fillStyle = '#f2c79a'; c.beginPath(); c.arc(2, -78, 8, 0, Math.PI * 2); c.fill(); c.stroke();
-        c.fillStyle = '#fffaf0'; c.fillRect(-30, -66, 22, 14); c.strokeRect(-30, -66, 22, 14);
-        c.beginPath(); c.moveTo(-30, -66); c.lineTo(-19, -58); c.lineTo(-8, -66); c.stroke();
+        const x = 1000 - ease * 640, y = 90 + ease * 70 + Math.sin(t * 6) * 6;
+        const flap = Math.sin(t * 22) * 14;
+        c.save(); c.translate(x, y); ink(c, 2.2);
+        c.fillStyle = '#9aa3b5'; c.beginPath(); c.ellipse(0, 0, 18, 10, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.beginPath(); c.arc(-18, -6, 7, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = ORANGE; c.beginPath(); c.moveTo(-25, -6); c.lineTo(-31, -4); c.lineTo(-25, -3); c.fill();
+        c.fillStyle = '#c7cdd9'; c.beginPath(); c.moveTo(-2, -4); c.lineTo(10, -22 - flap); c.lineTo(16, -4); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = '#fffaf0'; c.fillRect(2, 8, 12, 9); c.strokeRect(2, 8, 12, 9);
         c.restore();
       }
       if (k === 'debt') {

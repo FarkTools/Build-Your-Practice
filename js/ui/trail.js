@@ -1,7 +1,7 @@
-/* The journey, Oregon Trail style.
+/* The journey: hiking the trail with your client, day by day.
  *
  * At a landmark you get a numbered "You may:" menu. Continuing shows the forks
- * (with days), then the wagon travels day by day. Each day can bring an
+ * (with days), then you and your client hike day by day. Each day can bring an
  * encounter, a risk-debt check, or the client asking "are we there yet?".
  * Reaching a landmark plays a cut scene and its event. Clients for Life ends it.
  */
@@ -28,6 +28,7 @@
   };
 
   const T = (PP.trail = {});
+  const put = (el, ...kids) => kids.flat().forEach((k) => k && el.appendChild(k));
   T.dayInJourney = () => T.s.day;
 
   PP.ui.startTrail = function (root, s, hooks) {
@@ -35,7 +36,7 @@
     window.scrollTo({ top: 0 });
     s.pace = s.pace || 'steady';
     root.innerHTML = '';
-    const canvas = h('canvas', { class: 'trail-canvas', width: 960, height: 320, 'aria-label': 'The trail: your wagon traveling through the landscape' });
+    const canvas = h('canvas', { class: 'trail-canvas', width: 960, height: 320, 'aria-label': 'The trail: you and your client hiking through the landscape' });
     T.ledger = h('div', { class: 'ledger' });
     T.journal = h('div', { class: 'journal', 'aria-live': 'polite' });
     T.side = h('aside', { class: 'trail-side' });
@@ -48,24 +49,11 @@
     T.scene.setTerrain('port'); T.scene.setLandmark('port'); T.scene.setPace(s.pace);
     if (T.keys) document.removeEventListener('keydown', T.keys);
     T.keys = onKey; document.addEventListener('keydown', T.keys);
-    T.news = scheduleNews(s);
     renderLedger(); renderSide();
-    say(`Day 1. You and ${s.client.name} load up the wagon at Port Prospect.`);
+    say(`Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
-    showJournal(h('p', { class: 'muted' }, 'Loading the wagon…'));
+    showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
   };
-
-  /* News from earlier clients arrives by mail rider on a random day of this journey. */
-  function scheduleNews(s) {
-    const P = PP.content.practice, out = [];
-    (s.career ? s.career.book : []).forEach((entry) => {
-      const when = 2 + Math.floor(Math.random() * 10);
-      if (entry.status === 'at-risk' && PP.chance(P.cancelChance)) out.push({ kind: 'cancel', entry, day: when });
-      else if (entry.status === 'door' && PP.chance(P.returnChance)) out.push({ kind: 'return', entry, day: when });
-      else if (entry.status === 'life' && PP.chance(0.25)) out.push({ kind: 'thanks', entry, day: when });
-    });
-    return out;
-  }
 
   /* ---------- helpers ---------- */
   const C = () => T.s.client.name;
@@ -74,7 +62,7 @@
     const s = T.s;
     return h('div', { class: 'goal' },
       h('div', null, h('span', { class: 'eyebrow' }, 'This journey'), ` Find out where ${s.client.name} actually needs to go, and get them to Clients for Life with their trust intact.`),
-      s.career ? h('div', null, h('span', { class: 'eyebrow' }, 'Your career'), ` Build a Profitable practice before your savings run out. Every day on the trail costs ${PP.career.money(PP.content.practice.dailyCost)}.`) : null);
+      s.career ? h('div', null, h('span', { class: 'eyebrow' }, 'Your career'), ` Build a Profitable practice before your savings run out. Every day away costs ${PP.career.money(PP.career.costs(s.career))}, and your clients and prospects back at the port are waiting.`) : null);
   }
   function narration(n = 3) {
     return h('div', { class: 'narr' }, T.narr.slice(-n).map((l, i, a) => h('p', { class: (l.cls || '') + (i === a.length - 1 ? ' latest' : '') }, l.text)));
@@ -114,7 +102,7 @@
   function renderLedger(prev) {
     const s = T.s;
     T.ledger.innerHTML = '';
-    T.ledger.append(
+    put(T.ledger,
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Day'), h('strong', null, String(s.day))),
       h('div', { class: 'ledger-cell wide' }, h('span', { class: 'lk' }, s.seg ? 'Next landmark' : 'Location'), h('strong', null, nextLandmarkText())),
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Pace'), h('strong', null, PACE[s.pace].label)),
@@ -126,13 +114,23 @@
 
   function moneyCell(c) {
     const lvl = PP.career.levelInfo(c);
-    const inc = PP.career.income(c), cost = PP.content.practice.dailyCost;
+    const inc = PP.career.income(c), cost = PP.career.costs(c);
     const runway = PP.career.runway(c);
     const d = T.lastSavings != null ? c.savings - T.lastSavings : 0;
     return h('div', { class: 'ledger-cell wide money lvl-' + lvl.id },
       h('span', { class: 'lk' }, 'Savings · ' + lvl.label),
       h('strong', null, PP.career.money(c.savings), d ? h('span', { class: 'gauge-delta ' + (d > 0 ? 'up' : 'down') }, ' ' + (d > 0 ? '+' : '') + PP.career.money(d)) : null),
       h('span', { class: 'small' }, `${PP.career.money(inc)}/day in · ${PP.career.money(cost)}/day out` + (runway !== Infinity ? ` · ${runway} days left` : '')));
+  }
+
+  function homePanel(c) {
+    const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
+    const avg = active.length ? active.reduce((a, b) => a + b.sat, 0) / active.length : 0;
+    const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
+    return h('div', { class: 'panel home-panel' }, h('h4', null, 'Back at the port'),
+      h('p', { class: 'small' }, active.length ? `${active.length} client${active.length > 1 ? 's' : ''}, average satisfaction ${avg.toFixed(1)}/10${avg < 4.5 ? ' (getting restless)' : ''}.` : 'No clients yet.'),
+      h('p', { class: 'small' }, c.pipeline.length ? `${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}.` : 'Nobody waiting in your pipeline.'),
+      c.partner ? h('p', { class: 'small muted' }, 'Your partner is looking after your clients.') : null);
   }
 
   function renderSide() {
@@ -142,13 +140,14 @@
     const gut = PP.gutFeeling(s);
     const mapThumb = h('button', { class: 'map-thumb', onclick: openMap, 'aria-label': 'Open the map' });
     T.side.innerHTML = '';
-    T.side.append(
+    put(T.side,
       h('div', { class: 'panel client-card' },
         h('div', { class: 'row tight' }, PP.ui.avatar(c, 40), h('div', null, h('strong', null, c.name), h('div', { class: 'small muted' }, c.title))),
         h('div', { class: 'eyebrow mt' }, 'What you know'),
         h('ul', { class: 'facts' }, [h('li', { class: 'surface' }, c.surface), ...known.map((f) => h('li', { class: c.facts[f].key ? 'key' : '' }, c.facts[f].label))]),
         unknown ? h('div', { class: 'small muted' }, `${unknown} thing${unknown > 1 ? 's' : ''} you have not found out yet. Check in with ${c.name} to learn more.`) : h('div', { class: 'small good-text' }, 'You understand this client well.')),
       gut ? h('div', { class: 'gut' }, h('span', { class: 'eyebrow' }, 'Gut feeling'), h('span', null, gut)) : null,
+      s.career ? homePanel(s.career) : null,
       h('div', { class: 'panel map-panel' }, h('div', { class: 'panel-head' }, h('h4', null, 'Map'), h('button', { class: 'btn small', onclick: openMap }, 'Open')), mapThumb),
       h('details', { class: 'panel log' }, h('summary', null, 'Trail diary'), h('ol', null, T.narr.slice().reverse().slice(0, 40).map((l) => h('li', { class: l.cls || '' }, l.text)))));
     PP.ui.renderMap(mapThumb, s, {});
@@ -200,7 +199,7 @@
       const to = t.a === here ? t.b : t.a;
       const v = PP.visibility(s, to);
       const known = v === 'visited' || v === 'named';
-      const days = Math.max(1, Math.ceil(t.days / PACE[s.pace].speed));
+      const days = Math.max(1, Math.ceil(trailDays(s, t) / PACE[s.pace].speed));
       const isBack = s.cameFrom === to;
       const locked = t.kind === 'secret' && !s.password;
       return { t, to, known, days, isBack, locked, v };
@@ -221,7 +220,8 @@
   function depart(t, to) {
     const s = T.s;
     s.cameFrom = s.map.current;
-    s.seg = { from: s.map.current, to, total: t.days, left: t.days, trail: t };
+    const d = trailDays(s, t);
+    s.seg = { from: s.map.current, to, total: d, left: d, trail: t };
     s.walked.push(s.map.current + '|' + to);
     say(`You set out from ${nodeName(s.map.current)}${t.kind === 'secret' ? ' along the Secret Shortcut. The padlock opens with "password1".' : '.'}`);
     T.scene.setLandmark(null);
@@ -248,7 +248,7 @@
   function stopTravel() {
     clearTimeout(T.timer);
     if (T.mode !== 'traveling') return;
-    say(`You pull the wagon over on day ${T.s.day}.`);
+    say(`You stop to look around on day ${T.s.day}.`);
     menu();
   }
   function tick(text, cls) {
@@ -267,10 +267,11 @@
     const eCost = s.pace === 'breakneck' ? 1 : s.pace === 'brisk' ? (s.day % 2 === 0 ? 1 : 0) : (s.day % 3 === 0 ? 1 : 0);
     if (eCost) PP.apply(s, { energy: -eCost });
     if (s.pace === 'breakneck' && PP.chance(0.25)) PP.addDebt(s, 'rushed_pace', 1, 'pace');
-    if (s.career) PP.career.tickDay(s.career);
+    const bizNotes = s.career ? PP.career.tickDay(s.career, true) : [];
     let line = `Day ${s.day}. ${T.weather}`;
     if (s.day % s.client.patience === 0) { PP.apply(s, { momentum: -1 }); line += ` ${C()} asks, "Are we there yet?"`; }
     tick(line);
+    bizNotes.filter((n) => !s.career.inbox.some((m) => m.text === n.text)).forEach((n) => tick('Back at the port: ' + n.text, n.kind === 'bad' ? 'bad' : ''));
     if (s.res.energy <= 0) {
       PP.apply(s, { energy: 4, momentum: -1, days: 2 });
       tick('You are exhausted. You stop for two days to recover. (−1 Momentum)', 'bad');
@@ -279,8 +280,8 @@
     if (checkEnd()) return;
     if (s.seg.left <= 0) { T.timer = setTimeout(() => arrive(s.seg.to), 700); return; }
     // Mail from your book?
-    const news = (T.news || []).find((n) => !n.done && T.dayInJourney() >= n.day);
-    if (news) { news.done = true; return stopFor(PP.content.mailEvent(s, news)); }
+    const mail = s.career && s.career.inbox.shift();
+    if (mail) return stopFor(PP.content.mailEvent(s, mail));
     // Something from earlier?
     const due = PP.dueDebt(s);
     if (due) return stopFor(PP.content.debtCheckEvent(s, due));
@@ -308,7 +309,29 @@
     runEvent(ev, after || (() => (T.s.seg ? travel() : menu())));
   }
 
-  function runEvent(ev, after) {
+  /* Systems built from trail Marks make some trails shorter. */
+  function trailDays(s, t) {
+    let d = t.days;
+    const sys = PP.content.practice ? PP.content.practice.systems : {};
+    for (const id in sys) if (sys[id].shortens && PP.career.hasSystem(s.career, id) && (t.a === sys[id].shortens || t.b === sys[id].shortens)) d -= 1;
+    return Math.max(1, d);
+  }
+  PP.trailDays = trailDays;
+
+  /* Handling a landmark well (prepare or get help) earns its Mark. */
+  function maybeMark(id, choice) {
+    const s = T.s, c = s.career;
+    if (!c || !id || c.marks[id] || !choice) return;
+    const sys = Object.values(PP.content.practice.systems).find((x) => x.mark === id);
+    if (!sys) return;
+    if (choice.kind === 'prepare' || choice.kind === 'help' || choice.minigame) {
+      c.marks[id] = true;
+      (s.newMarks = s.newMarks || []).push(id);
+      say(`You earned the ${PP.content.nodes[id].name} Mark. Back at the port you can build: ${sys.name}.`, 'arrive');
+    }
+  }
+
+  function runEvent(ev, after, landmark) {
     const s = T.s;
     T.mode = 'event';
     const host = h('div', { class: 'event-host' });
@@ -319,9 +342,11 @@
       noFocus: false,
       onStep: () => { renderLedger(prev); },
       onMinigame: (on) => T.journal.classList.toggle('playing', on),
-      onDone: () => {
+      onDone: (choice) => {
         say(`${ev.title}.`, ev.debt ? 'bad' : '');
+        maybeMark(landmark, choice);
         refresh(prev);
+        if (s.poached) { finish('poached'); return; }
         if (checkEnd()) return;
         after();
       }
@@ -349,7 +374,7 @@
     await T.scene.cut('arrive', { kind: node.kind, title: node.name, caption: first ? node.arrive : 'You have been here before.' });
     T.scene.setLandmark(node.kind);
     const ev = first ? pickLandmarkEvent(id) : null;
-    if (ev) { if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu()); }
+    if (ev) { if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu(), id); }
     else menu();
   }
   function pickLandmarkEvent(id) {
@@ -371,7 +396,7 @@
     }));
     items.push({ label: 'Just chat for a while', note: 'No agenda. Builds rapport.', go: () => answer({ id: 'chat' }) });
     showJournal(h('div', { class: 'checkin-head' }, PP.ui.avatar(c, 44), h('div', null, h('strong', null, c.name), h('div', { class: 'small muted' }, `${c.traits.join(' · ')}. Trust ${s.res.trust}/10.`))),
-      h('p', { class: 'scene-text' }, `You slow the wagon and turn to ${c.name}. What do you ask?`),
+      h('p', { class: 'scene-text' }, `You fall into step beside ${c.name}. What do you ask?`),
       menuList(items), back());
     focusFirst();
   }
@@ -428,7 +453,7 @@
     const s = T.s;
     const prev = Object.assign({}, s.res);
     s.day++; s.turn++;
-    if (s.career) PP.career.tickDay(s.career);
+    if (s.career) PP.career.tickDay(s.career, true).forEach((n) => say('Back at the port: ' + n.text, n.kind === 'bad' ? 'bad' : ''));
     PP.apply(s, { energy: 3 });
     let line = `Day ${s.day}. You rest.`;
     if (s.day % s.client.patience === 0) { PP.apply(s, { momentum: -1 }); line += ` ${C()} drums their fingers. (−1 Momentum)`; }
@@ -460,12 +485,12 @@
     s.contacts.forEach((id) => {
       const c = PP.content.contacts[id];
       const ready = PP.contactReady(s, id);
-      if (id === 'skeptic') items.push({ label: 'Ask Gus to ride along for the next decision', note: s.skepticActive ? 'Gus is watching' : ready ? c.ability : 'Used', disabled: !ready || s.skepticActive, go: () => { PP.useContact(s, 'skeptic'); s.skepticActive = true; say('Gus climbs into the wagon. "Whatever you\'re about to do, I\'ll tell you what it costs."'); menu(); } });
+      if (id === 'skeptic') items.push({ label: 'Ask Gus to ride along for the next decision', note: s.skepticActive ? 'Gus is watching' : ready ? c.ability : 'Used', disabled: !ready || s.skepticActive, go: () => { PP.useContact(s, 'skeptic'); s.skepticActive = true; say('Gus falls in beside you. "Whatever you\'re about to do, I\'ll tell you what it costs."'); menu(); } });
       else if (id === 'connector') items.push({ label: 'Call Priya for a shortcut', note: !ready ? 'Used' : s.seg ? 'Halves the days left on this trail' : 'Start traveling first', disabled: !ready || !s.seg, go: () => { PP.useContact(s, 'connector'); s.seg.left = Math.max(0.5, s.seg.left / 2); say('Priya knows a farmer who knows a shortcut. The trail ahead gets much shorter.'); menu(); } });
       else items.push({ label: `${c.who} (${c.name})`, note: (ready ? 'On call. ' : 'Used. ') + c.when, disabled: true });
     });
     if (!items.length) items.push({ label: 'Your pack is empty and nobody is on call.', disabled: true });
-    showJournal(h('p', { class: 'scene-text' }, 'You rummage through the wagon.'), menuList(items), back());
+    showJournal(h('p', { class: 'scene-text' }, 'You rummage through your pack.'), menuList(items), back());
     focusFirst();
   }
 
@@ -511,7 +536,7 @@
       const fits = judgment && (c.unlocks[d] || []).length;
       return { label: dest.name, note: dest.blurb + (fits ? ' This fits what you learned along the way.' : ''), go: () => land(d) };
     });
-    if (hidden) items.push({ label: 'Go back and learn more first', note: 'The X will wait. Your client might not.', go: () => { say('You turn the wagon around to learn more.'); menu(); } });
+    if (hidden) items.push({ label: 'Go back and learn more first', note: 'The X will wait. Your client might not.', go: () => { say('You turn back to learn more.'); menu(); } });
     showJournal(
       h('div', { class: 'eyebrow' }, 'Clients for Life · Day ' + s.day),
       h('h3', { class: 'scene-title' }, `Where does ${c.name} actually need to go?`),

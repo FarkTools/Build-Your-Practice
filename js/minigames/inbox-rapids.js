@@ -1,5 +1,5 @@
 /* Inbox Rapids — the risk: drowning in noise and missing what matters.
- * An action game: steer the wagon left and right through a storm of email.
+ * An action game: paddle a canoe left and right through a river of email.
  * Catch the gold envelopes (real messages from your client). Dodge the junk.
  * Arrow keys / A-D, or tap the left and right halves of the river.
  */
@@ -17,7 +17,7 @@
   PP.minigames.inboxRapids = {
     title: 'Inbox Rapids',
     risk: 'missing what matters in the noise',
-    blurb: 'Steer through a storm of email. Catch the gold envelopes from your client and their people. Dodge everything else. Arrow keys, A/D, or tap left and right.',
+    blurb: 'Paddle through a river of email. Catch the gold envelopes from your client and their people. Dodge everything else. Arrow keys, A/D, or tap left and right.',
     start(root, ctx, done) {
       const client = ctx.client;
       const prep = ctx.prep || 0;
@@ -25,8 +25,8 @@
       const dur = 30;
       const ui = PP.mg.shell(root, this.title, this.risk);
       const cv = h('canvas', { class: 'mg-canvas', width: W, height: H, 'aria-label': 'Inbox Rapids game area' });
-      const left = h('button', { class: 'btn action', 'aria-label': 'Steer left', onclick: () => move(-1) }, '◀ Left');
-      const right = h('button', { class: 'btn action', 'aria-label': 'Steer right', onclick: () => move(1) }, 'Right ▶');
+      const left = h('button', { class: 'btn action', 'aria-label': 'Paddle left', onclick: () => move(-1) }, '◀ Left');
+      const right = h('button', { class: 'btn action', 'aria-label': 'Paddle right', onclick: () => move(1) }, 'Right ▶');
       ui.body.append(h('p', { class: 'mg-instr' }, 'Catch gold envelopes. Dodge newsletters, reply-alls, and anything URGENT.'), cv, h('div', { class: 'mg-actions two' }, left, right));
       const c = cv.getContext('2d');
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -98,11 +98,13 @@
           c.fillStyle = k.scam ? '#7a2a1a' : INK; c.font = `13px ${FONT}`; c.textAlign = 'center'; c.fillText(k.label(client).slice(0, 12), 0, 14);
           c.restore();
         });
-        // Wagon-raft
-        c.save(); c.translate(x, H - 60);
-        c.fillStyle = '#9c6a3a'; c.strokeStyle = INK; c.lineWidth = 2.5;
-        c.fillRect(-40, 0, 80, 16); c.strokeRect(-40, 0, 80, 16);
-        c.fillStyle = '#fbf3e1'; c.beginPath(); c.moveTo(-36, 0); c.bezierCurveTo(-36, -40, 36, -40, 36, 0); c.closePath(); c.fill(); c.stroke();
+        // Canoe with you and your client
+        c.save(); c.translate(x, H - 52);
+        c.strokeStyle = INK; c.lineWidth = 2.5;
+        c.fillStyle = '#9c6a3a'; c.beginPath(); c.moveTo(-46, -6); c.quadraticCurveTo(0, 22, 46, -6); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = '#f2c79a'; c.beginPath(); c.arc(-16, -16, 7, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.arc(16, -16, 7, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = '#10196b'; c.fillRect(10, -26, 13, 4);
+        c.beginPath(); c.moveTo(30, -20); c.lineTo(44, 10); c.stroke();
         c.restore();
       }
 

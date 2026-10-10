@@ -167,8 +167,10 @@ window.PP = window.PP || {};
     if (eff.reveal) { s.map.beam = true; notes.push({ kind: 'reveal' }); }
     if (eff.item && !s.pack.includes(eff.item)) { s.pack.push(eff.item); notes.push({ kind: 'item', item: eff.item }); }
     if (eff.password) { s.password = true; PP.store.set('password', true); }
-    if (eff.days) { s.day += eff.days; s.turn += eff.days; if (s.career && PP.career) for (let i = 0; i < eff.days; i++) PP.career.tickDay(s.career); notes.push({ kind: 'days', days: eff.days }); }
+    if (eff.days) { s.day += eff.days; s.turn += eff.days; if (s.career && PP.career) for (let i = 0; i < eff.days; i++) PP.career.tickDay(s.career, true); notes.push({ kind: 'days', days: eff.days }); }
     if (eff.pace) s.pace = eff.pace;
+    if (eff.prospect && s.career && PP.career) { const pr = PP.career.addProspect(s.career, eff.prospect); notes.push({ kind: 'prospect', name: pr.name }); }
+    if (eff.poached) s.poached = true;
     if (eff.cash && s.career) { s.career.savings += eff.cash; notes.push({ kind: 'cash', delta: eff.cash }); }
     return notes;
   };

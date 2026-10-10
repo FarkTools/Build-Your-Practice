@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Port Prospect</title>
+<title>Build Your Practice</title>
 <meta name="description" content="A light adventure game about learning to navigate client work. Playable concept prototype.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -418,9 +418,11 @@ kbd { font-family: var(--mono); font-size: 0.7rem; border: 1px solid currentColo
 .pmap .m-label.big text { font-size: 30px; }
 .pmap .m-label .m-sub { font: italic 17px var(--script); fill: var(--ink-soft); }
 .pmap .m-label.v-rumored text:first-child { font-size: 30px; fill: var(--ink-soft); }
-.pmap .m-wagon .cover { fill: #fffaf0; stroke: var(--ink); stroke-width: 2.5; }
-.pmap .m-wagon .body { fill: #9c6a3a; stroke: var(--ink); stroke-width: 2; }
-.pmap .m-wagon .wheel { fill: var(--parch); stroke: var(--ink); stroke-width: 2.5; }
+.pmap .m-pin .pin { fill: #d9472b; stroke: var(--ink); stroke-width: 2.5; }
+.pmap .m-pin .pin-dot { fill: #fffaf0; }
+.pmap .boardwalk { stroke: #9c6a3a; stroke-width: 10; stroke-dasharray: 6 3; }
+.pmap .pennant { fill: var(--orange); stroke: var(--ink); stroke-width: 1.5; }
+.pmap .pole { stroke: var(--ink); stroke-width: 2.5; }
 .pmap .m-hit { fill: rgba(242,155,31,.25); stroke: var(--orange); stroke-width: 3; cursor: pointer; animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { fill-opacity: .1; } }
 
@@ -530,12 +532,88 @@ kbd { font-family: var(--mono); font-size: 0.7rem; border: 1px solid currentColo
 
 .view .screen-head > p.muted { color: #b9c0ec; }
 
+/* ---------- Build Your Practice: agent choice ---------- */
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.agent-card { display: grid; gap: 8px; align-content: start; }
+.agent-card h3 { color: var(--blue); font-size: 1.7rem; }
+.agent-tag { font-family: var(--script); font-size: 1.3rem; line-height: 1.15; }
+.agent-card .btn { justify-self: start; }
+.stat.warn strong { color: var(--red); }
+
+/* ---------- Port tabs and coach ---------- */
+.coach { background: var(--paper); color: var(--ink); border: 2px dashed var(--orange); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; }
+.coach .eyebrow { color: var(--red); }
+.flash { display: grid; gap: 4px; }
+.flash p.fl-bad { color: var(--red); }
+.flash p.fl-good { color: var(--green); font-weight: 700; }
+.port-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.port-tabs button { background: var(--navy-2); border: 1.5px solid var(--navy-3); color: #c9cdf0; border-radius: 8px 8px 0 0; padding: 7px 14px; font-family: var(--hand); font-size: 1.2rem; cursor: pointer; }
+.port-tabs button[aria-current="true"] { background: var(--parch); color: var(--blue); border-color: var(--edge); }
+.activity-grid, .pipeline-grid, .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.activity, .prospect-card, .client-row { display: grid; gap: 8px; align-content: start; }
+.activity h3, .prospect-card h3 { color: var(--blue); }
+.prospect-card .btn { justify-self: start; }
+.prospect-card.t-hot { border-color: var(--orange); }
+.pill.temp-hot { color: #a14a00; border-color: var(--orange); background: #fde3b6; }
+.pill.temp-warm { color: var(--green); border-color: var(--green); }
+.pill.temp-cold { color: var(--insight); border-color: var(--insight); }
+.client-row.b-cancelled { opacity: .6; }
+.sat { display: grid; gap: 3px; }
+.build-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.build-grid h3 { color: var(--blue); margin-bottom: 4px; }
+.option-list { display: grid; gap: 8px; margin-top: 8px; }
+.option { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px; border: 1.5px solid var(--edge); border-radius: 6px; background: var(--paper); }
+.option > div { min-width: 0; }
+.option .btn, .option .pill { flex: none; }
+.option.current { border-color: var(--green); background: #eef4e0; }
+.option.locked { opacity: .65; }
+
+/* ---------- Call-a-thon ---------- */
+.phone-card { background: #fff; border: 2px solid var(--edge); border-radius: 12px; padding: 14px; min-height: 96px; display: grid; gap: 6px; }
+.phone-who { font-family: var(--mono); font-size: 0.85rem; color: var(--ink-soft); }
+.phone-state { font-size: 1.05rem; }
+.phone-state.ringing { animation: ringtext .5s steps(2) infinite; }
+.phone-state.live { font-family: var(--script); font-size: 1.45rem; color: var(--blue); line-height: 1.2; }
+@keyframes ringtext { 50% { opacity: .4; } }
+.mg .stack .btn { justify-content: flex-start; text-align: left; font-size: 1.05rem; }
+
+/* ---------- Mixer ---------- */
+.mixer-room { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.nametag { display: grid; gap: 2px; padding: 0 0 8px; border: 2px solid var(--ink); border-radius: 8px; background: #fff; cursor: pointer; overflow: hidden; text-align: center; color: var(--ink); }
+.nametag .hello { background: #c4321f; color: #fff; font: 0.62rem var(--mono); letter-spacing: 0.05em; padding: 3px 2px; }
+.nametag strong { font-family: var(--script); font-size: 1.5rem; font-weight: 700; line-height: 1; padding-top: 4px; }
+.nametag .tagline { font-size: 0.75rem; color: var(--ink-soft); padding: 0 4px; }
+.nametag.met { opacity: .45; cursor: default; }
+.nametag:not(:disabled):hover { box-shadow: 0 0 0 3px var(--orange); }
+.mixer-talk { min-height: 3em; display: grid; gap: 8px; }
+.mixer-open { font-size: 1.02rem; }
+
+/* ---------- Farmers market ---------- */
+.market-lane { position: relative; height: 220px; border: 2px solid var(--edge); border-radius: 8px; overflow: hidden; background: linear-gradient(#e9f1d6 0 30%, #e4cf9c 30% 100%); }
+.tent { position: absolute; top: 0; height: 30%; display: grid; place-items: center; font: 1rem var(--hand); color: #fff; padding: 0 10px; border-bottom: 3px solid var(--ink); }
+.tent.mine { left: 8%; width: 30%; background: repeating-linear-gradient(90deg, var(--blue) 0 18px, #2a3a9a 18px 36px); }
+.tent.rival { right: 0; width: 18%; background: repeating-linear-gradient(90deg, #c4321f 0 18px, #e05a3a 18px 36px); }
+.tube { position: absolute; bottom: -54px; left: 40%; width: 14px; height: 54px; background: #ff5aa0; border-radius: 7px; transform-origin: bottom; animation: tube 0.6s ease-in-out infinite alternate; border: 2px solid var(--ink); }
+@keyframes tube { from { transform: rotate(-25deg); } to { transform: rotate(25deg) scaleY(.85); } }
+.walker { position: absolute; display: grid; justify-items: center; gap: 2px; background: none; border: 0; cursor: pointer; width: 96px; padding: 0; color: var(--ink); }
+.walker-fig { width: 20px; height: 36px; border-radius: 10px 10px 4px 4px; background: #9aa3b5; border: 2px solid var(--ink); }
+.walker.maybe .walker-fig { background: #f0b45a; }
+.walker-label { font-size: 0.72rem; background: rgba(255,250,240,.92); border: 1px solid var(--edge); border-radius: 4px; padding: 1px 4px; line-height: 1.15; }
+.walker.stopped .walker-fig { box-shadow: 0 0 0 4px var(--orange); }
+.walker.nope { opacity: .4; }
+.market-prompt { min-height: 3.2em; display: grid; gap: 6px; }
+@media (max-width: 640px) {
+  .mixer-room { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .build-grid { grid-template-columns: minmax(0, 1fr); }
+  .walker { width: 72px; }
+}
+
 </style>
 </head>
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Port Prospect</span><span class="tagline">concept prototype</span></div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Build Your Practice</span><span class="tagline">concept prototype</span></div>
     <nav class="tabs" aria-label="Views">
       <button data-view="play">Play</button>
       <button data-view="lab">Element Lab</button>
@@ -548,7 +626,7 @@ kbd { font-family: var(--mono); font-size: 0.7rem; border: 1px solid currentColo
     <section id="view-lab" class="view" hidden></section>
     <section id="view-roadmap" class="view roadmap" hidden>
       <header class="screen-head">
-        <div><div class="eyebrow">Path forward</div><h2 class="display-sm">From concept to something agents want to replay</h2></div>
+        <div><div class="eyebrow">Path forward</div><h2 class="display-sm">Build Your Practice: from concept to something agents replay</h2></div>
         <p class="muted">The concept doc's own test: do players choose "Play again" without being asked? Everything below is ordered to answer that as cheaply as possible.</p>
       </header>
 
@@ -556,16 +634,16 @@ kbd { font-family: var(--mono); font-size: 0.7rem; border: 1px solid currentColo
         <article class="phase now">
           <div class="phase-tag">Phase 0 · built</div>
           <h3>Playable vertical slice</h3>
-          <p>Every core element, playable end to end, in an Oregon Trail-style loop.</p>
+          <p>Every core element, playable end to end.</p>
           <ul>
-            <li>A career: savings, daily living costs, a book of clients, and four levels from Unemployed to Profitable</li>
-            <li>Journeys measured in days on the trail, with pace, rest, check-ins, and forks you choose in the story</li>
-            <li>Your parchment map: 16 landmarks, side trails with skulls, and Steve's Secret Shortcut</li>
-            <li>40+ events: landmark scenes, travelers and opportunities on the trail, multi-step conversations, mail from past clients</li>
-            <li>Cut scenes for landmarks, encounters, and shortcuts catching up with you</li>
-            <li>Hidden risk debt that comes due days later, plus a final reckoning</li>
-            <li>5 mini-games: Document Dash, The Conversation, Fraud or Friend?, Inbox Rapids, the Snake Pit</li>
-            <li>3 client archetypes with hidden facts and destinations revealed by discovery</li>
+            <li>Four agent types that trade savings, skills and natural market</li>
+            <li>Port Prospect as home base: every activity takes a day and costs money</li>
+            <li>Prospecting games: Call-a-thon, Chamber of Commerce mixer, Farmers Market tent, plus warm calls, lunch &amp; learns and referrals</li>
+            <li>A pipeline that goes cold, a book of clients who need service, and rivals who poach</li>
+            <li>Build the practice: workspace, a partner, recruits you train, and systems earned on the trail</li>
+            <li>Journeys on your parchment map: days of hiking, forks, encounters, mentors, cut scenes</li>
+            <li>Hidden risk debt, clawbacks and referrals that ripple into later journeys</li>
+            <li>8 mini-games and 50+ events</li>
           </ul>
         </article>
         <article class="phase">
@@ -813,8 +891,10 @@ window.PP = window.PP || {};
     if (eff.reveal) { s.map.beam = true; notes.push({ kind: 'reveal' }); }
     if (eff.item && !s.pack.includes(eff.item)) { s.pack.push(eff.item); notes.push({ kind: 'item', item: eff.item }); }
     if (eff.password) { s.password = true; PP.store.set('password', true); }
-    if (eff.days) { s.day += eff.days; s.turn += eff.days; if (s.career && PP.career) for (let i = 0; i < eff.days; i++) PP.career.tickDay(s.career); notes.push({ kind: 'days', days: eff.days }); }
+    if (eff.days) { s.day += eff.days; s.turn += eff.days; if (s.career && PP.career) for (let i = 0; i < eff.days; i++) PP.career.tickDay(s.career, true); notes.push({ kind: 'days', days: eff.days }); }
     if (eff.pace) s.pace = eff.pace;
+    if (eff.prospect && s.career && PP.career) { const pr = PP.career.addProspect(s.career, eff.prospect); notes.push({ kind: 'prospect', name: pr.name }); }
+    if (eff.poached) s.poached = true;
     if (eff.cash && s.career) { s.career.savings += eff.cash; notes.push({ kind: 'cash', delta: eff.cash }); }
     return notes;
   };
@@ -1356,7 +1436,7 @@ window.PP = window.PP || {};
       id: 'meadow_first_talk', title: 'The first real conversation', at: ['meadows'], first: true,
       text: (s) => `${C(s)} sits on a bench overlooking the meadow. ${s.client.opener} It is quiet here. This is your chance to understand what is actually going on.`,
       choices: [
-        { label: 'Sit down and really talk', kind: 'prepare', minigame: 'conversation', hint: 'Costs energy. Insight lives here.', eff: { energy: -1 }, result: 'You walk back to the wagon with a lot to think about.' },
+        { label: 'Sit down and really talk', kind: 'prepare', minigame: 'conversation', hint: 'Costs energy. Insight lives here.', eff: { energy: -1 }, result: 'You head back to the trail with a lot to think about.' },
         { label: 'Skip the small talk and pitch the Grand Plan', kind: 'through', hint: 'Fast. You will be acting on assumptions.', eff: { momentum: 2, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { avoid: 1 } }, result: (s) => `${C(s)} nods politely. "Sure. That sounds... comprehensive."` },
         { label: 'Hand over a questionnaire for later', kind: 'around', hint: 'Safe and slow. Forms miss tone.', eff: (s) => ({ momentum: -1, insight: 1, trust: s.client.prefers === 'email' ? 1 : -1 }), result: (s) => s.client.prefers === 'email' ? `${C(s)} loves a form. It comes back annotated.` : `${C(s)} fills in half of it on their phone.` }
       ]
@@ -1408,7 +1488,7 @@ window.PP = window.PP || {};
     /* ---- Fog of Forgotten Info ---- */
     {
       id: 'fog_forgot', title: 'The Fog of Forgotten Info', at: ['fog'], first: true, cut: 'fog',
-      text: (s) => `Fog rolls over the wagon. Did ${C(s)} say "next year" or "next month"? You genuinely can't remember. Neither can they, apparently.`,
+      text: (s) => `Fog rolls over the trail. Did ${C(s)} say "next year" or "next month"? You genuinely can't remember. Neither can they, apparently.`,
       choices: [
         { label: 'Go with your best guess', kind: 'through', hint: 'Fast and confident. Possibly wrong.', eff: { momentum: 1, debt: { tag: 'timeline', sev: 2 }, style: { avoid: 1 } }, result: '"Next year." Probably. Sure.' },
         { label: 'Ask the client again', kind: 'prepare', hint: 'Asking twice costs a little credibility, unless you ask well.', eff: (s) => ({ insight: 1, trust: PP.skill(s, 'communication') > 0 ? 0 : -1, momentum: -1 }), result: (s) => PP.skill(s, 'communication') > 0 ? '"Just want to get this exactly right." No harm done.' : `${C(s)}: "I told you that already?" Slightly awkward.` },
@@ -1435,7 +1515,7 @@ window.PP = window.PP || {};
       choices: [
         { label: 'Join them: pitch the product right now', kind: 'through', hint: 'It feels like progress the whole way down.', eff: { momentum: 2, trust: -2, debt: { tag: 'premature_pitch', sev: 2 } }, result: (s) => `${C(s)} listens to the whole pitch, then asks, "But do I need that?" You don't know.` },
         { label: 'Stand at the edge and watch what happens', kind: 'prepare', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 }, energy: -1 } : { insight: 1 }), result: 'You watch three agents go over before they know what the client needs. Lesson learned, safely.' },
-        { label: 'Turn the wagon around', kind: 'around', result: 'A day wasted, nobody hurt.' }
+        { label: 'Turn around', kind: 'around', result: 'A day wasted, nobody hurt.' }
       ]
     },
 
@@ -1479,7 +1559,7 @@ window.PP = window.PP || {};
     /* ---- Shifting Sands of Initiatives ---- */
     {
       id: 'sands_change', title: 'Change of mind', at: ['sands'], first: true,
-      text: (s) => `The dunes shift under the wagon. So does ${C(s)}. ${s.client.changeOfMind}`,
+      text: (s) => `The dunes shift under your boots. So does ${C(s)}. ${s.client.changeOfMind}`,
       choices: [
         { label: 'Defend the current plan', kind: 'through', hint: 'Sunk cost feels like commitment.', eff: { momentum: 1, trust: -2, debt: { tag: 'ignored_change', sev: 2 } }, result: '"The plan is still solid," you say. The client sounds unconvinced.' },
         { label: 'Ask what changed, and why', kind: 'prepare', eff: (s) => ({ momentum: -1, insight: 2, trust: 1, fact: s.client.keyFact }), result: 'It turns out this was coming for a while. Now the picture is clearer.' },
@@ -1573,7 +1653,7 @@ window.PP = window.PP || {};
       text: (s) => `A troll in a green visor leans out of the toll booth. "Toll is: show me the file's up to date." The river below is fast and cold. ${s.res.insight >= 5 ? 'Your file is in decent shape.' : 'Your file is... thin.'}`,
       choices: [
         { label: 'Pay the toll: walk through the file together', kind: 'prepare', hint: 'Easy if you did the work earlier.', eff: (s) => (s.res.insight >= 5 ? { trust: 1, momentum: 1 } : { energy: -2, days: 1, insight: 1 }), preview: 'With Insight 5+: smooth. Otherwise a day of catch-up.', result: (s) => (s.res.insight >= 5 ? 'The troll nods at every page. "Tidy." The gate swings open.' : 'A long day of digging up what you should have collected earlier. The troll waits, eating a sandwich.') },
-        { label: 'Ford the river, skip the review', kind: 'through', hint: 'Wet, fast, and you might lose something.', eff: () => (PP.chance(0.35) ? { momentum: -1, energy: -2, trust: -1, debt: { tag: 'rushed_pace', sev: 2 } } : { momentum: 2, debt: { tag: 'rushed_pace', sev: 2 } }), preview: 'Fast, adds hidden risk, and 35% of the time the wagon tips (Energy -2, Trust -1).', result: 'Splash. You make it across. Mostly dry. Mostly.' },
+        { label: 'Ford the river, skip the review', kind: 'through', hint: 'Wet, fast, and you might lose something.', eff: () => (PP.chance(0.35) ? { momentum: -1, energy: -2, trust: -1, debt: { tag: 'rushed_pace', sev: 2 } } : { momentum: 2, debt: { tag: 'rushed_pace', sev: 2 } }), preview: 'Fast, adds hidden risk, and 35% of the time you slip (Energy -2, Trust -1).', result: 'Splash. You make it across. Mostly dry. Mostly.' },
         { label: 'Wait for the ferry', kind: 'around', eff: { days: 2, energy: 2, momentum: -1 }, result: 'Two days on the riverbank. Restful. The client keeps checking their watch.' },
         { label: 'Ask Olu to get the file ready', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), eff: { momentum: 1, trust: 1 }, result: 'Olu shows up with a binder. The troll salutes.' }
       ]
@@ -1592,25 +1672,25 @@ window.PP = window.PP || {};
     /* ================= ON THE TRAIL ================= */
     {
       id: 'enc_rick', title: 'Slick Rick, top producer', at: ['travel'],
-      text: 'A shiny wagon pulls alongside. Gold hubcaps. "Slick Rick, top producer! Where you headed, kid? Closed four deals this week. Want to know my secret?"',
+      text: 'A hiker in very expensive boots strides up. "Slick Rick, top producer! Where you headed, kid? Closed four deals this week. Want to know my secret?"',
       choices: [
         { label: 'Ask for his closing script', kind: 'through', eff: { momentum: 1, debt: { tag: 'premature_pitch', sev: 1 } }, result: 'He hands you a laminated card. It just says ALWAYS BE CLOSING, in three fonts.' },
         { label: 'Ask how those four clients are doing now', kind: 'prepare',
           then: { text: '"How they\'re...?" Rick\'s smile flickers. "Two cancelled. One stopped returning calls. The fourth was my cousin." He stares at the horizon for a while.',
             choices: [
-              { label: 'Suggest he talk to the lighthouse keeper', kind: 'help', eff: { insight: 1, trust: 1 }, result: '"The lighthouse lady? ...Maybe." He drives off slower than he arrived. Your client noticed how you handled that.' },
+              { label: 'Suggest he talk to the lighthouse keeper', kind: 'help', eff: { insight: 1, trust: 1 }, result: '"The lighthouse lady? ...Maybe." He walks off slower than he arrived. Your client noticed how you handled that.' },
               { label: 'Wish him luck', kind: 'around', eff: { insight: 1 }, result: 'You file that away.' }
             ] } },
-        { label: 'Wave and keep driving', kind: 'around', result: 'Rick honks twice. His horn plays a jingle.' }
+        { label: 'Wave and keep walking', kind: 'around', result: 'Rick checks his smartwatch and power-walks away.' }
       ]
     },
     {
       id: 'enc_intern', title: 'A lost intern', at: ['travel'],
       text: 'A young person from Operations is wandering the trail with an armful of forms. "Is this the way back to the port? I\'ve been walking for three days. I think these are due."',
       choices: [
-        { label: 'Give them a ride and help sort the forms', kind: 'help', eff: (s) => ({ energy: -1, item: 'checklist', trust: 1 }), result: 'They hop off at the next crossroads and give you a laminated checklist as thanks. Your client liked seeing that.' },
+        { label: 'Walk with them and help sort the forms', kind: 'help', eff: (s) => ({ energy: -1, item: 'checklist', trust: 1 }), result: 'They peel off at the next crossroads and give you a laminated checklist as thanks. Your client liked seeing that.' },
         { label: 'Point them the right way', kind: 'around', eff: { trust: 0 }, result: '"Back that way, past the meadow." They trudge off, grateful.' },
-        { label: 'Keep driving, you have a client', kind: 'through', eff: { momentum: 1, style: { soloist: 1 } }, result: 'They wave sadly in the mirror.' }
+        { label: 'Keep walking, you have a client', kind: 'through', eff: { momentum: 1, style: { soloist: 1 } }, result: 'They wave sadly as you go.' }
       ]
     },
     {
@@ -1666,49 +1746,49 @@ window.PP = window.PP || {};
       choices: [
         { label: 'Steer through it and grab the important ones', kind: 'prepare', minigame: 'inboxRapids', hint: 'Catch the gold ones. Dodge the rest.', result: 'You come out the other side, damp but caught up.' },
         { label: 'Pull over and wait it out', kind: 'around', eff: { days: 1, momentum: -1, energy: 1 }, result: 'A day under a tarp. It passes.' },
-        { label: 'Close the laptop and drive', kind: 'through', eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } }, result: 'Out of sight, out of mind. Mostly out of mind.' }
+        { label: 'Close the laptop and keep walking', kind: 'through', eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } }, result: 'Out of sight, out of mind. Mostly out of mind.' }
       ]
     },
     {
       id: 'enc_stakeholder', title: 'A passenger with opinions', at: ['travel'],
       when: (s) => !K(s, s.client.stakeholderFact),
-      text: (s) => `At a crossroads, ${s.client.shortStake} climbs into the wagon. "${C(s)} said I should come along. I have some thoughts."`,
+      text: (s) => `At a crossroads, ${s.client.shortStake} catches up and joins the hike. "${C(s)} said I should come along. I have some thoughts."`,
       choices: [
         { label: 'Listen to their thoughts', kind: 'prepare', eff: (s) => ({ insight: 1, momentum: -1, fact: s.client.stakeholderFact }), result: (s) => `${s.client.shortStake} has a lot of thoughts. Some of them are very important.` },
-        { label: 'Politely suggest they wait for the next meeting', kind: 'around', eff: (s) => ({ trust: PP.skill(s, 'communication') > 0 ? 0 : -1, debt: { tag: 'unknown_stakeholder', sev: 1 } }), result: 'They climb back out, a bit put out.' },
-        { label: 'Hand them the reins and let them drive', kind: 'through', eff: (s) => ({ trust: 1, days: 1, style: { chase: 1 }, fact: s.client.stakeholderFact }), result: 'They take you on a scenic detour, but you learn a lot along the way.' }
+        { label: 'Politely suggest they wait for the next meeting', kind: 'around', eff: (s) => ({ trust: PP.skill(s, 'communication') > 0 ? 0 : -1, debt: { tag: 'unknown_stakeholder', sev: 1 } }), result: 'They head home, a bit put out.' },
+        { label: 'Hand them the map and let them lead', kind: 'through', eff: (s) => ({ trust: 1, days: 1, style: { chase: 1 }, fact: s.client.stakeholderFact }), result: 'They take you on a scenic detour, but you learn a lot along the way.' }
       ]
     },
     {
       id: 'enc_hitchhiker', title: 'A hitchhiker in a fleece vest', at: ['travel'],
       when: (s) => !s.map.visited.summit,
-      text: 'A hiker in a fleece vest with a laminated badge flags you down. "Specialist, heading back up to the Summit. Room in your wagon?"',
+      text: 'A hiker in a fleece vest with a laminated badge falls into step with you. "Specialist, heading back up to the Summit. Mind if I walk with you?"',
       choices: [
-        { label: 'Give them a ride', kind: 'help', eff: { insight: 2, momentum: -1, style: { soloist: -1 } }, result: 'They answer three questions you didn\'t know you had.' },
-        { label: 'Ask one quick question through the window', kind: 'around', eff: { insight: 1 }, result: '"Good question," they say. You feel ten feet tall.' },
-        { label: 'Drive on, you\'ve got this', kind: 'through', eff: { momentum: 1, style: { soloist: 1 } }, result: 'They shrink in the mirror. The Summit looks a little icier.' }
+        { label: 'Walk together', kind: 'help', eff: { insight: 2, momentum: -1, style: { soloist: -1 } }, result: 'They answer three questions you didn\'t know you had.' },
+        { label: 'Ask one quick question as they pass', kind: 'around', eff: { insight: 1 }, result: '"Good question," they say. You feel ten feet tall.' },
+        { label: 'Push on alone, you\'ve got this', kind: 'through', eff: { momentum: 1, style: { soloist: 1 } }, result: 'They fall behind. The Summit looks a little icier.' }
       ]
     },
     {
       id: 'enc_coldfeet', title: 'Cold feet', at: ['travel'],
-      text: (s) => `In the morning, ${C(s)} doesn't get in the wagon. "Maybe we should just... turn back? This feels like a lot."`,
+      text: (s) => `In the morning, ${C(s)} doesn't lace up their boots. "Maybe we should just... turn back? This feels like a lot."`,
       choices: [
-        { label: '"It\'ll be fine, trust me."', kind: 'through', hint: 'Reassurance without understanding.', eff: { momentum: 1, debt: { tag: 'unchallenged_assumption', sev: 1 } }, result: 'They get in. They do not look reassured.' },
+        { label: '"It\'ll be fine, trust me."', kind: 'through', hint: 'Reassurance without understanding.', eff: { momentum: 1, debt: { tag: 'unchallenged_assumption', sev: 1 } }, result: 'They lace up. They do not look reassured.' },
         { label: '"What\'s making this feel like a lot?"', kind: 'prepare',
           then: { text: (s) => { const w = s.client.checkin && s.client.checkin.worry; return (w && (PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6) ? w.text : (w ? w.guarded : '"I don\'t know. Everything?"')); },
             choices: [
-              { label: 'Thank them for telling you', kind: 'prepare', eff: (s) => { const w = s.client.checkin && s.client.checkin.worry; const open = PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6; return Object.assign({ trust: 1, insight: 1 }, open && w && w.fact ? { fact: w.fact } : {}); }, result: 'They climb into the wagon. Lighter, somehow.' }
+              { label: 'Thank them for telling you', kind: 'prepare', eff: (s) => { const w = s.client.checkin && s.client.checkin.worry; const open = PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6; return Object.assign({ trust: 1, insight: 1 }, open && w && w.fact ? { fact: w.fact } : {}); }, result: 'They shoulder their pack. Lighter, somehow.' }
             ] } },
         { label: 'Agree to slow down', kind: 'around', eff: { pace: 'steady', trust: 1, momentum: -1 }, result: 'You set an easier pace. They visibly relax.' }
       ]
     },
     {
-      id: 'enc_wheel', title: 'A wheel comes off', at: ['travel'], cut: 'breakdown',
-      text: 'CRACK. The back wheel rolls off into a ditch. Someone has painted "PROCESS" on it.',
+      id: 'enc_wheel', title: 'Your pack strap snaps', at: ['travel'], cut: 'breakdown',
+      text: 'SNAP. Your pack tumbles down the slope into a ditch. Someone has written "PROCESS" on the broken strap.',
       choices: [
         { label: 'Fix it yourself', kind: 'through', eff: { energy: -2, style: { soloist: 1 } }, result: 'Greasy, but fixed. Probably.' },
-        { label: 'Call Olu', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), eff: { momentum: 1 }, result: 'Olu arrives with a spare wheel labelled "PROCESS (v2)". It fits perfectly.' },
-        { label: 'Wait for help to come by', kind: 'around', eff: { days: 2, momentum: -1, energy: 1 }, result: 'Two days later, a friendly wainwright appears. Everyone needs a hand sometimes.' }
+        { label: 'Call Olu', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), eff: { momentum: 1 }, result: 'Olu appears with a spare strap labelled "PROCESS (v2)". It fits perfectly.' },
+        { label: 'Wait for help to come by', kind: 'around', eff: { days: 2, momentum: -1, energy: 1 }, result: 'Two days later, a friendly hiker with a sewing kit comes by. Everyone needs a hand sometimes.' }
       ]
     },
     {
@@ -1723,17 +1803,17 @@ window.PP = window.PP || {};
     {
       id: 'enc_stampede', title: 'Stampede!', at: ['travel'], cut: 'stampede',
       when: (s) => s.map.visited.swamp || s.style.chase > 0,
-      text: 'A herd of New Initiatives thunders across the trail, each one waving a slide deck. The wagon rocks. One of them looks at your client meaningfully.',
+      text: 'A herd of New Initiatives thunders across the trail, each one waving a slide deck. The ground shakes. One of them looks at your client meaningfully.',
       choices: [
         { label: 'Wait for the herd to pass', kind: 'around', eff: { days: 1, momentum: -1 }, result: 'A day later, the dust settles. Most of the initiatives have already been renamed.' },
-        { label: 'Lasso one and ride it', kind: 'through', hint: 'Exciting. Is it going your way?', eff: { momentum: 1, energy: -1, style: { chase: 1 } }, result: 'Yee-haw! It takes you somewhere. Not necessarily where you were going.' },
+        { label: 'Grab one and run along with it', kind: 'through', hint: 'Exciting. Is it going your way?', eff: { momentum: 1, energy: -1, style: { chase: 1 } }, result: 'Wheee! It takes you somewhere. Not necessarily where you were going.' },
         { label: 'Ask which one actually matters for this client', kind: 'prepare', eff: { insight: 1 }, result: 'One of them does, a little. You make a note. The rest gallop off.' }
       ]
     },
     {
       id: 'enc_dragon', title: 'Here be dragons', at: ['travel'], cut: 'dragon', weight: 0.8,
       when: (s) => s.day >= 3,
-      text: 'A long shape rises out of the water beside the trail. A dragon! It peers at you over half-moon glasses. "Spot review," it rumbles. "Nothing personal. Show me what you\'ve got."',
+      text: 'A long shape rises out of a lake beside the trail. A dragon! It peers at you over half-moon glasses. "Spot review," it rumbles. "Nothing personal. Show me what you\'ve got."',
       choices: [
         { label: 'Show it everything, gaps and all', kind: 'prepare', hint: 'Honest and thorough. Probably exhausting.', eff: (s) => (s.debt.length ? { energy: -2, clearDebt: s.debt[0].tag, insight: 1 } : { trust: 1, insight: 1 }), result: 'The dragon flips through everything. Where it finds a gap, it helps you fix it. Thorough. Exhausting. Kind of nice.' },
         { label: 'Show it only the good parts', kind: 'through', eff: { momentum: 1, debt: { tag: 'rushed_pace', sev: 1 } }, result: 'The dragon squints, then shrugs and sinks back into the water.' },
@@ -1744,16 +1824,16 @@ window.PP = window.PP || {};
     /* --- Smaller moments on the trail --- */
     {
       id: 'road_phone_tag', title: 'Phone tag', at: ['travel'],
-      text: (s) => `You need two answers from ${C(s)}, who has gone quiet in the back of the wagon, deep in their phone. Three days now.`,
+      text: (s) => `You need two answers from ${C(s)}, who has gone quiet a few steps behind you, deep in their phone. Three days now.`,
       choices: [
-        { label: 'Call (from the front seat)', kind: 'through', hint: 'Persistence or pestering, depending on the client.', eff: (s) => (s.client.prefers === 'call' ? { trust: 1, momentum: 1, energy: -1 } : { trust: -1, energy: -1 }), result: (s) => (s.client.prefers === 'call' ? 'They pick up on the first ring. Answers!' : 'It rings in the back seat. They decline it. They are right there.') },
+        { label: 'Call them (they are right there)', kind: 'through', hint: 'Persistence or pestering, depending on the client.', eff: (s) => (s.client.prefers === 'call' ? { trust: 1, momentum: 1, energy: -1 } : { trust: -1, energy: -1 }), result: (s) => (s.client.prefers === 'call' ? 'They pick up on the first ring. Answers!' : 'It rings three steps behind you. They decline it.') },
         { label: 'Send a short text', kind: 'around', eff: (s) => (s.client.prefers === 'text' ? { momentum: 2, trust: 1 } : { momentum: 0 }), result: (s) => (s.client.prefers === 'text' ? '"k. yes. 3pm." Perfect.' : 'Read at 11:42pm. No reply.') },
         { label: 'Write a clear email with both questions', kind: 'around', eff: (s) => (s.client.prefers === 'email' ? { momentum: 2, insight: 1 } : { momentum: -1 }), result: (s) => (s.client.prefers === 'email' ? 'A detailed reply with headings. Wonderful.' : 'The email is somewhere under 400 newsletters.') }
       ]
     },
     {
       id: 'road_coffee', title: 'A roadside coffee stand', at: ['travel'],
-      text: 'A little stand by the trail sells coffee that smells like it costs more than your wagon. The owner offers you a cup on the house.',
+      text: 'A little stand by the trail sells coffee that smells like it costs more than your boots. The owner offers you a cup on the house.',
       choices: [
         { label: 'Accept', kind: 'prepare', eff: { energy: 2 }, result: 'Life-changing. You will think about this coffee for years.' },
         { label: 'Decline, you\'re on the clock', kind: 'through', eff: { momentum: 1 }, result: 'Brisk. Professional. Undercaffeinated.' }
@@ -1763,7 +1843,7 @@ window.PP = window.PP || {};
       id: 'road_calendar', title: 'Calendar Tetris', at: ['travel'],
       text: (s) => `You need a proper sit-down with ${C(s)}. The first open slot is tomorrow at 8am. The next one with prep time is three days out.`,
       choices: [
-        { label: 'Take tomorrow, prep in the wagon', kind: 'through', hint: 'Speed versus readiness.', eff: { momentum: 1, debt: { tag: 'unprepared_meeting', sev: 1 } }, result: 'Booked. You\'ll figure it out.' },
+        { label: 'Take tomorrow, prep on the trail', kind: 'through', hint: 'Speed versus readiness.', eff: { momentum: 1, debt: { tag: 'unprepared_meeting', sev: 1 } }, result: 'Booked. You\'ll figure it out.' },
         { label: 'Wait for the later slot, come prepared', kind: 'prepare', eff: { momentum: -1, insight: 1 }, result: 'You walk in ready.' },
         { label: 'Later slot, and bring Dev along', kind: 'help', contact: 'specialist', show: (s) => PP.contactReady(s, 'specialist'), eff: { momentum: -1, insight: 2, trust: 1 }, result: 'Two of you, fully prepared. The client is impressed.' }
       ]
@@ -1788,10 +1868,91 @@ window.PP = window.PP || {};
     },
     {
       id: 'road_fast_road', title: 'A faster road', at: ['travel'],
-      text: (s) => `A smooth, fast stretch of road opens up. To make the most of it, you could skip confirming ${C(s)}'s current details: address, contact info, the basics.`,
+      text: (s) => `A smooth, fast stretch of trail opens up. To make the most of it, you could skip confirming ${C(s)}'s current details: address, contact info, the basics.`,
       choices: [
-        { label: 'Skip it and drive on', kind: 'through', hint: 'Usually fine. Usually.', eff: { momentum: 2, debt: { tag: 'unverified_details', sev: 2 } }, result: 'The road flies by. Nothing happens. Nothing at all.' },
+        { label: 'Skip it and push on', kind: 'through', hint: 'Usually fine. Usually.', eff: { momentum: 2, debt: { tag: 'unverified_details', sev: 2 } }, result: 'The miles fly by. Nothing happens. Nothing at all.' },
         { label: 'Pull over and verify everything', kind: 'prepare', eff: { energy: -1, momentum: -1, insight: 1 }, result: (s) => `${C(s)} moved last spring. Good thing you checked.` }
+      ]
+    },
+    /* --- Rivals who want your client --- */
+    {
+      id: 'enc_rival_vance', title: 'Vance from Velocity Wealth', at: ['travel'], weight: 1.3,
+      when: (s) => s.day >= 3,
+      text: (s) => `A man in a quarter-zip jogs up the trail and falls in beside ${C(s)}. "Vance, Velocity Wealth. I can have a plan on your desk by Friday. No questions, no homework." He hands ${C(s)} a metal business card.`,
+      choices: [
+        { label: 'Let your work speak for itself', kind: 'through', hint: 'Only works if the relationship is already strong.', eff: (s) => (s.res.trust >= 6 ? { trust: 1 } : { poached: true }), preview: 'Trust 6 or more: they stay. Less: they leave with Vance.', result: (s) => (s.poached ? `${C(s)} hesitates, then walks off with Vance.` : `${C(s)} hands the card back. "I like the homework, actually."`) },
+        { label: 'Ask your client what they make of his offer', kind: 'prepare', hint: 'Talking it through usually helps, if there is enough trust to work with.', eff: (s) => (s.res.trust >= 4 ? { trust: 1, insight: 1 } : PP.chance(0.5) ? { poached: true } : { insight: 1 }), preview: 'Trust 4 or more: they stay, and you learn something. Less: a coin flip.', result: (s) => (s.poached ? `"Honestly? Friday sounds good." ${C(s)} goes with Vance.` : `"No questions means he doesn't know me," ${C(s)} says. Vance jogs off.`) },
+        { label: 'Tell your client Vance is a crook', kind: 'through', eff: { trust: -1 }, result: 'It works, but it does not look great on you.' },
+        { label: 'Promise you can be faster than Vance', kind: 'around', eff: { momentum: 2, pace: 'brisk', debt: { tag: 'premature_pitch', sev: 2 } }, result: 'You pick up the pace. Now you have a deadline you invented.' }
+      ]
+    },
+    {
+      id: 'enc_rival_sign', title: '"GUARANTEED RESULTS"', at: ['travel'],
+      text: (s) => `A huge sign beside the trail: GUARANTEED RESULTS, VELOCITY WEALTH, NEXT EXIT. ${C(s)} stares at it. "Can you guarantee results?"`,
+      choices: [
+        { label: 'Explain honestly why nobody can guarantee that', kind: 'prepare', eff: (s) => ({ trust: PP.skill(s, 'communication') > 0 ? 2 : 1, insight: 1 }), result: (s) => `${C(s)} nods slowly. "That's the first honest thing anyone's said about this."` },
+        { label: '"Sure, basically."', kind: 'through', eff: { momentum: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: 'It felt good to say. It will feel less good later.' },
+        { label: 'Change the subject', kind: 'around', eff: { style: { avoid: 1 } }, result: 'The sign stays in your rear view for a long time.' }
+      ]
+    },
+    /* --- New prospects on the trail --- */
+    {
+      id: 'enc_hiker_prospect', title: 'A fellow hiker', at: ['travel'],
+      text: 'At a water stop, another hiker asks what you do. When you tell them, they go quiet. "Huh. I\'ve been meaning to figure all that out."',
+      choices: [
+        { label: 'Tell them more, and ask about them', kind: 'prepare', eff: { energy: -1, prospect: { temp: 'warm', source: 'a hiker you met on the trail' } }, result: 'You trade stories for twenty minutes. They want to meet when you are back at the port. (New prospect in your pipeline.)' },
+        { label: 'Hand them a card and keep moving', kind: 'around', eff: () => (PP.chance(0.5) ? { prospect: { temp: 'cold', source: 'a card you handed out on the trail' } } : {}), preview: '50% chance of a cold prospect.', result: 'Maybe they will call.' },
+        { label: 'Stay focused on your client', kind: 'through', eff: { trust: 1 }, result: 'Your client notices you kept your attention on them.' }
+      ]
+    },
+    {
+      id: 'enc_client_friend', title: 'A friend of your client', at: ['travel'], weight: 1.4,
+      when: (s) => s.res.trust >= 7,
+      text: (s) => `${C(s)}'s friend joins the hike for an afternoon. Near the end she pulls you aside: "${C(s)} won't stop talking about you. Are you taking new clients?"`,
+      choices: [
+        { label: '"Absolutely. Let\'s talk when we\'re back."', kind: 'prepare', eff: (s) => ({ prospect: { temp: 'hot', source: `${s.client.name}'s friend` } }), result: 'A hot referral, earned on the trail. (New prospect in your pipeline.)' },
+        { label: '"Once I\'ve finished with your friend, yes."', kind: 'around', eff: (s) => ({ trust: 1, prospect: { temp: 'warm', source: `${s.client.name}'s friend` } }), result: `Your client overhears and beams.` }
+      ]
+    },
+    {
+      id: 'enc_lost_family', title: 'A lost family', at: ['travel'],
+      text: 'A family stands at a fork with their map upside down. The kids are arguing about snacks. The parents are arguing about the mortgage.',
+      choices: [
+        { label: 'Help them find their way', kind: 'help', eff: { energy: -1, prospect: { temp: 'warm', source: 'a family you helped on the trail', bias: { taylor: 3 } } }, result: 'You turn their map the right way up. They ask for your card. (New prospect in your pipeline.)' },
+        { label: 'Point the way and keep going', kind: 'around', eff: { momentum: 1 }, result: '"That way!" They wave thanks.' }
+      ]
+    },
+    /* --- Mentors who teach on the trail --- */
+    {
+      id: 'enc_mentor_guide', title: 'A seasoned trail guide', at: ['travel'],
+      when: (s) => PP.skill(s, 'navigation') < 2,
+      text: 'A weathered guide sits on a rock, sharpening a pencil with a pocket knife. "You read the land like a tourist. Want to learn to read it properly?"',
+      choices: [
+        { label: 'Spend a day learning from them', kind: 'prepare', eff: { days: 1, skill: { navigation: 1 } }, result: 'By sundown you can tell a dead end from a shortcut at fifty paces. (+1 Navigation, for the rest of your career.)' },
+        { label: 'Ask for one quick tip', kind: 'around', eff: { insight: 1 }, result: '"Dotted lines go somewhere. Dashed lines go nowhere useful." Noted.' },
+        { label: 'No time, thanks', kind: 'through', eff: { momentum: 1 }, result: 'They shrug and keep sharpening.' }
+      ]
+    },
+    {
+      id: 'enc_mentor_retired', title: 'A retired advisor on a bench', at: ['travel'],
+      text: 'An older woman eating a sandwich on a bench waves you over. "Forty years in this business. Want the one thing I learned?"',
+      choices: [
+        { label: '"Yes, please."', kind: 'prepare',
+          then: { text: '"Ask one more question than feels comfortable. That\'s it. That\'s the whole job." She goes back to her sandwich.',
+            choices: [
+              { label: 'Try it on your client right away', kind: 'prepare', eff: (s) => (PP.skill(s, 'curiosity') < 2 ? { skill: { curiosity: 1 }, trust: 1 } : { insight: 2 }), result: 'You ask one more question. The answer surprises you both. (Curiosity improves for the rest of your career.)' },
+              { label: 'Write it down for later', kind: 'around', eff: { insight: 1 }, result: 'It goes on the first page of your notebook.' }
+            ] } },
+        { label: 'Smile and keep walking', kind: 'through', result: 'She shrugs. More sandwich for her.' }
+      ]
+    },
+    {
+      id: 'enc_mentor_speaker', title: 'Someone practicing a speech to the trees', at: ['travel'],
+      when: (s) => PP.skill(s, 'communication') < 2,
+      text: 'A well-known speaker is rehearsing a keynote to a grove of very patient pine trees. They notice you. "You there. Explain what you do in one sentence."',
+      choices: [
+        { label: 'Try, and ask for honest feedback', kind: 'prepare', eff: { days: 1, skill: { communication: 1 } }, result: 'Seven attempts later, your sentence is clear, short, and true. (+1 Communication, for the rest of your career.)' },
+        { label: 'Mumble something and hurry on', kind: 'through', eff: { momentum: 1 }, result: 'The trees seemed unimpressed too.' }
       ]
     }
   ];
@@ -1808,7 +1969,7 @@ window.PP = window.PP || {};
     };
     return {
       id: 'last_chance_momentum', title: 'Dead in the water', at: ['travel'],
-      text: `The wagon has barely moved in days. ${C(s)} is "pretty swamped right now, can we circle back?" One more stall and this is over.`,
+      text: `You have barely moved in days. ${C(s)} is "pretty swamped right now, can we circle back?" One more stall and this is over.`,
       choices: [
         { label: 'Propose one tiny, concrete next step', kind: 'prepare', eff: { momentum: 3 }, result: 'Small enough to say yes to. They say yes.' },
         { label: 'Ask what is getting in the way', kind: 'prepare', eff: { momentum: 2, insight: 1 }, result: 'It was never about the plan. It was about time. You can work with that.' }
@@ -1833,114 +1994,290 @@ window.PP = window.PP || {};
   };
 })(window.PP);
 
+/* Systems built at the port add better options to some landmark events. */
+(function (PP) {
+  const has = (id) => (s) => PP.career && PP.career.hasSystem(s.career, id);
+  const add = (eventId, choice) => { const e = PP.content.events.find((x) => x.id === eventId); if (e) e.choices.push(Object.assign({ kind: 'help' }, choice)); };
+  add('meadow_first_talk', { label: 'Work through your discovery guide', show: has('discovery'), eff: (s) => ({ insight: 2, trust: 1, fact: s.client.stakeholderFact }), result: 'Your proven questions surface something you would have missed.' });
+  add('fog_forgot', { label: 'Check your note-taking system', show: has('notes'), eff: { insight: 1, momentum: 1 }, result: 'It is all there, dated and searchable. The fog thins.' });
+  add('loop_reentry', { label: 'Pull everything from your CRM', show: has('crm'), eff: { momentum: 1, insight: 1 }, result: 'Entered once, used forever. The loop straightens into a line.' });
+  add('swamp_sheet', { label: 'Run it through your planning software', show: has('planning'), eff: (s) => ({ insight: 2, fact: s.client.spreadsheetFact }), result: 'You cross on your own boardwalk. The software flags the one assumption that matters.' });
+  add('sands_initiative', { label: 'Check it against your focus routine', show: has('focus'), eff: { insight: 1, momentum: 1 }, result: 'Not relevant to this client. Filed, ignored, done.' });
+  add('sands_change', { label: 'Use your focus routine to sort what really changed', show: has('focus'), eff: (s) => ({ insight: 2, fact: s.client.keyFact }), result: 'You separate the signal from the noise together.' });
+  add('summit_handoff', { label: 'Send it to your specialist partner', show: has('specialist'), eff: { insight: 2, momentum: 1 }, result: 'They know how you work. The handoff takes ten minutes.' });
+  add('isles_locked', { label: 'Your tech setup handles it', show: has('tech'), eff: { momentum: 1, trust: 1 }, result: 'One tap, a code, and you are in.' });
+  add('isles_message', { label: 'Let your tech setup screen them', show: has('tech'), eff: { insight: 1 }, result: 'The fakes are flagged before you even see them.' });
+  add('toll_bridge', { label: 'Hand over your review file', show: has('review'), eff: { trust: 1, momentum: 2 }, result: 'The troll flips through it and waves you across. "Now that is a tidy file."' });
+})(window.PP);
+
 </script>
 <script>
-/* Your Practice: the career that sits above every journey.
- *
- * You start with savings. Every day costs money (living costs). Clients you land
- * join your book and some pay a little every day after that. Your level comes from
- * how that daily income compares with your daily costs:
- *
- *   Unemployed  — savings ran out. Career over.
- *   Survivable  — income is below costs; you are living off savings.
- *   Sustainable — your book covers your costs.
- *   Profitable  — your book covers twice your costs. The goal.
- *
- * Outcomes ripple forward: quick closes pay more now but can cancel later
- * (clawback), good fits pay steadily and refer, a respectful "not yet" may return.
+/* Agent types you can start as. Each trades off money, skills and natural market.
+ *   savings:  starting cash
+ *   living:   personal living costs per day
+ *   market:   size of your natural market (warm contacts you can call)
+ *   skills:   starting skill levels
+ *   perk:     one special rule (checked in code by id)
  */
 (function (PP) {
-  PP.content.practice = {
-    startSavings: 4000,
-    dailyCost: 100,
+  PP.content.agentTypes = [
+    {
+      id: 'changer', name: 'Career Changer', tagline: 'Left a corporate job to do something that matters.',
+      savings: 9000, living: 130, market: 9, skills: { judgment: 1 },
+      perk: 'Former colleagues', perkText: 'Warm calls always turn up two prospects, and they start with +1 Trust.',
+      cons: 'Used to a corporate salary. Living costs are high.'
+    },
+    {
+      id: 'grad', name: 'Recent Grad', tagline: 'Hungry, broke, and very good with a phone.',
+      savings: 1800, living: 60, market: 4, skills: { curiosity: 1, navigation: 1 },
+      perk: 'Fast learner', perkText: 'Learning from people at the port does not use up a day.',
+      cons: 'Tiny cushion and a small network. Prospecting is everything.'
+    },
+    {
+      id: 'connector', name: 'Community Connector', tagline: 'Coaches Little League. Knows every barista by name.',
+      savings: 3500, living: 90, market: 16, skills: { communication: 1, resourcefulness: 1 },
+      perk: 'Everyone knows you', perkText: 'Prospects you meet at events start warm, and referrals come easier.',
+      cons: 'Modest savings. Knowing people is not the same as knowing the work.'
+    },
+    {
+      id: 'insider', name: 'Industry Insider', tagline: 'Fifteen years as an accountant. Loves a good spreadsheet.',
+      savings: 5500, living: 100, market: 5, skills: { preparation: 1, judgment: 1, curiosity: 1 },
+      perk: 'Numbers person', perkText: 'Starts with the Swamp Mark, so Planning Software is available from day one. Spreadsheet types seek you out.',
+      cons: 'Small network, and people skills are a work in progress.'
+    }
+  ];
+})(window.PP);
+
+</script>
+<script>
+/* Build Your Practice: the business that sits above every journey.
+ *
+ * Every day costs money (your living costs plus rent). Clients in your book pay a
+ * little every day, but only while they are happy: satisfaction slips unless you
+ * spend days servicing them. Prospects wait in your pipeline, go cold, and can be
+ * taken by rivals. Practice upgrades (workspace, a partner, recruits, systems
+ * earned on the trail) change the math.
+ *
+ * Levels compare daily income with daily costs:
+ *   Unemployed  savings below zero (career over)
+ *   Survivable  income below costs
+ *   Sustainable income covers costs
+ *   Profitable  income covers twice your costs (the goal)
+ */
+(function (PP) {
+  const P = (PP.content.practice = {
     levels: [
       { id: 'unemployed', label: 'Unemployed', blurb: 'Savings ran out.' },
       { id: 'survivable', label: 'Survivable', blurb: 'Living off savings. Income is below costs.' },
-      { id: 'sustainable', label: 'Sustainable', blurb: 'Your book covers your costs.' },
-      { id: 'profitable', label: 'Profitable', blurb: 'Your book covers twice your costs.' }
+      { id: 'sustainable', label: 'Sustainable', blurb: 'Your income covers your costs.' },
+      { id: 'profitable', label: 'Profitable', blurb: 'Your income covers twice your costs.' }
     ],
-    // What each outcome pays. now = one-time commission; perDay = ongoing income from your book.
+    clawback: 2000,
+    // What each journey outcome pays. now = commission; perDay = ongoing income while the client stays happy.
     payout(s, destId, fit) {
       const trust = s.res.trust;
       if (destId === 'not_now') return trust >= 6
-        ? { now: 0, perDay: 0, status: 'door', note: 'No sale today, but the door is open. They may come back.' }
-        : { now: 0, perDay: 0, status: 'lost', note: 'They walked away. No sale, no relationship.' };
-      if (destId === 'grand_plan' && fit === 'poor') return { now: 3000, perDay: 0, status: 'at-risk', note: 'Big commission now. But it was not the right fit, and they might cancel.' };
-      if (fit === 'appropriate') return { now: 1500, perDay: trust >= 4 ? 50 : 30, status: 'life', referral: trust >= 7, note: trust >= 7 ? 'A client for life, and they want to refer a friend.' : 'A client for life.' };
-      if (fit === 'acceptable') return { now: 1000, perDay: 25, status: 'steady', note: 'A solid client. Not perfect, but steady.' };
-      return { now: 500, perDay: 0, status: 'at-risk', note: 'A small sale that does not fit. It may not last.' };
+        ? { now: 0, perDay: 0, sat: 7, status: 'door', note: 'No sale today, but the door is open. They may come back.' }
+        : { now: 0, perDay: 0, sat: 0, status: 'lost', note: 'They walked away. No sale, no relationship.' };
+      if (destId === 'grand_plan' && fit === 'poor') return { now: 3000, perDay: 0, sat: 4, status: 'at-risk', note: 'Big commission now. But it was not the right fit, and they might cancel.' };
+      if (fit === 'appropriate') return { now: 1500, perDay: trust >= 4 ? 50 : 30, sat: trust >= 7 ? 9 : 8, status: 'life', referral: trust >= 7, note: trust >= 7 ? 'A client for life, and they want to refer a friend.' : 'A client for life.' };
+      if (fit === 'acceptable') return { now: 1000, perDay: 25, sat: 7, status: 'steady', note: 'A solid client. Not perfect, but steady.' };
+      return { now: 500, perDay: 0, sat: 4, status: 'at-risk', note: 'A small sale that does not fit. It may not last.' };
     },
-    cancelChance: 0.5,
-    clawback: 2000,
-    returnChance: 0.45,
-    returnPayout: { now: 1000, perDay: 50 }
-  };
+    workspaces: {
+      kitchen: { name: 'Kitchen table', rent: 0, trust: 0, walkIn: 0, blurb: 'Free. Clients meet you at coffee shops. Nobody walks in.' },
+      desk: { name: 'Shared desk at the Harbor Co-op', rent: 25, trust: 1, walkIn: 0.04, blurb: 'Looks professional (+1 starting Trust). The odd walk-in prospect.' },
+      office: { name: 'Your own office on Harbor Street', rent: 70, trust: 1, walkIn: 0.12, blurb: 'A sign on the door brings regular walk-ins. Needed before you can recruit agents.' }
+    },
+    partners: [
+      { id: 'avery', name: 'Avery Chen', blurb: 'Detail-oriented and great at follow-up. Quiet at events.', referral: 0.06, cover: 0.4 },
+      { id: 'riley', name: 'Riley Park', blurb: 'Great with people, brings in leads, a little chaotic with paperwork.', referral: 0.12, cover: 0.65 }
+    ],
+    partnerTerms: 'You split rent 50/50 and each keep 75% of new commissions (25% goes to the partner). They look after your clients while you are on the trail, and pass you leads.',
+    partnerNeeds: 2,
+    recruits: [
+      { id: 'devon', name: 'Devon', blurb: 'Career changer. Eager, needs structure.', override: 25, quit: 0.06 },
+      { id: 'mei', name: 'Mei', blurb: 'Recent grad. Sharp, a little impatient.', override: 35, quit: 0.12 }
+    ],
+    recruitNeeds: 3, hireCost: 500, trainDays: 3, mentorEvery: 30,
+    /* Systems are earned on the trail: handle a landmark well to earn its Mark,
+     * then build the matching system back at Port Prospect. */
+    systems: {
+      discovery: { name: 'Discovery guide', mark: 'meadows', cost: 500, blurb: 'A proven set of first-meeting questions. Check-ins never stall for lack of Curiosity.' },
+      notes: { name: 'Note-taking system', mark: 'fog', cost: 400, blurb: 'Never lose a detail again. A new option in the Fog of Forgotten Info.' },
+      crm: { name: 'Client database (CRM)', mark: 'loop', cost: 900, blurb: 'Enter it once. The Loop of Endless Data Entry trails take a day less, with a clean way out.', shortens: 'loop' },
+      planning: { name: 'Planning software', mark: 'swamp', cost: 1200, blurb: 'Builds a boardwalk across Spreadsheet Swamp: its trails take a day less, with a better option inside.', shortens: 'swamp' },
+      focus: { name: 'Focus routine', mark: 'sands', cost: 300, blurb: 'A filter for every new initiative. New options in the Shifting Sands.' },
+      specialist: { name: 'Specialist partnership', mark: 'summit', cost: 800, blurb: 'A standing relationship with the Summit. Its trails take a day less; handoffs go smoothly.', shortens: 'summit' },
+      tech: { name: 'Tech setup', mark: 'isles', cost: 600, blurb: 'Logins, portals and e-signatures that just work. New options in the Login Isles.' },
+      review: { name: 'Review process', mark: 'toll', cost: 600, blurb: 'Files always current. Sail through the Annual Review Toll Bridge.' }
+    },
+    names: {
+      taylor: ['Taylor', 'Jamie', 'Alex', 'Robin', 'Casey', 'Drew', 'Kai', 'Jesse'],
+      morgan: ['Morgan', 'Sam', 'Dana', 'Quinn', 'Reese', 'Harper', 'Elliot', 'Blair'],
+      rosa: ['Rosa', 'Lena', 'Marisol', 'Bea', 'Nadia', 'Ines', 'Carmen', 'Opal']
+    },
+    life: { hot: 24, warm: 15, cold: 9 }
+  });
 
-  PP.newCareer = function () {
+  PP.newCareer = function (agentId) {
+    const a = PP.content.agentTypes.find((x) => x.id === agentId) || PP.content.agentTypes[0];
+    const skills = Object.assign({ curiosity: 0, preparation: 0, communication: 0, navigation: 0, resourcefulness: 0, judgment: 0 }, a.skills);
     return {
-      savings: PP.content.practice.startSavings,
-      journeys: 0,
-      days: 0,
-      book: [],               // { id, clientId, name, status, perDay, journey }
-      skills: { curiosity: 0, preparation: 0, communication: 0, navigation: 0, resourcefulness: 0, judgment: 0 },
-      contacts: [], met: {}, quests: {},
-      referral: false,
-      lastClient: null,
-      history: [],            // { journey, client, outcome, cash }
-      over: false,
-      bestLevel: 'survivable'
+      agent: a.id, savings: a.savings, living: a.living, market: a.market,
+      days: 0, journeys: 0,
+      book: [], pipeline: [], inbox: [], history: [],
+      skills, contacts: [], met: {}, quests: {},
+      workspace: 'kitchen', partner: null, recruits: [], systems: {},
+      marks: a.id === 'insider' ? { swamp: true } : {},
+      known: { port: true },
+      lastService: 0, usedNames: {}, over: false, bestLevel: 'survivable'
     };
   };
 
-  PP.career = {
-    income(c) { return c.book.reduce((a, b) => a + (b.perDay || 0), 0); },
+  const C = (PP.career = {
+    agent(c) { return PP.content.agentTypes.find((x) => x.id === c.agent) || PP.content.agentTypes[0]; },
+    rent(c) { return P.workspaces[c.workspace].rent * (c.partner ? 0.5 : 1); },
+    costs(c) { return c.living + C.rent(c); },
+    bookIncome(c) { return c.book.reduce((a, b) => a + (b.status === 'life' || b.status === 'steady' ? b.perDay : 0), 0); },
+    overrides(c) { return c.recruits.reduce((a, r) => a + (r.trained ? r.override : 0), 0); },
+    income(c) { return C.bookIncome(c) + C.overrides(c); },
     level(c) {
       if (c.savings < 0) return 'unemployed';
-      const inc = PP.career.income(c), cost = PP.content.practice.dailyCost;
+      const inc = C.income(c), cost = C.costs(c);
       if (inc >= cost * 2) return 'profitable';
       if (inc >= cost) return 'sustainable';
       return 'survivable';
     },
-    levelInfo(c) { const id = PP.career.level(c); return PP.content.practice.levels.find((l) => l.id === id); },
-    runway(c) { const net = PP.content.practice.dailyCost - PP.career.income(c); return net <= 0 ? Infinity : Math.max(0, Math.floor(c.savings / net)); },
-    /* One day passes: living costs out, book income in. Returns the net. */
-    tickDay(c) {
-      const net = PP.career.income(c) - PP.content.practice.dailyCost;
-      c.savings += net; c.days++;
-      return net;
-    },
-    save(c) { PP.store.set('career', c); },
-    load() { const c = PP.store.get('career', null); return c && !c.over ? c : null; },
-    clear() { PP.store.set('career', null); },
-    money(n) { const v = Math.round(n); return (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US'); }
-  };
+    levelInfo(c) { const id = C.level(c); return P.levels.find((l) => l.id === id); },
+    runway(c) { const net = C.costs(c) - C.income(c); return net <= 0 ? Infinity : Math.max(0, Math.floor(c.savings / net)); },
+    hasSystem(c, id) { return !!(c && c.systems && c.systems[id]); },
+    money(n) { const v = Math.round(n); return (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US'); },
+    save(c) { PP.store.set('career2', c); },
+    load() { const c = PP.store.get('career2', null); return c && !c.over ? c : null; },
+    clear() { PP.store.set('career2', null); },
 
-  /* Mail from your book, delivered on the trail during later journeys. */
-  PP.content.mailEvent = function (s, news) {
-    const P = PP.content.practice;
-    const entry = news.entry;
-    if (news.kind === 'cancel') return {
-      id: 'mail_cancel_' + entry.id, title: 'A letter by mail rider', at: ['travel'], cut: 'mail',
-      text: `A rider gallops up with a letter. It's from ${entry.name}, your client from journey ${entry.journey}: "We've decided to cancel. It just wasn't the right fit for us." The commission is clawed back.`,
-      choices: [
-        { label: 'Call them to understand what went wrong', kind: 'prepare', eff: { cash: -P.clawback, energy: -1, insight: 1 }, result: `${entry.name} is kind about it. "You never really asked what we needed." That one stings, and it sticks.` },
-        { label: 'File the letter and keep driving', kind: 'through', eff: { cash: -P.clawback }, result: 'You fold the letter very small.' }
-      ],
-      onResolve: () => { entry.status = 'cancelled'; entry.perDay = 0; }
-    };
-    if (news.kind === 'return') return {
-      id: 'mail_return_' + entry.id, title: 'A letter by mail rider', at: ['travel'], cut: 'mail',
-      text: `A rider brings a letter from ${entry.name}, who decided "not yet" on journey ${entry.journey}: "Things have settled. We're ready now, and we want to work with you."`,
-      choices: [
-        { label: 'Write back and welcome them', kind: 'prepare', eff: { cash: P.returnPayout.now, trust: 1 }, result: `${entry.name} joins your book. Your client notices you smiling.` }
-      ],
-      onResolve: () => { entry.status = 'life'; entry.perDay = P.returnPayout.perDay; }
-    };
-    return {
-      id: 'mail_thanks_' + entry.id, title: 'A letter by mail rider', at: ['travel'], cut: 'mail',
-      text: `A rider brings a note from ${entry.name}: "Just wanted to say thank you. Everything you set up is working."`,
-      choices: [{ label: 'Pin it to the inside of the wagon', kind: 'prepare', eff: { energy: 2 }, result: 'It helps more than coffee.' }]
-    };
+    /* Prospects */
+    newName(c, arch) {
+      const list = P.names[arch];
+      const used = c.usedNames[arch] || 0;
+      c.usedNames[arch] = used + 1;
+      return list[used % list.length] + (used >= list.length ? ' ' + String.fromCharCode(65 + Math.floor(used / list.length) - 1) + '.' : '');
+    },
+    addProspect(c, opts) {
+      const weights = opts.bias || { taylor: 1, morgan: 1, rosa: 1 };
+      if (c.agent === 'insider') weights.morgan = (weights.morgan || 1) + 1;
+      let arch = opts.archetype;
+      if (!arch) { const tot = Object.values(weights).reduce((a, b) => a + b, 0); let r = Math.random() * tot; for (const k in weights) { r -= weights[k]; if (r <= 0) { arch = k; break; } } arch = arch || 'taylor'; }
+      let temp = opts.temp || 'warm';
+      if (temp === 'cold' && c.agent === 'connector' && opts.event) temp = 'warm';
+      const p = { id: PP.uid('p'), archetype: arch, name: C.newName(c, arch), temp, source: opts.source || 'met somewhere', expires: c.days + P.life[temp] };
+      c.pipeline.push(p);
+      return p;
+    },
+    /* Build a playable client from a prospect: the archetype with a new name. */
+    makeClient(p) {
+      const base = PP.content.clients[p.archetype];
+      const json = JSON.stringify(base).split(base.name).join(p.name);
+      const cl = JSON.parse(json);
+      cl.id = p.archetype;
+      cl.prospectId = p.id;
+      cl.temp = p.temp;
+      cl.source = p.source;
+      return cl;
+    },
+
+    /* One day passes. away = on the trail. Returns notes for the player. */
+    tickDay(c, away) {
+      const notes = [];
+      const note = (text, kind, mail) => { notes.push({ text, kind }); if (mail) c.inbox.push({ text, kind, mail }); };
+      c.savings += C.income(c) - C.costs(c);
+      c.days++;
+      // Clients
+      const decay = 0.2 * (away && c.partner ? 1 - P.partners.find((x) => x.id === c.partner).cover : 1);
+      c.book.forEach((b) => {
+        if (b.status === 'cancelled' || b.status === 'lost') return;
+        b.sat = Math.max(0, (b.sat == null ? 7 : b.sat) - decay);
+        const active = b.status === 'life' || b.status === 'steady' || b.status === 'at-risk';
+        if (active && ((b.sat < 3.5 && PP.chance(0.06)) || (b.status === 'at-risk' && PP.chance(0.02)))) {
+          const claw = b.status === 'at-risk';
+          b.status = 'cancelled'; b.perDay = 0;
+          if (claw) c.savings -= P.clawback;
+          note(`${b.name} cancelled. ${claw ? `It was never the right fit. ${C.money(-P.clawback)} clawed back.` : 'They had not heard from you in a long time.'}`, 'bad', 'cancel');
+        } else if (b.status === 'door' && PP.chance(0.02)) {
+          b.status = 'life'; b.perDay = 50; b.sat = 8; c.savings += 1000;
+          note(`${b.name}, who said "not yet," is ready now and wants to work with you. +${C.money(1000)}, and they join your book.`, 'good', 'return');
+        }
+      });
+      // Pipeline
+      c.pipeline = c.pipeline.filter((p) => {
+        if (c.days > p.expires) { note(`${p.name} lost interest while waiting. They are off your pipeline.`, 'bad'); return false; }
+        if (away && PP.chance(0.02)) { note(`A rival agent signed ${p.name} while you were on the trail.`, 'bad', 'poach'); return false; }
+        return true;
+      });
+      // Walk-ins and partner leads
+      const ws = P.workspaces[c.workspace];
+      if (ws.walkIn && PP.chance(ws.walkIn)) { const p = C.addProspect(c, { temp: 'cold', source: 'walked into your office' }); note(`${p.name} walked into your ${c.workspace === 'office' ? 'office' : 'desk at the Co-op'} asking for help.`, 'good'); }
+      if (c.partner) { const pt = P.partners.find((x) => x.id === c.partner); if (PP.chance(pt.referral)) { const p = C.addProspect(c, { temp: 'warm', source: `referral from ${pt.name}` }); note(`${pt.name} passed you a lead: ${p.name}.`, 'good'); } }
+      // Recruits
+      c.recruits = c.recruits.filter((r) => {
+        if (!r.trained) return true;
+        if (c.days - r.lastMentor > P.mentorEvery && PP.chance(r.quit)) { note(`${r.name} quit. They felt nobody was mentoring them.`, 'bad', 'quit'); return false; }
+        return true;
+      });
+      return notes;
+    }
+  });
+
+  /* News by carrier pigeon, delivered on the trail. */
+  PP.content.mailEvent = function (s, item) {
+    const choices = [{ label: 'Tuck the note away and keep going', kind: 'through', eff: {}, result: 'Back to the trail.' }];
+    if (item.mail === 'cancel') choices.unshift({ label: 'Write back to ask what went wrong', kind: 'prepare', eff: { energy: -1, insight: 1 }, result: 'The reply is kind, and honest: "We never felt looked after." Lesson noted.' });
+    if (item.mail === 'return') choices.unshift({ label: 'Write back and welcome them', kind: 'prepare', eff: { trust: 1 }, result: 'Your client notices you smiling.' });
+    return { id: 'mail_' + PP.uid('m'), title: 'A carrier pigeon lands on your pack', at: ['travel'], cut: 'mail', text: 'There is a note tied to its leg. ' + item.text, choices };
+  };
+})(window.PP);
+
+</script>
+<script>
+/* Prospecting at Port Prospect. Each activity takes a day and fills your pipeline.
+ * Mini-game activities return result.prospects = [{ temp, bias, source }]. */
+(function (PP) {
+  PP.content.prospecting = [
+    { id: 'warm', name: 'Call your natural market', cost: 0, blurb: 'Friends, family, old colleagues. Warm, easy, and it runs out.', simple: true },
+    { id: 'callathon', name: 'Call-a-thon', cost: 0, minigame: 'callathon', blurb: 'One phone, a list of strangers, and every objection in the book. Handle them fast.' },
+    { id: 'mixer', name: 'Chamber of Commerce mixer', cost: 60, minigame: 'mixer', blurb: 'Name tags and warm white wine. Find the business owners. Avoid the essential oils.' },
+    { id: 'market', name: 'Farmers market tent', cost: 120, minigame: 'market', blurb: 'A folding table, a raffle fishbowl, and a rival with an inflatable tube man.' },
+    { id: 'seminar', name: 'Host a lunch & learn', cost: 400, blurb: 'Sandwiches for twenty. Whoever shows up, shows up. Better with Communication.', simple: true },
+    { id: 'referrals', name: 'Ask happy clients for referrals', cost: 0, blurb: 'The best leads come from people who already trust you. Needs happy clients.', simple: true }
+  ];
+
+  /* Simple activities resolve instantly. Returns { text, prospects: [...] }. */
+  PP.content.runSimpleProspecting = function (c, id) {
+    const out = [];
+    const C = PP.career;
+    if (id === 'warm') {
+      if (c.market <= 0) return { text: 'You scroll through your contacts. You have already called everyone who would pick up. Time for other ways to meet people.', prospects: [] };
+      const n = c.agent === 'changer' ? 2 : PP.chance(0.6) ? 1 : 2;
+      for (let i = 0; i < n && c.market > 0; i++) { c.market--; out.push(C.addProspect(c, { temp: 'warm', source: 'your natural market' })); }
+      return { text: `You spend the day calling people you know. ${out.map((p) => p.name).join(' and ')} would love to talk. (${c.market} warm contacts left.)`, prospects: out };
+    }
+    if (id === 'seminar') {
+      const comm = c.skills.communication || 0;
+      const n = 1 + (PP.chance(0.5 + comm * 0.2) ? 1 : 0) + (comm >= 2 ? 1 : 0) + (c.workspace === 'office' ? 1 : 0);
+      for (let i = 0; i < n; i++) out.push(C.addProspect(c, { temp: PP.chance(0.5) ? 'warm' : 'cold', source: 'your lunch & learn', bias: { morgan: 2, taylor: 1, rosa: 1 } }));
+      return { text: `Twenty sandwiches, eleven attendees, ${n} real conversation${n > 1 ? 's' : ''} afterwards: ${out.map((p) => p.name).join(', ')}.`, prospects: out };
+    }
+    if (id === 'referrals') {
+      const happy = c.book.filter((b) => (b.status === 'life' || b.status === 'steady') && b.sat >= 7);
+      if (!happy.length) return { text: 'You do not have any happy clients to ask yet. Service the ones you have, or land some good ones.', prospects: [] };
+      happy.forEach((b) => {
+        b.sat = Math.max(0, b.sat - 0.5);
+        if (PP.chance(c.agent === 'connector' ? 0.7 : 0.5)) out.push(C.addProspect(c, { temp: 'hot', source: `referral from ${b.name}` }));
+      });
+      return { text: out.length ? `You ask ${happy.length} happy client${happy.length > 1 ? 's' : ''}. ${out.map((p) => p.name).join(' and ')} ${out.length > 1 ? 'are' : 'is'} keen to meet you.` : 'Everyone says they will think of someone. Nobody does, this time.', prospects: out };
+    }
+    return { text: '', prospects: out };
   };
 })(window.PP);
 
@@ -2474,7 +2811,7 @@ window.PP = window.PP || {};
 </script>
 <script>
 /* Inbox Rapids — the risk: drowning in noise and missing what matters.
- * An action game: steer the wagon left and right through a storm of email.
+ * An action game: paddle a canoe left and right through a river of email.
  * Catch the gold envelopes (real messages from your client). Dodge the junk.
  * Arrow keys / A-D, or tap the left and right halves of the river.
  */
@@ -2492,7 +2829,7 @@ window.PP = window.PP || {};
   PP.minigames.inboxRapids = {
     title: 'Inbox Rapids',
     risk: 'missing what matters in the noise',
-    blurb: 'Steer through a storm of email. Catch the gold envelopes from your client and their people. Dodge everything else. Arrow keys, A/D, or tap left and right.',
+    blurb: 'Paddle through a river of email. Catch the gold envelopes from your client and their people. Dodge everything else. Arrow keys, A/D, or tap left and right.',
     start(root, ctx, done) {
       const client = ctx.client;
       const prep = ctx.prep || 0;
@@ -2500,8 +2837,8 @@ window.PP = window.PP || {};
       const dur = 30;
       const ui = PP.mg.shell(root, this.title, this.risk);
       const cv = h('canvas', { class: 'mg-canvas', width: W, height: H, 'aria-label': 'Inbox Rapids game area' });
-      const left = h('button', { class: 'btn action', 'aria-label': 'Steer left', onclick: () => move(-1) }, '◀ Left');
-      const right = h('button', { class: 'btn action', 'aria-label': 'Steer right', onclick: () => move(1) }, 'Right ▶');
+      const left = h('button', { class: 'btn action', 'aria-label': 'Paddle left', onclick: () => move(-1) }, '◀ Left');
+      const right = h('button', { class: 'btn action', 'aria-label': 'Paddle right', onclick: () => move(1) }, 'Right ▶');
       ui.body.append(h('p', { class: 'mg-instr' }, 'Catch gold envelopes. Dodge newsletters, reply-alls, and anything URGENT.'), cv, h('div', { class: 'mg-actions two' }, left, right));
       const c = cv.getContext('2d');
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -2573,11 +2910,13 @@ window.PP = window.PP || {};
           c.fillStyle = k.scam ? '#7a2a1a' : INK; c.font = `13px ${FONT}`; c.textAlign = 'center'; c.fillText(k.label(client).slice(0, 12), 0, 14);
           c.restore();
         });
-        // Wagon-raft
-        c.save(); c.translate(x, H - 60);
-        c.fillStyle = '#9c6a3a'; c.strokeStyle = INK; c.lineWidth = 2.5;
-        c.fillRect(-40, 0, 80, 16); c.strokeRect(-40, 0, 80, 16);
-        c.fillStyle = '#fbf3e1'; c.beginPath(); c.moveTo(-36, 0); c.bezierCurveTo(-36, -40, 36, -40, 36, 0); c.closePath(); c.fill(); c.stroke();
+        // Canoe with you and your client
+        c.save(); c.translate(x, H - 52);
+        c.strokeStyle = INK; c.lineWidth = 2.5;
+        c.fillStyle = '#9c6a3a'; c.beginPath(); c.moveTo(-46, -6); c.quadraticCurveTo(0, 22, 46, -6); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = '#f2c79a'; c.beginPath(); c.arc(-16, -16, 7, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.arc(16, -16, 7, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = '#10196b'; c.fillRect(10, -26, 13, 4);
+        c.beginPath(); c.moveTo(30, -20); c.lineTo(44, 10); c.stroke();
         c.restore();
       }
 
@@ -2732,6 +3071,306 @@ window.PP = window.PP || {};
 
 </script>
 <script>
+/* Call-a-thon (prospecting). Dial through a list of strangers.
+ * Some don't answer, some go to voicemail, and the rest hit you with an objection.
+ * Pick the best response before they hang up. Good responses book appointments. */
+(function (PP) {
+  const h = PP.h;
+  const NAMES = ['Mrs. Alvarez', 'Ted Brooks', 'Priyanka S.', 'Gary (no last name)', 'The Nguyens', 'Doug at Doug\'s Tires', 'Marisa K.', 'Stan Wright', 'Ola B.', 'Frank, age 71', 'Kim from accounting', 'Leo Marsh', 'Ruth G.', 'Omar F.'];
+  const OBJ = [
+    { line: '"I\'m in the middle of dinner."', r: [['So sorry! When would be a better time to call?', 'good'], ['This will only take a minute!', 'bad'], ['No problem, bye!', 'ok']] },
+    { line: '"Just send me some information."', r: [['Happy to. What would be most useful to you?', 'good'], ['Sure, what\'s your email?', 'ok'], ['Information won\'t help. Let\'s meet.', 'bad']] },
+    { line: '"I already have someone for that."', r: [['That\'s great. How\'s it going with them?', 'good'], ['Are you sure they\'re any good?', 'bad'], ['Okay, keep me in mind!', 'ok']] },
+    { line: '"Is this a sales call?"', r: [['Yes. I help people get organized with money. Is now a bad time?', 'good'], ['No, no, just a quick survey!', 'bad'], ['Kind of?', 'ok']] },
+    { line: '"How did you get my number?"', r: [['From a public list. Happy to take you off it.', 'good'], ['Doesn\'t matter!', 'bad'], ['Uh... a list.', 'ok']] },
+    { line: '"Actually... I\'ve been meaning to sort this out."', r: [['What made you start thinking about it?', 'good'], ['Perfect, I\'ll send you a contract!', 'bad'], ['Great, let\'s book a time.', 'ok']], warm: true },
+    { line: '"I\'m not interested."', r: [['Totally fair. Mind if I ask what you\'d want if you ever were?', 'good'], ['But you haven\'t heard the offer!', 'bad'], ['Okay, have a good one.', 'ok']] },
+    { line: '"We don\'t have any money to invest."', r: [['A lot of people I help feel that way. It\'s more about getting organized.', 'good'], ['Everyone has money somewhere!', 'bad'], ['Ah, okay.', 'ok']] }
+  ];
+
+  PP.minigames.callathon = {
+    title: 'Call-a-thon',
+    risk: 'prospecting by phone',
+    prospecting: true,
+    blurb: 'Dial through a list of strangers. Pick the best response to each objection before they hang up. Good answers book appointments.',
+    start(root, ctx, done) {
+      const prep = ctx.prep || 0;
+      const ui = PP.mg.shell(root, this.title, this.risk);
+      const phone = h('div', { class: 'phone-card' });
+      const btns = h('div', { class: 'stack' });
+      ui.body.append(h('p', { class: 'mg-instr' }, 'Pick a response with the mouse or keys 1–3. No answer? It dials the next number on its own.'), phone, btns);
+      const stats = { dialed: 0, picked: 0, appts: [], bad: 0, vm: 0 };
+      let finished = false, t1 = null, t2 = null, respondTimer = null, current = null;
+      const timer = PP.mg.timer(ui.bar, 45 + prep * 6, () => finish());
+      const names = PP.shuffle(NAMES);
+      const onKey = (e) => { const n = parseInt(e.key, 10); const b = btns.querySelectorAll('button')[n - 1]; if (b) { e.preventDefault(); b.click(); } };
+      document.addEventListener('keydown', onKey);
+
+      function status() { ui.status.textContent = `Dialed ${stats.dialed} · Appointments ${stats.appts.length}`; }
+      function dial() {
+        if (finished) return;
+        btns.innerHTML = '';
+        const who = names[stats.dialed % names.length];
+        stats.dialed++; status();
+        phone.innerHTML = '';
+        phone.append(h('div', { class: 'phone-who' }, who), h('div', { class: 'phone-state ringing' }, 'Ringing…'));
+        t1 = setTimeout(() => {
+          if (finished) return;
+          const r = Math.random();
+          if (r < 0.28) { phone.querySelector('.phone-state').textContent = 'No answer.'; phone.querySelector('.phone-state').className = 'phone-state'; t2 = setTimeout(dial, 700); }
+          else if (r < 0.42) voicemail(who);
+          else pickup(who);
+        }, 600 + Math.random() * 700);
+      }
+      function voicemail(who) {
+        stats.vm++;
+        phone.querySelector('.phone-state').textContent = `"Hi, you've reached ${who}. Leave a message…" BEEP.`;
+        phone.querySelector('.phone-state').className = 'phone-state';
+        btns.append(
+          h('button', { class: 'btn', onclick: () => { if (PP.chance(0.25)) stats.appts.push({ temp: 'cold', source: 'a call-back from your voicemail' }); say('You leave a short, friendly message.', 'ok'); next(); } }, '1. Leave a short, friendly message'),
+          h('button', { class: 'btn', onclick: () => { say('Click.', 'ok'); next(); } }, '2. Hang up and keep dialing'));
+      }
+      function pickup(who) {
+        stats.picked++;
+        current = PP.pick(OBJ);
+        phone.querySelector('.phone-state').className = 'phone-state live';
+        phone.querySelector('.phone-state').textContent = current.line;
+        PP.shuffle(current.r).forEach(([text, q], i) => btns.appendChild(h('button', { class: 'btn', onclick: () => answer(q) }, `${i + 1}. "${text}"`)));
+        respondTimer = setTimeout(() => { say('Too slow. Dial tone.', 'bad'); next(); }, (5.5 + prep) * 1000);
+      }
+      function answer(q) {
+        clearTimeout(respondTimer);
+        const booked = q === 'good' ? PP.chance(0.7) : q === 'ok' ? PP.chance(0.2) : false;
+        if (q === 'bad') stats.bad++;
+        if (booked) { stats.appts.push({ temp: current.warm ? 'warm' : 'cold', source: 'your call-a-thon' }); say('"...Okay, sure. Thursday works." Appointment booked!', 'good'); }
+        else say(q === 'bad' ? 'Click. That did not land.' : q === 'ok' ? '"Okay. Bye." Polite, but no.' : '"Thanks, but not right now." Kind, at least.', q === 'bad' ? 'bad' : 'ok');
+        next();
+      }
+      function next() { btns.innerHTML = ''; status(); clearTimeout(t2); t2 = setTimeout(dial, 600); }
+      function say(t, q) { ui.feedback.textContent = t; ui.feedback.className = 'mg-feedback q-' + q; }
+
+      function finish() {
+        if (finished) return;
+        finished = true;
+        [t1, t2, respondTimer].forEach(clearTimeout); timer.stop(); document.removeEventListener('keydown', onKey);
+        const n = stats.appts.length;
+        const result = {
+          score: n, max: Math.max(n, 6), eff: { energy: -2 }, prospects: stats.appts, passed: ctx.pass != null ? n >= ctx.pass : null,
+          headline: `${stats.dialed} dials, ${stats.picked} people picked up, ${n} appointment${n === 1 ? '' : 's'} booked.`,
+          lines: [
+            { q: n >= 3 ? 'good' : n ? 'ok' : 'bad', text: `Appointments booked: ${n}` },
+            { q: stats.bad ? 'bad' : 'good', text: stats.bad ? `Pushy or dishonest answers: ${stats.bad}. People remember those.` : 'You stayed honest and polite the whole time.' },
+            { q: 'ok', text: `Voicemails: ${stats.vm}` }
+          ]
+        };
+        PP.mg.summary(root, PP.minigames.callathon.title, result, done);
+      }
+      dial();
+      return { stop() { finished = true; [t1, t2, respondTimer].forEach(clearTimeout); timer.stop(); document.removeEventListener('keydown', onKey); } };
+    }
+  };
+})(window.PP);
+
+</script>
+<script>
+/* Chamber of Commerce mixer (prospecting). A room of name tags and limited time.
+ * Talk to people: ask about them, talk about yourself, or swap cards and move on.
+ * Business owners become prospects. Some guests are time sinks. */
+(function (PP) {
+  const h = PP.h;
+  const GUESTS = [
+    { type: 'owner', name: 'Dana', tag: 'Owns Dana\'s Bakery', open: '"Business is booming, but I never have a minute to think about my own money."', bias: { rosa: 3 } },
+    { type: 'owner', name: 'Hector', tag: 'Hector\'s Hardware', open: '"Thirty years running the store. My kids don\'t want it. Not sure what happens next."', bias: { rosa: 3 } },
+    { type: 'owner', name: 'Wen', tag: '???', realTag: 'Runs a dental practice', open: '"I just opened a second location. Everyone says I should \'have a plan.\'"', bias: { rosa: 2, morgan: 1 } },
+    { type: 'family', name: 'Chris', tag: '???', realTag: 'New dad, works at the bank', open: '"We just had our first kid. I have no idea what we\'re supposed to be doing."', bias: { taylor: 3 } },
+    { type: 'numbers', name: 'Pat', tag: 'Civil engineer', open: '"I made a spreadsheet of the buffet. The cheese-to-cracker ratio is off by 14%."', bias: { morgan: 3 } },
+    { type: 'rival', name: 'Vance', tag: 'Velocity Wealth', open: '"Ha! Another advisor. I closed forty deals last quarter. Want to know how?"' },
+    { type: 'mlm', name: 'Brenda', tag: '???', realTag: 'Essential oils "entrepreneur"', open: '"Have you heard about the opportunity of a lifetime? It involves lavender."' },
+    { type: 'president', name: 'Marcus', tag: 'Chamber president', open: '"Glad you came! We\'re always looking for speakers for our monthly breakfast."' },
+    { type: 'connector', name: 'Gail', tag: 'Knows everyone', open: '"New face! Let me tell you who\'s who in this room."' }
+  ];
+
+  PP.minigames.mixer = {
+    title: 'Chamber of Commerce Mixer',
+    risk: 'prospecting at events',
+    prospecting: true,
+    blurb: 'Work the room before the event ends. Ask people about themselves, and find the ones who need help. Some guests are time sinks.',
+    start(root, ctx, done) {
+      const comm = PP.skill(ctx.state, 'communication');
+      let minutes = 6 + comm + (ctx.prep || 0) * 0.5;
+      const ui = PP.mg.shell(root, this.title, this.risk);
+      ui.wrap.querySelector('.mg-timer').hidden = true;
+      const room = h('div', { class: 'mixer-room' });
+      const talk = h('div', { class: 'mixer-talk' });
+      ui.body.append(h('p', { class: 'mg-instr' }, 'Each conversation takes time. Asking about someone takes a minute, swapping cards takes half. When the clock runs out, the mixer is over.'), room, talk,
+        h('button', { class: 'btn ghost', onclick: () => finish() }, 'Head home early'));
+      const guests = PP.shuffle(GUESTS).slice(0, 8).map((g) => Object.assign({ met: false }, g));
+      const leads = [], lines = [];
+      let finished = false, bonus = 0;
+
+      function status() { ui.status.textContent = `${Math.max(0, minutes)} minute${minutes === 1 ? '' : 's'} left · ${leads.length} lead${leads.length === 1 ? '' : 's'}`; }
+      function renderRoom() {
+        room.innerHTML = '';
+        guests.forEach((g) => room.appendChild(h('button', { class: 'nametag' + (g.met ? ' met' : ''), disabled: g.met || finished, onclick: () => approach(g) },
+          h('span', { class: 'hello' }, 'HELLO my name is'), h('strong', null, g.name), h('span', { class: 'tagline' }, g.revealed ? g.realTag || g.tag : g.tag))));
+        status();
+      }
+      function approach(g) {
+        talk.innerHTML = '';
+        talk.append(h('p', { class: 'mixer-open' }, h('strong', null, g.name + ': '), g.open),
+          h('div', { class: 'stack' },
+            h('button', { class: 'btn', onclick: () => act(g, 'listen') }, `Ask about them (${g.type === 'mlm' ? '2 minutes' : '1 minute'})`),
+            h('button', { class: 'btn', onclick: () => act(g, 'pitch') }, 'Talk about yourself (1 minute)'),
+            h('button', { class: 'btn', onclick: () => act(g, 'card') }, 'Swap cards and move on (½ minute)')));
+      }
+      function act(g, how) {
+        g.met = true;
+        minutes -= how === 'card' ? 0.5 : g.type === 'mlm' && how === 'listen' ? 2 : 1;
+        let msg = '', q = 'ok';
+        const lead = (temp) => leads.push({ temp, bias: g.bias, source: `the Chamber mixer (${g.name})`, event: true });
+        if (g.type === 'owner' || g.type === 'family' || g.type === 'numbers') {
+          if (how === 'listen') { lead('warm'); msg = `${g.name} talks for a while, then asks for your card. "Can we keep talking next week?"`; q = 'good'; }
+          else if (how === 'pitch') { if (PP.chance(0.4)) { lead('cold'); msg = `${g.name} nods politely and takes your card.`; } else msg = `${g.name}'s eyes glaze over. They excuse themselves to find the cheese.`; q = 'ok'; }
+          else { if (PP.chance(0.35)) { lead('cold'); msg = `You swap cards with ${g.name}. They might call.`; } else msg = `You swap cards with ${g.name}. It goes straight into a pocket full of other cards.`; }
+        } else if (g.type === 'rival') {
+          msg = how === 'listen' ? 'Vance talks about himself for a full minute. You learn that he drives a boat to work.' : how === 'pitch' ? '"Cute," says Vance.' : 'Vance hands you a card. It is metal. It is heavy.'; q = how === 'card' ? 'ok' : 'bad';
+        } else if (g.type === 'mlm') {
+          msg = how === 'listen' ? 'Two minutes on lavender. You now own a sample.' : how === 'pitch' ? 'You talk about yourself. Brenda talks about lavender. Neither of you listens.' : 'You escape with a card that smells faintly of eucalyptus.'; q = how === 'card' ? 'good' : 'bad';
+        } else if (g.type === 'president') {
+          if (how === 'listen') { bonus++; msg = 'Marcus invites you to speak at next month\'s breakfast. That will bring someone your way.'; q = 'good'; }
+          else msg = 'Marcus smiles and moves on to greet someone else.';
+        } else if (g.type === 'connector') {
+          if (how === 'listen') { guests.forEach((x) => (x.revealed = true)); msg = 'Gail points out everyone in the room, including the person you should avoid.'; q = 'good'; }
+          else msg = '"Lovely to meet you!" Gail drifts off.';
+        }
+        lines.push({ q, text: `${g.name} (${g.realTag || g.tag}): ${how === 'listen' ? 'asked about them' : how === 'pitch' ? 'talked about yourself' : 'swapped cards'}` });
+        talk.innerHTML = '';
+        talk.append(h('p', { class: 'mg-feedback q-' + q }, msg));
+        renderRoom();
+        if (minutes <= 0 || guests.every((x) => x.met)) setTimeout(finish, 700);
+      }
+      function finish() {
+        if (finished) return;
+        finished = true;
+        for (let i = 0; i < bonus; i++) leads.push({ temp: 'warm', source: 'your talk at the Chamber breakfast', event: true });
+        const n = leads.length;
+        PP.mg.summary(root, PP.minigames.mixer.title, {
+          score: n, max: Math.max(n, 4), eff: { energy: -1 }, prospects: leads, passed: ctx.pass != null ? n >= ctx.pass : null,
+          headline: `You leave with ${n} real lead${n === 1 ? '' : 's'}${bonus ? ', including a speaking invite' : ''}.`,
+          lines: lines.length ? lines : [{ q: 'bad', text: 'You stood by the snack table the whole time.' }]
+        }, done);
+      }
+      renderRoom();
+      return { stop() { finished = true; } };
+    }
+  };
+})(window.PP);
+
+</script>
+<script>
+/* Farmers market tent (prospecting). People stroll past your tent.
+ * Click the ones who look interested to wave them over, then offer a quick raffle slip
+ * or a real chat. Waving at joggers is just awkward. Anyone interested who walks past
+ * gets pulled in by the rival tent's inflatable tube man. */
+(function (PP) {
+  const h = PP.h;
+  const TYPES = [
+    { id: 'family', label: 'Pushing a stroller', interested: true, bias: { taylor: 3 }, w: 3 },
+    { id: 'retiree', label: 'Sun hat, reading glasses', interested: true, bias: { morgan: 2, taylor: 1 }, w: 2 },
+    { id: 'vendor', label: 'Apron from the bakery stall', interested: true, bias: { rosa: 3 }, w: 2 },
+    { id: 'couple', label: 'Arguing about a mortgage', interested: true, bias: { taylor: 2, morgan: 1 }, w: 1.5 },
+    { id: 'jogger', label: 'Jogging, earbuds in', interested: false, w: 2 },
+    { id: 'kid', label: 'Kid chasing a balloon', interested: false, w: 1 },
+    { id: 'dog', label: 'Being walked by a large dog', interested: false, w: 1.5 },
+    { id: 'phone', label: 'On a very loud phone call', interested: false, w: 1.5 }
+  ];
+
+  PP.minigames.market = {
+    title: 'Farmers Market Tent',
+    risk: 'prospecting in your community',
+    prospecting: true,
+    blurb: 'Wave over people who look interested, then offer a quick raffle slip or a real chat. Anyone interested who walks past ends up at the rival tent.',
+    start(root, ctx, done) {
+      const prep = ctx.prep || 0;
+      const ui = PP.mg.shell(root, this.title, this.risk);
+      const lane = h('div', { class: 'market-lane', 'aria-label': 'Market lane' }, h('div', { class: 'tent mine' }, 'Your tent'), h('div', { class: 'tent rival' }, 'Velocity Wealth', h('span', { class: 'tube' })));
+      const prompt = h('div', { class: 'market-prompt' });
+      ui.body.append(h('p', { class: 'mg-instr' }, 'Click people as they pass. Raffle slips are quick but cold. A chat takes a few seconds but makes a warm lead.'), lane, prompt);
+      const leads = [], walkers = [];
+      const stats = { stolen: 0, awkward: 0, raffle: 0, chat: 0 };
+      let finished = false, busy = false, spawnT = null, raf = 0, last = performance.now();
+      const timer = PP.mg.timer(ui.bar, 30 + prep * 5, () => finish());
+      const pickType = () => { const tot = TYPES.reduce((a, t) => a + t.w, 0); let r = Math.random() * tot; for (const t of TYPES) { r -= t.w; if (r <= 0) return t; } return TYPES[0]; };
+
+      function spawn() {
+        if (finished) return;
+        const t = pickType();
+        const el = h('button', { class: 'walker' + (t.interested ? ' maybe' : ''), onclick: () => wave(w) }, h('span', { class: 'walker-fig', 'aria-hidden': 'true' }), h('span', { class: 'walker-label' }, t.label));
+        const w = { t, el, x: -12, speed: 11 + Math.random() * 7, lane: Math.floor(Math.random() * 2), gone: false };
+        el.style.top = (w.lane ? 64 : 36) + '%';
+        lane.appendChild(el);
+        walkers.push(w);
+        spawnT = setTimeout(spawn, 1100 + Math.random() * 1000);
+      }
+      function frame(now) {
+        if (finished) return;
+        const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        walkers.forEach((w) => {
+          if (w.gone || w.stopped) return;
+          w.x += w.speed * dt;
+          w.el.style.left = w.x + '%';
+          if (w.x > 86) { w.gone = true; w.el.remove(); if (w.t.interested) { stats.stolen++; say('The tube man got one. They wander into the Velocity Wealth tent.', 'bad'); } }
+        });
+        status();
+        raf = requestAnimationFrame(frame);
+      }
+      function wave(w) {
+        if (busy || w.gone || finished) return;
+        if (!w.t.interested) { stats.awkward++; timer.sub(1.5); w.el.classList.add('nope'); say('They speed up. Awkward.', 'ok'); return; }
+        busy = true; w.stopped = true; w.el.classList.add('stopped');
+        prompt.innerHTML = '';
+        prompt.append(h('p', null, h('strong', null, w.t.label + ': '), '"Hi! What\'s this about?"'),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn', onclick: () => resolve(w, 'raffle') }, 'Hand them a raffle slip'),
+            h('button', { class: 'btn primary', onclick: () => resolve(w, 'chat') }, 'Have a real chat (3 seconds)')));
+      }
+      function resolve(w, how) {
+        prompt.innerHTML = '';
+        const finishIt = () => {
+          if (how === 'chat') { stats.chat++; const r = Math.random(); if (r < 0.5) { leads.push({ temp: 'warm', bias: w.t.bias, source: 'your farmers market tent', event: true }); say('A real conversation. They want to meet properly.', 'good'); } else if (r < 0.75) { leads.push({ temp: 'cold', bias: w.t.bias, source: 'your farmers market tent', event: true }); say('Nice chat. They take a card. Maybe.', 'ok'); } else say('Lovely chat about heirloom tomatoes. Not a prospect.', 'ok'); }
+          else { stats.raffle++; if (PP.chance(0.3)) leads.push({ temp: 'cold', bias: w.t.bias, source: 'your raffle fishbowl', event: true }); say('Into the fishbowl it goes.', 'ok'); }
+          w.gone = true; w.el.remove(); busy = false;
+        };
+        if (how === 'chat') { prompt.append(h('p', { class: 'muted' }, 'Chatting…')); setTimeout(() => { prompt.innerHTML = ''; if (!finished) finishIt(); }, 3000); }
+        else finishIt();
+      }
+      function say(t, q) { ui.feedback.textContent = t; ui.feedback.className = 'mg-feedback q-' + q; }
+      function status() { ui.status.textContent = `${leads.length} lead${leads.length === 1 ? '' : 's'} · ${stats.stolen} lost to the tube man`; }
+      function finish() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(spawnT); cancelAnimationFrame(raf); timer.stop();
+        const n = leads.length;
+        PP.mg.summary(root, PP.minigames.market.title, {
+          score: n, max: Math.max(n, 5), eff: { energy: -1 }, prospects: leads, passed: ctx.pass != null ? n >= ctx.pass : null,
+          headline: `${n} lead${n === 1 ? '' : 's'} from the market.`,
+          lines: [
+            { q: stats.chat ? 'good' : 'ok', text: `Real chats: ${stats.chat}` },
+            { q: 'ok', text: `Raffle slips: ${stats.raffle}` },
+            { q: stats.stolen > 3 ? 'bad' : 'ok', text: `Lost to the rival tent: ${stats.stolen}` },
+            { q: stats.awkward ? 'bad' : 'good', text: `Awkward waves at people who weren't interested: ${stats.awkward}` }
+          ]
+        }, done);
+      }
+      spawn();
+      raf = requestAnimationFrame(frame);
+      return { stop() { finished = true; clearTimeout(spawnT); cancelAnimationFrame(raf); timer.stop(); } };
+    }
+  };
+})(window.PP);
+
+</script>
+<script>
 /* Shared UI pieces: avatars, resource gauges, effect chips, and the event scene runner.
  * The scene runner is used by the journey and by the Element Lab's event deck. */
 (function (PP) {
@@ -2846,7 +3485,8 @@ window.PP = window.PP || {};
       if (c.then) {
         // The conversation continues: same event, next beat.
         const said = h('div', { class: 'said' }, '› ' + c.label);
-        PP.ui.runScene(host, { id: ev.id, title: ev.title, at: ev.at, text: c.then.text, choices: c.then.choices, cont: true }, ctx);
+        const firstKind = ctx.firstKind || c.kind;
+        PP.ui.runScene(host, { id: ev.id, title: ev.title, at: ev.at, text: c.then.text, choices: c.then.choices, cont: true }, Object.assign({}, ctx, { firstKind }));
         host.querySelector('.scene').insertBefore(said, host.querySelector('.scene-text'));
         ctx.onStep && ctx.onStep();
         return;
@@ -2880,7 +3520,7 @@ window.PP = window.PP || {};
         h('p', { class: 'scene-text' }, text || 'Done.'),
         PP.ui.effectChips(Object.assign({}, delta, { fact: learned, days: eff && eff.days, item: eff && eff.item, skill: eff && eff.skill, cash: eff && eff.cash }), { client: s.client, hideDebt: !ctx.lab }),
         ctx.lab && eff && (eff.debt || eff.missed || eff.style) ? h('div', { class: 'lab-reveal' }, h('span', { class: 'eyebrow' }, 'Hidden from the player'), PP.ui.effectChips({ debt: eff.debt, missed: eff.missed, style: eff.style }, { showStyle: true })) : null,
-        h('button', { class: 'btn primary', onclick: () => ctx.onDone && ctx.onDone(c) }, 'Continue'));
+        h('button', { class: 'btn primary', onclick: () => ctx.onDone && ctx.onDone(ctx.firstKind ? Object.assign({}, c, { kind: ctx.firstKind }) : c) }, 'Continue'));
       host.appendChild(res);
       res.querySelector('.btn').focus({ preventScroll: true });
     }
@@ -2930,7 +3570,7 @@ window.PP = window.PP || {};
   /* visited > named > rumored > uncharted */
   PP.visibility = function (s, id) {
     if (s.map.visited[id]) return 'visited';
-    if (s.map.beam) return 'named';
+    if (s.map.beam || (s.map.known && s.map.known[id])) return 'named';
     const near = PP.neighbors(s, id).some((n) => s.map.visited[n]);
     if (id === 'clients') return 'named'; // the goal is always marked on the map
     if (!near) return 'uncharted';
@@ -3156,10 +3796,25 @@ window.PP = window.PP || {};
       });
     }
 
-    // Wagon marker: at a landmark, or partway along the current trail
-    const marker = el('g', { class: 'm-wagon' },
-      el('path', { d: 'M-16,0 C-16,-22 16,-22 16,0 Z', class: 'cover' }), el('rect', { x: -18, y: 0, width: 36, height: 8, class: 'body' }),
-      el('circle', { cx: -10, cy: 11, r: 5, class: 'wheel' }), el('circle', { cx: 10, cy: 11, r: 5, class: 'wheel' }));
+    // Practice systems built from trail Marks show up on the map
+    if (s.career && s.career.systems) {
+      const built = el('g', { class: 'm-built' });
+      Object.entries(PP.content.practice.systems).forEach(([id, sy]) => {
+        if (!s.career.systems[id]) return;
+        const n = PP.content.nodes[sy.mark];
+        if (id === 'planning') built.appendChild(el('path', { d: `M${n.x - 70},${n.y + 6} L${n.x + 70},${n.y - 6}`, class: 'boardwalk' }));
+        const g = el('g', { transform: `translate(${n.x - 34} ${n.y - 34})` },
+          el('path', { d: 'M0,0 L0,-26 L18,-20 L0,-14', class: 'pennant' }), el('line', { x1: 0, y1: 0, x2: 0, y2: -26, class: 'pole' }));
+        g.appendChild(el('title', null, sy.name));
+        built.appendChild(g);
+      });
+      svg.appendChild(built);
+    }
+
+    // You are here: a map pin, at a landmark or partway along the current trail
+    const marker = el('g', { class: 'm-pin' },
+      el('path', { d: 'M0,0 C-4,-8 -12,-14 -12,-24 A12,12 0 1 1 12,-24 C12,-14 4,-8 0,0 Z', class: 'pin' }),
+      el('circle', { cx: 0, cy: -24, r: 5, class: 'pin-dot' }));
     svg.appendChild(marker);
 
     host.innerHTML = '';
@@ -3176,13 +3831,13 @@ window.PP = window.PP || {};
         pos = { x: pt.x, y: pt.y };
       }
     }
-    marker.setAttribute('transform', `translate(${pos.x} ${pos.y - 14})`);
+    marker.setAttribute('transform', `translate(${pos.x} ${pos.y - 4})`);
   };
 })(window.PP);
 
 </script>
 <script>
-/* The trail scene: a side-scrolling, hand-inked view of the wagon on the trail,
+/* The trail scene: a side-scrolling, hand-inked view of you and your client on the trail,
  * plus cut scenes for landmarks, encounters, and risk debt catching up.
  *
  *   const scene = new PP.TrailScene(canvas);
@@ -3310,12 +3965,11 @@ window.PP = window.PP || {};
       // Landmark when stopped at one
       if (this.landmark && !(cs && cs.key === 'arrive')) this.drawLandmark(this.landmark, 760, GROUND, 1, t);
 
-      // Cut-scene background art (behind the wagon)
+      // Cut-scene background art (behind the hikers)
       if (cs) this.cutBack(cs, cutP, t);
 
-      // Wagon
-      const wx = cs && cs.key === 'breakdown' ? 300 : 300;
-      this.wagon(wx, 258, this.moving || (cs && cs.key === 'depart'), cs && cs.key === 'breakdown' ? cutP : 0);
+      // You and your client
+      this.hikers(320, 268, this.moving || (cs && cs.key === 'depart'), cs && cs.key === 'breakdown' ? cutP : 0);
 
       // Foreground props
       this.props(terr, this.off * 1.35, 1.15, H - 6, true);
@@ -3471,49 +4125,47 @@ window.PP = window.PP || {};
       c.restore();
     }
 
-    wagon(x, y, moving, broken) {
+    /* You (leading, big pack, walking stick) and your client (behind, daypack). */
+    hikers(x, y, moving, broken) {
       const c = this.c;
-      const bob = moving ? Math.sin(this.t * 10) * 1.6 : 0;
-      const spin = this.off / 16;
-      // Ox
-      c.save(); c.translate(x + 120, y + bob * 0.6); ink(c, 2.2);
-      c.fillStyle = '#b07a43';
-      c.beginPath(); c.ellipse(0, -16, 30, 15, 0, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.beginPath(); c.ellipse(32, -24, 11, 9, 0.3, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.beginPath(); c.moveTo(30, -32); c.lineTo(26, -40); c.moveTo(38, -31); c.lineTo(44, -38); c.stroke();
-      const leg = moving ? Math.sin(this.t * 10) * 5 : 0;
-      c.beginPath(); c.moveTo(-18, -4); c.lineTo(-18 + leg, 10); c.moveTo(-8, -3); c.lineTo(-8 - leg, 10); c.moveTo(12, -3); c.lineTo(12 + leg, 10); c.moveTo(20, -4); c.lineTo(20 - leg, 10); c.stroke();
-      c.fillStyle = INK; c.beginPath(); c.arc(36, -26, 1.6, 0, Math.PI * 2); c.fill();
-      c.restore();
-      // Hitch
-      ink(c, 2); c.beginPath(); c.moveTo(x + 62, y - 14 + bob); c.lineTo(x + 92, y - 16 + bob); c.stroke();
-      // Wagon body
-      c.save(); c.translate(x, y + bob);
-      ink(c, 2.5);
-      c.fillStyle = '#9c6a3a'; c.fillRect(-62, -34, 124, 24); c.strokeRect(-62, -34, 124, 24);
-      c.beginPath(); c.moveTo(-62, -22); c.lineTo(62, -22); c.stroke();
-      // Canvas cover
-      c.fillStyle = '#fbf3e1';
-      c.beginPath(); c.moveTo(-58, -34); c.bezierCurveTo(-58, -92, 58, -92, 58, -34); c.closePath(); c.fill(); c.stroke();
-      for (const k of [-28, 0, 28]) { c.beginPath(); c.moveTo(k, -34); c.quadraticCurveTo(k * 1.05, -70, k * 0.9, -80); c.stroke(); }
-      // Sign on canvas
-      c.fillStyle = NAVY; c.font = `16px ${FONT}`; c.textAlign = 'center'; c.fillText('PROSPECT', 0, -46);
-      // Driver (agent) and client peeking
-      c.fillStyle = '#f2c79a'; ink(c, 2);
-      c.beginPath(); c.arc(56, -48, 7, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.fillStyle = NAVY; c.fillRect(48, -58, 16, 4); c.fillRect(52, -64, 8, 7);
-      c.fillStyle = '#e8b48a'; c.beginPath(); c.arc(-50, -50, 7, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.restore();
-      // Wheels
-      const wheel = (wx, wy, rot) => {
-        c.save(); c.translate(wx, wy); c.rotate(rot); ink(c, 2.5); c.fillStyle = 'rgba(156,106,58,.25)';
-        c.beginPath(); c.arc(0, 0, 15, 0, Math.PI * 2); c.fill(); c.stroke();
-        for (let k = 0; k < 6; k++) { c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(k * Math.PI / 3) * 15, Math.sin(k * Math.PI / 3) * 15); c.stroke(); }
+      const walk = moving ? this.t * 7 : 0;
+      const person = (px, o) => {
+        const sw = moving ? Math.sin(walk + o.phase) * 9 : 0;
+        const bob = moving ? -Math.abs(Math.sin(walk + o.phase)) * 2.5 : 0;
+        c.save(); c.translate(px, y + bob);
+        // legs and boots
+        c.strokeStyle = INK; c.lineWidth = 4.5; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(0, -30); c.lineTo(-sw * 0.7, -2); c.moveTo(0, -30); c.lineTo(sw * 0.7, -2); c.stroke();
+        c.fillStyle = INK; c.fillRect(-sw * 0.7 - 2, -4, 8, 4); c.fillRect(sw * 0.7 - 2, -4, 8, 4);
+        // backpack
+        ink(c, 2.2); c.fillStyle = o.pack;
+        const ph = o.bigPack ? 34 : 20;
+        c.fillRect(-23, -64, 15, ph); c.strokeRect(-23, -64, 15, ph);
+        if (o.bigPack) { c.fillStyle = '#c4532d'; c.beginPath(); c.ellipse(-15, -68, 10, 5, 0, 0, Math.PI * 2); c.fill(); c.stroke(); }
+        // torso
+        c.fillStyle = o.coat;
+        c.beginPath(); c.moveTo(-9, -30); c.lineTo(-8, -64); c.lineTo(8, -64); c.lineTo(10, -30); c.closePath(); c.fill(); c.stroke();
+        // arm, with walking stick or rolled map
+        const hx = 14 + sw * 0.35, hy = -42;
+        c.beginPath(); c.moveTo(4, -58); c.lineTo(hx, hy); c.stroke();
+        if (o.stick) { c.strokeStyle = '#7a5a3a'; c.lineWidth = 3; c.beginPath(); c.moveTo(hx, hy - 6); c.lineTo(hx + 6, -1); c.stroke(); }
+        if (o.map) { ink(c, 1.5); c.fillStyle = '#f5e2bd'; c.fillRect(hx - 2, hy - 8, 12, 9); c.strokeRect(hx - 2, hy - 8, 12, 9); }
+        // head, hair, hat
+        ink(c, 2.2); c.fillStyle = o.skin;
+        c.beginPath(); c.arc(1, -74, 9, 0, Math.PI * 2); c.fill(); c.stroke();
+        if (o.hair) { c.fillStyle = o.hair; c.beginPath(); c.arc(1, -76, 9.5, Math.PI * 1.05, Math.PI * 1.95); c.fill(); }
+        if (o.hat) { c.fillStyle = NAVY; c.beginPath(); c.ellipse(1, -81, 13, 3.5, 0, 0, Math.PI * 2); c.fill(); c.fillRect(-6, -91, 14, 10); }
+        c.fillStyle = INK; c.beginPath(); c.arc(5, -75, 1.4, 0, Math.PI * 2); c.fill();
         c.restore();
       };
-      wheel(x + 40, y - 4 + bob, spin);
-      if (broken) wheel(x - 40 + broken * 500, y - 4 + Math.abs(Math.sin(broken * 14)) * -20 * (1 - broken), spin + broken * 30);
-      else wheel(x - 40, y - 4 + bob, spin);
+      person(x - 72, { coat: '#6f9a54', pack: '#b07a43', skin: '#e8b48a', hair: '#4a2e14', phase: 1.7, map: true });
+      person(x, { coat: NAVY, pack: ORANGE, skin: '#f2c79a', hat: true, bigPack: !broken, stick: true, phase: 0 });
+      if (broken) {
+        c.save();
+        c.translate(x - 15 + broken * 520, y - 40 - Math.abs(Math.sin(broken * 12)) * 40 * (1 - broken));
+        c.rotate(broken * 14); ink(c, 2.2); c.fillStyle = ORANGE; c.fillRect(-8, -16, 16, 32); c.strokeRect(-8, -16, 16, 32);
+        c.restore();
+      }
     }
 
     fog(a) {
@@ -3654,7 +4306,7 @@ window.PP = window.PP || {};
       c.restore();
     }
 
-    /* Cut-scene art drawn behind the wagon. */
+    /* Cut-scene art drawn behind the hikers. */
     cutBack(cs, p, t) {
       const c = this.c;
       const k = cs.key;
@@ -3680,16 +4332,14 @@ window.PP = window.PP || {};
         c.font = `18px ${FONT}`; c.fillStyle = '#fdf3d6'; c.textAlign = 'center'; c.fillText('Steve', sx, GROUND - 68);
       }
       if (k === 'mail') {
-        const x = 1000 - ease * 520, bob = Math.abs(Math.sin(t * 12)) * -6;
-        c.save(); c.translate(x, GROUND + bob); ink(c, 2.5);
-        c.fillStyle = '#7a5a3a'; c.beginPath(); c.ellipse(0, -30, 34, 14, 0, 0, Math.PI * 2); c.fill(); c.stroke();
-        c.beginPath(); c.ellipse(-36, -44, 12, 9, -0.5, 0, Math.PI * 2); c.fill(); c.stroke();
-        const lg = Math.sin(t * 16) * 10;
-        c.beginPath(); c.moveTo(-20, -20); c.lineTo(-20 + lg, 2); c.moveTo(-8, -18); c.lineTo(-8 - lg, 2); c.moveTo(14, -18); c.lineTo(14 + lg, 2); c.moveTo(24, -20); c.lineTo(24 - lg, 2); c.stroke();
-        c.fillStyle = '#10196b'; c.fillRect(-6, -70, 16, 26); c.strokeRect(-6, -70, 16, 26);
-        c.fillStyle = '#f2c79a'; c.beginPath(); c.arc(2, -78, 8, 0, Math.PI * 2); c.fill(); c.stroke();
-        c.fillStyle = '#fffaf0'; c.fillRect(-30, -66, 22, 14); c.strokeRect(-30, -66, 22, 14);
-        c.beginPath(); c.moveTo(-30, -66); c.lineTo(-19, -58); c.lineTo(-8, -66); c.stroke();
+        const x = 1000 - ease * 640, y = 90 + ease * 70 + Math.sin(t * 6) * 6;
+        const flap = Math.sin(t * 22) * 14;
+        c.save(); c.translate(x, y); ink(c, 2.2);
+        c.fillStyle = '#9aa3b5'; c.beginPath(); c.ellipse(0, 0, 18, 10, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.beginPath(); c.arc(-18, -6, 7, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = ORANGE; c.beginPath(); c.moveTo(-25, -6); c.lineTo(-31, -4); c.lineTo(-25, -3); c.fill();
+        c.fillStyle = '#c7cdd9'; c.beginPath(); c.moveTo(-2, -4); c.lineTo(10, -22 - flap); c.lineTo(16, -4); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = '#fffaf0'; c.fillRect(2, 8, 12, 9); c.strokeRect(2, 8, 12, 9);
         c.restore();
       }
       if (k === 'debt') {
@@ -3770,10 +4420,10 @@ window.PP = window.PP || {};
 
 </script>
 <script>
-/* The journey, Oregon Trail style.
+/* The journey: hiking the trail with your client, day by day.
  *
  * At a landmark you get a numbered "You may:" menu. Continuing shows the forks
- * (with days), then the wagon travels day by day. Each day can bring an
+ * (with days), then you and your client hike day by day. Each day can bring an
  * encounter, a risk-debt check, or the client asking "are we there yet?".
  * Reaching a landmark plays a cut scene and its event. Clients for Life ends it.
  */
@@ -3800,6 +4450,7 @@ window.PP = window.PP || {};
   };
 
   const T = (PP.trail = {});
+  const put = (el, ...kids) => kids.flat().forEach((k) => k && el.appendChild(k));
   T.dayInJourney = () => T.s.day;
 
   PP.ui.startTrail = function (root, s, hooks) {
@@ -3807,7 +4458,7 @@ window.PP = window.PP || {};
     window.scrollTo({ top: 0 });
     s.pace = s.pace || 'steady';
     root.innerHTML = '';
-    const canvas = h('canvas', { class: 'trail-canvas', width: 960, height: 320, 'aria-label': 'The trail: your wagon traveling through the landscape' });
+    const canvas = h('canvas', { class: 'trail-canvas', width: 960, height: 320, 'aria-label': 'The trail: you and your client hiking through the landscape' });
     T.ledger = h('div', { class: 'ledger' });
     T.journal = h('div', { class: 'journal', 'aria-live': 'polite' });
     T.side = h('aside', { class: 'trail-side' });
@@ -3820,24 +4471,11 @@ window.PP = window.PP || {};
     T.scene.setTerrain('port'); T.scene.setLandmark('port'); T.scene.setPace(s.pace);
     if (T.keys) document.removeEventListener('keydown', T.keys);
     T.keys = onKey; document.addEventListener('keydown', T.keys);
-    T.news = scheduleNews(s);
     renderLedger(); renderSide();
-    say(`Day 1. You and ${s.client.name} load up the wagon at Port Prospect.`);
+    say(`Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
-    showJournal(h('p', { class: 'muted' }, 'Loading the wagon…'));
+    showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
   };
-
-  /* News from earlier clients arrives by mail rider on a random day of this journey. */
-  function scheduleNews(s) {
-    const P = PP.content.practice, out = [];
-    (s.career ? s.career.book : []).forEach((entry) => {
-      const when = 2 + Math.floor(Math.random() * 10);
-      if (entry.status === 'at-risk' && PP.chance(P.cancelChance)) out.push({ kind: 'cancel', entry, day: when });
-      else if (entry.status === 'door' && PP.chance(P.returnChance)) out.push({ kind: 'return', entry, day: when });
-      else if (entry.status === 'life' && PP.chance(0.25)) out.push({ kind: 'thanks', entry, day: when });
-    });
-    return out;
-  }
 
   /* ---------- helpers ---------- */
   const C = () => T.s.client.name;
@@ -3846,7 +4484,7 @@ window.PP = window.PP || {};
     const s = T.s;
     return h('div', { class: 'goal' },
       h('div', null, h('span', { class: 'eyebrow' }, 'This journey'), ` Find out where ${s.client.name} actually needs to go, and get them to Clients for Life with their trust intact.`),
-      s.career ? h('div', null, h('span', { class: 'eyebrow' }, 'Your career'), ` Build a Profitable practice before your savings run out. Every day on the trail costs ${PP.career.money(PP.content.practice.dailyCost)}.`) : null);
+      s.career ? h('div', null, h('span', { class: 'eyebrow' }, 'Your career'), ` Build a Profitable practice before your savings run out. Every day away costs ${PP.career.money(PP.career.costs(s.career))}, and your clients and prospects back at the port are waiting.`) : null);
   }
   function narration(n = 3) {
     return h('div', { class: 'narr' }, T.narr.slice(-n).map((l, i, a) => h('p', { class: (l.cls || '') + (i === a.length - 1 ? ' latest' : '') }, l.text)));
@@ -3886,7 +4524,7 @@ window.PP = window.PP || {};
   function renderLedger(prev) {
     const s = T.s;
     T.ledger.innerHTML = '';
-    T.ledger.append(
+    put(T.ledger,
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Day'), h('strong', null, String(s.day))),
       h('div', { class: 'ledger-cell wide' }, h('span', { class: 'lk' }, s.seg ? 'Next landmark' : 'Location'), h('strong', null, nextLandmarkText())),
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Pace'), h('strong', null, PACE[s.pace].label)),
@@ -3898,13 +4536,23 @@ window.PP = window.PP || {};
 
   function moneyCell(c) {
     const lvl = PP.career.levelInfo(c);
-    const inc = PP.career.income(c), cost = PP.content.practice.dailyCost;
+    const inc = PP.career.income(c), cost = PP.career.costs(c);
     const runway = PP.career.runway(c);
     const d = T.lastSavings != null ? c.savings - T.lastSavings : 0;
     return h('div', { class: 'ledger-cell wide money lvl-' + lvl.id },
       h('span', { class: 'lk' }, 'Savings · ' + lvl.label),
       h('strong', null, PP.career.money(c.savings), d ? h('span', { class: 'gauge-delta ' + (d > 0 ? 'up' : 'down') }, ' ' + (d > 0 ? '+' : '') + PP.career.money(d)) : null),
       h('span', { class: 'small' }, `${PP.career.money(inc)}/day in · ${PP.career.money(cost)}/day out` + (runway !== Infinity ? ` · ${runway} days left` : '')));
+  }
+
+  function homePanel(c) {
+    const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
+    const avg = active.length ? active.reduce((a, b) => a + b.sat, 0) / active.length : 0;
+    const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
+    return h('div', { class: 'panel home-panel' }, h('h4', null, 'Back at the port'),
+      h('p', { class: 'small' }, active.length ? `${active.length} client${active.length > 1 ? 's' : ''}, average satisfaction ${avg.toFixed(1)}/10${avg < 4.5 ? ' (getting restless)' : ''}.` : 'No clients yet.'),
+      h('p', { class: 'small' }, c.pipeline.length ? `${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}.` : 'Nobody waiting in your pipeline.'),
+      c.partner ? h('p', { class: 'small muted' }, 'Your partner is looking after your clients.') : null);
   }
 
   function renderSide() {
@@ -3914,13 +4562,14 @@ window.PP = window.PP || {};
     const gut = PP.gutFeeling(s);
     const mapThumb = h('button', { class: 'map-thumb', onclick: openMap, 'aria-label': 'Open the map' });
     T.side.innerHTML = '';
-    T.side.append(
+    put(T.side,
       h('div', { class: 'panel client-card' },
         h('div', { class: 'row tight' }, PP.ui.avatar(c, 40), h('div', null, h('strong', null, c.name), h('div', { class: 'small muted' }, c.title))),
         h('div', { class: 'eyebrow mt' }, 'What you know'),
         h('ul', { class: 'facts' }, [h('li', { class: 'surface' }, c.surface), ...known.map((f) => h('li', { class: c.facts[f].key ? 'key' : '' }, c.facts[f].label))]),
         unknown ? h('div', { class: 'small muted' }, `${unknown} thing${unknown > 1 ? 's' : ''} you have not found out yet. Check in with ${c.name} to learn more.`) : h('div', { class: 'small good-text' }, 'You understand this client well.')),
       gut ? h('div', { class: 'gut' }, h('span', { class: 'eyebrow' }, 'Gut feeling'), h('span', null, gut)) : null,
+      s.career ? homePanel(s.career) : null,
       h('div', { class: 'panel map-panel' }, h('div', { class: 'panel-head' }, h('h4', null, 'Map'), h('button', { class: 'btn small', onclick: openMap }, 'Open')), mapThumb),
       h('details', { class: 'panel log' }, h('summary', null, 'Trail diary'), h('ol', null, T.narr.slice().reverse().slice(0, 40).map((l) => h('li', { class: l.cls || '' }, l.text)))));
     PP.ui.renderMap(mapThumb, s, {});
@@ -3972,7 +4621,7 @@ window.PP = window.PP || {};
       const to = t.a === here ? t.b : t.a;
       const v = PP.visibility(s, to);
       const known = v === 'visited' || v === 'named';
-      const days = Math.max(1, Math.ceil(t.days / PACE[s.pace].speed));
+      const days = Math.max(1, Math.ceil(trailDays(s, t) / PACE[s.pace].speed));
       const isBack = s.cameFrom === to;
       const locked = t.kind === 'secret' && !s.password;
       return { t, to, known, days, isBack, locked, v };
@@ -3993,7 +4642,8 @@ window.PP = window.PP || {};
   function depart(t, to) {
     const s = T.s;
     s.cameFrom = s.map.current;
-    s.seg = { from: s.map.current, to, total: t.days, left: t.days, trail: t };
+    const d = trailDays(s, t);
+    s.seg = { from: s.map.current, to, total: d, left: d, trail: t };
     s.walked.push(s.map.current + '|' + to);
     say(`You set out from ${nodeName(s.map.current)}${t.kind === 'secret' ? ' along the Secret Shortcut. The padlock opens with "password1".' : '.'}`);
     T.scene.setLandmark(null);
@@ -4020,7 +4670,7 @@ window.PP = window.PP || {};
   function stopTravel() {
     clearTimeout(T.timer);
     if (T.mode !== 'traveling') return;
-    say(`You pull the wagon over on day ${T.s.day}.`);
+    say(`You stop to look around on day ${T.s.day}.`);
     menu();
   }
   function tick(text, cls) {
@@ -4039,10 +4689,11 @@ window.PP = window.PP || {};
     const eCost = s.pace === 'breakneck' ? 1 : s.pace === 'brisk' ? (s.day % 2 === 0 ? 1 : 0) : (s.day % 3 === 0 ? 1 : 0);
     if (eCost) PP.apply(s, { energy: -eCost });
     if (s.pace === 'breakneck' && PP.chance(0.25)) PP.addDebt(s, 'rushed_pace', 1, 'pace');
-    if (s.career) PP.career.tickDay(s.career);
+    const bizNotes = s.career ? PP.career.tickDay(s.career, true) : [];
     let line = `Day ${s.day}. ${T.weather}`;
     if (s.day % s.client.patience === 0) { PP.apply(s, { momentum: -1 }); line += ` ${C()} asks, "Are we there yet?"`; }
     tick(line);
+    bizNotes.filter((n) => !s.career.inbox.some((m) => m.text === n.text)).forEach((n) => tick('Back at the port: ' + n.text, n.kind === 'bad' ? 'bad' : ''));
     if (s.res.energy <= 0) {
       PP.apply(s, { energy: 4, momentum: -1, days: 2 });
       tick('You are exhausted. You stop for two days to recover. (−1 Momentum)', 'bad');
@@ -4051,8 +4702,8 @@ window.PP = window.PP || {};
     if (checkEnd()) return;
     if (s.seg.left <= 0) { T.timer = setTimeout(() => arrive(s.seg.to), 700); return; }
     // Mail from your book?
-    const news = (T.news || []).find((n) => !n.done && T.dayInJourney() >= n.day);
-    if (news) { news.done = true; return stopFor(PP.content.mailEvent(s, news)); }
+    const mail = s.career && s.career.inbox.shift();
+    if (mail) return stopFor(PP.content.mailEvent(s, mail));
     // Something from earlier?
     const due = PP.dueDebt(s);
     if (due) return stopFor(PP.content.debtCheckEvent(s, due));
@@ -4080,7 +4731,29 @@ window.PP = window.PP || {};
     runEvent(ev, after || (() => (T.s.seg ? travel() : menu())));
   }
 
-  function runEvent(ev, after) {
+  /* Systems built from trail Marks make some trails shorter. */
+  function trailDays(s, t) {
+    let d = t.days;
+    const sys = PP.content.practice ? PP.content.practice.systems : {};
+    for (const id in sys) if (sys[id].shortens && PP.career.hasSystem(s.career, id) && (t.a === sys[id].shortens || t.b === sys[id].shortens)) d -= 1;
+    return Math.max(1, d);
+  }
+  PP.trailDays = trailDays;
+
+  /* Handling a landmark well (prepare or get help) earns its Mark. */
+  function maybeMark(id, choice) {
+    const s = T.s, c = s.career;
+    if (!c || !id || c.marks[id] || !choice) return;
+    const sys = Object.values(PP.content.practice.systems).find((x) => x.mark === id);
+    if (!sys) return;
+    if (choice.kind === 'prepare' || choice.kind === 'help' || choice.minigame) {
+      c.marks[id] = true;
+      (s.newMarks = s.newMarks || []).push(id);
+      say(`You earned the ${PP.content.nodes[id].name} Mark. Back at the port you can build: ${sys.name}.`, 'arrive');
+    }
+  }
+
+  function runEvent(ev, after, landmark) {
     const s = T.s;
     T.mode = 'event';
     const host = h('div', { class: 'event-host' });
@@ -4091,9 +4764,11 @@ window.PP = window.PP || {};
       noFocus: false,
       onStep: () => { renderLedger(prev); },
       onMinigame: (on) => T.journal.classList.toggle('playing', on),
-      onDone: () => {
+      onDone: (choice) => {
         say(`${ev.title}.`, ev.debt ? 'bad' : '');
+        maybeMark(landmark, choice);
         refresh(prev);
+        if (s.poached) { finish('poached'); return; }
         if (checkEnd()) return;
         after();
       }
@@ -4121,7 +4796,7 @@ window.PP = window.PP || {};
     await T.scene.cut('arrive', { kind: node.kind, title: node.name, caption: first ? node.arrive : 'You have been here before.' });
     T.scene.setLandmark(node.kind);
     const ev = first ? pickLandmarkEvent(id) : null;
-    if (ev) { if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu()); }
+    if (ev) { if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu(), id); }
     else menu();
   }
   function pickLandmarkEvent(id) {
@@ -4143,7 +4818,7 @@ window.PP = window.PP || {};
     }));
     items.push({ label: 'Just chat for a while', note: 'No agenda. Builds rapport.', go: () => answer({ id: 'chat' }) });
     showJournal(h('div', { class: 'checkin-head' }, PP.ui.avatar(c, 44), h('div', null, h('strong', null, c.name), h('div', { class: 'small muted' }, `${c.traits.join(' · ')}. Trust ${s.res.trust}/10.`))),
-      h('p', { class: 'scene-text' }, `You slow the wagon and turn to ${c.name}. What do you ask?`),
+      h('p', { class: 'scene-text' }, `You fall into step beside ${c.name}. What do you ask?`),
       menuList(items), back());
     focusFirst();
   }
@@ -4200,7 +4875,7 @@ window.PP = window.PP || {};
     const s = T.s;
     const prev = Object.assign({}, s.res);
     s.day++; s.turn++;
-    if (s.career) PP.career.tickDay(s.career);
+    if (s.career) PP.career.tickDay(s.career, true).forEach((n) => say('Back at the port: ' + n.text, n.kind === 'bad' ? 'bad' : ''));
     PP.apply(s, { energy: 3 });
     let line = `Day ${s.day}. You rest.`;
     if (s.day % s.client.patience === 0) { PP.apply(s, { momentum: -1 }); line += ` ${C()} drums their fingers. (−1 Momentum)`; }
@@ -4232,12 +4907,12 @@ window.PP = window.PP || {};
     s.contacts.forEach((id) => {
       const c = PP.content.contacts[id];
       const ready = PP.contactReady(s, id);
-      if (id === 'skeptic') items.push({ label: 'Ask Gus to ride along for the next decision', note: s.skepticActive ? 'Gus is watching' : ready ? c.ability : 'Used', disabled: !ready || s.skepticActive, go: () => { PP.useContact(s, 'skeptic'); s.skepticActive = true; say('Gus climbs into the wagon. "Whatever you\'re about to do, I\'ll tell you what it costs."'); menu(); } });
+      if (id === 'skeptic') items.push({ label: 'Ask Gus to ride along for the next decision', note: s.skepticActive ? 'Gus is watching' : ready ? c.ability : 'Used', disabled: !ready || s.skepticActive, go: () => { PP.useContact(s, 'skeptic'); s.skepticActive = true; say('Gus falls in beside you. "Whatever you\'re about to do, I\'ll tell you what it costs."'); menu(); } });
       else if (id === 'connector') items.push({ label: 'Call Priya for a shortcut', note: !ready ? 'Used' : s.seg ? 'Halves the days left on this trail' : 'Start traveling first', disabled: !ready || !s.seg, go: () => { PP.useContact(s, 'connector'); s.seg.left = Math.max(0.5, s.seg.left / 2); say('Priya knows a farmer who knows a shortcut. The trail ahead gets much shorter.'); menu(); } });
       else items.push({ label: `${c.who} (${c.name})`, note: (ready ? 'On call. ' : 'Used. ') + c.when, disabled: true });
     });
     if (!items.length) items.push({ label: 'Your pack is empty and nobody is on call.', disabled: true });
-    showJournal(h('p', { class: 'scene-text' }, 'You rummage through the wagon.'), menuList(items), back());
+    showJournal(h('p', { class: 'scene-text' }, 'You rummage through your pack.'), menuList(items), back());
     focusFirst();
   }
 
@@ -4283,7 +4958,7 @@ window.PP = window.PP || {};
       const fits = judgment && (c.unlocks[d] || []).length;
       return { label: dest.name, note: dest.blurb + (fits ? ' This fits what you learned along the way.' : ''), go: () => land(d) };
     });
-    if (hidden) items.push({ label: 'Go back and learn more first', note: 'The X will wait. Your client might not.', go: () => { say('You turn the wagon around to learn more.'); menu(); } });
+    if (hidden) items.push({ label: 'Go back and learn more first', note: 'The X will wait. Your client might not.', go: () => { say('You turn back to learn more.'); menu(); } });
     showJournal(
       h('div', { class: 'eyebrow' }, 'Clients for Life · Day ' + s.day),
       h('h3', { class: 'scene-title' }, `Where does ${c.name} actually need to go?`),
@@ -4317,12 +4992,15 @@ window.PP = window.PP || {};
 
 </script>
 <script>
-/* Game shell: intro -> (career) -> Port Prospect -> pack -> the trail -> journey report -> port again.
- * The career (savings, book of clients, skills, contacts) carries across journeys. */
+/* Build Your Practice — game shell.
+ * Title -> choose your agent -> Port Prospect (prospect, pipeline, book, build, people)
+ * -> guide a prospect along the trail -> journey report -> back to the port.
+ * Every activity at the port takes a day, and every day costs money. */
 (function (PP) {
   const h = PP.h;
-  const G = (PP.game = { s: null, career: null, root: null });
+  const G = (PP.game = { s: null, career: null, root: null, tab: 'prospect' });
   const money = (n) => PP.career.money(n);
+  const P = () => PP.content.practice;
 
   PP.ui.mountGame = function (root) { G.root = root; intro(); };
 
@@ -4332,166 +5010,138 @@ window.PP = window.PP || {};
     window.scrollTo({ top: 0 });
   }
 
-  /* ---------------- Intro ---------------- */
+  /* ---------------- Title ---------------- */
   function intro() {
     const saved = PP.career.load();
     screen(h('section', { class: 'intro' },
       h('div', { class: 'intro-copy' },
-        h('div', { class: 'eyebrow' }, 'A light adventure about learning client work'),
-        h('h1', { class: 'display' }, 'Port Prospect'),
-        h('p', { class: 'lede' }, 'You are a new agent with a little savings, a lot of enthusiasm, and no idea what lies beyond the harbor. Guide clients across the territory to where they actually need to go. Build a practice that pays the bills before the money runs out.'),
+        h('div', { class: 'eyebrow' }, 'A light adventure about client work'),
+        h('h1', { class: 'display' }, 'Build Your Practice'),
+        h('p', { class: 'lede' }, 'You are a new agent at Port Prospect with some savings and a lot to learn. Find prospects, guide them through the wild terrain to a plan that actually suits them, look after the clients you have, and grow a practice that pays the bills before the money runs out.'),
         ladder(saved ? PP.career.level(saved) : 'survivable', true),
         h('div', { class: 'row' },
-          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; newJourney(); } }, `Continue your career (journey ${saved.journeys + 1})`) : null,
-          h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: () => { G.career = PP.newCareer(); PP.career.save(G.career); newJourney(); } }, saved ? 'Start a new career' : 'Start your career')),
-        saved ? h('p', { class: 'small muted' }, `Saved: ${money(saved.savings)} in savings, ${saved.book.filter((b) => b.perDay > 0).length} paying client${saved.book.filter((b) => b.perDay > 0).length === 1 ? '' : 's'}.`) : null),
+          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; port('prospect'); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
+          h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: chooseAgent }, saved ? 'Start a new career' : 'Start your career'))),
       h('div', { class: 'intro-map', id: 'intro-map' })));
     const demo = PP.newState();
     demo.map.beam = true;
     PP.ui.renderMap(document.getElementById('intro-map'), demo, {});
   }
 
-  /* The four practice levels, as a ladder. */
+  function chooseAgent() {
+    screen(h('section', { class: 'choose' },
+      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Who are you?'), h('h2', { class: 'display-sm' }, 'Choose your agent')),
+        h('p', { class: 'muted' }, 'Each starting point trades money, skills and the size of your natural market (people you already know).')),
+      h('div', { class: 'agent-grid' }, PP.content.agentTypes.map((a) => h('article', { class: 'panel agent-card' },
+        h('h3', null, a.name), h('p', { class: 'agent-tag' }, a.tagline),
+        h('dl', { class: 'kv' },
+          h('dt', null, 'Savings'), h('dd', null, money(a.savings)),
+          h('dt', null, 'Living costs'), h('dd', null, money(a.living) + '/day'),
+          h('dt', null, 'Natural market'), h('dd', null, a.market + ' warm contacts'),
+          h('dt', null, 'Runway'), h('dd', null, Math.floor(a.savings / a.living) + ' days with no income'),
+          h('dt', null, 'Skills'), h('dd', null, Object.keys(a.skills).map((k) => PP.SKILLS.find((x) => x.id === k).label).join(', '))),
+        h('p', { class: 'small' }, h('strong', null, a.perk + ': '), a.perkText),
+        h('p', { class: 'small muted' }, a.cons),
+        h('button', { class: 'btn primary', onclick: () => { G.career = PP.newCareer(a.id); PP.career.save(G.career); port('prospect', [{ text: `Day 1. You hang your license on the wall at Port Prospect. Time to find some people to help.`, kind: 'info' }]); } }, `Start as a ${a.name}`))))));
+  }
+
   function ladder(current, compact) {
-    const levels = PP.content.practice.levels;
+    const levels = P().levels;
     const idx = levels.findIndex((l) => l.id === current);
     return h('ol', { class: 'ladder' + (compact ? ' compact' : '') }, levels.map((l, i) => h('li', { class: (i === idx ? 'now ' : '') + (i < idx ? 'past ' : '') + 'l-' + l.id },
       h('strong', null, l.label), compact ? null : h('span', { class: 'small' }, l.blurb))));
   }
+  const stat = (k, v, cls) => h('div', { class: 'stat ' + (cls || '') }, h('span', { class: 'lk' }, k), h('strong', null, v));
+
+  /* ---------------- Port Prospect ---------------- */
+  function coach(c) {
+    const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
+    const unhappy = active.filter((b) => b.sat < 5);
+    const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
+    if (!c.pipeline.length) return 'Your pipeline is empty. Go prospecting: call people you know, try a call-a-thon, work the Chamber mixer, or set up at the farmers market.';
+    if (unhappy.length) return `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. A service day would help before you head out.`;
+    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Guide someone along the trail, or keep building.`;
+  }
 
   function practicePanel(c) {
-    const inc = PP.career.income(c), cost = PP.content.practice.dailyCost, runway = PP.career.runway(c);
+    const inc = PP.career.income(c), cost = PP.career.costs(c), runway = PP.career.runway(c);
     const lvl = PP.career.level(c);
-    const next = lvl === 'survivable' ? `Reach ${money(cost)}/day from your book to be Sustainable.` : lvl === 'sustainable' ? `Reach ${money(cost * 2)}/day to be Profitable.` : 'You made it. Everything from here is a bonus.';
     return h('div', { class: 'panel practice' },
       h('div', { class: 'practice-top' },
-        h('div', null, h('div', { class: 'eyebrow' }, 'Your practice · journey ' + (c.journeys + 1)), h('h3', null, PP.career.levelInfo(c).label)),
+        h('div', null, h('div', { class: 'eyebrow' }, `Day ${c.days + 1} · ${PP.career.agent(c).name}`), h('h3', null, PP.career.levelInfo(c).label)),
         h('div', { class: 'practice-nums' },
-          stat('Savings', money(c.savings)),
-          stat('Book income', money(inc) + '/day'),
-          stat('Living costs', money(cost) + '/day'),
-          stat('Runway', runway === Infinity ? 'Covered' : runway + ' days'))),
+          stat('Savings', money(c.savings), c.savings < 1000 ? 'warn' : ''),
+          stat('Income', money(inc) + '/day'),
+          stat('Costs', money(cost) + '/day'),
+          stat('Runway', runway === Infinity ? 'Covered' : runway + ' days'),
+          stat('Pipeline', String(c.pipeline.length)),
+          stat('Clients', String(c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).length)))),
       ladder(lvl),
-      h('p', { class: 'small' }, next),
-      c.book.length ? h('details', { class: 'book' }, h('summary', null, `Your book (${c.book.length})`),
-        h('ul', null, c.book.map((b) => h('li', { class: 'b-' + b.status }, h('strong', null, b.name), ` · journey ${b.journey} · `, bookStatus(b))))) : null);
-  }
-  const stat = (k, v) => h('div', { class: 'stat' }, h('span', { class: 'lk' }, k), h('strong', null, v));
-  function bookStatus(b) {
-    return { life: `client for life, ${money(b.perDay)}/day`, steady: `steady, ${money(b.perDay)}/day`, 'at-risk': 'paid once; might cancel', door: '"not yet"; door open', lost: 'lost', cancelled: 'cancelled (clawed back)' }[b.status] || b.status;
+      h('p', { class: 'small' }, `Income: ${money(PP.career.bookIncome(c))}/day from clients` + (PP.career.overrides(c) ? ` + ${money(PP.career.overrides(c))}/day from your recruits` : '') + `. Costs: ${money(c.living)}/day living` + (PP.career.rent(c) ? ` + ${money(PP.career.rent(c))}/day rent` : '') + '.'));
   }
 
-  /* ---------------- A new journey ---------------- */
-  function newJourney() {
+  function port(tab, flash) {
     const c = G.career;
-    const s = PP.newState();
-    s.career = c;
-    s.skills = c.skills; s.contacts = c.contacts; s.met = c.met; s.quests = c.quests;
-    s.trail = ['port'];
-    G.s = s;
-    if (c.referral) { arrive(true); }
-    port();
-  }
-
-  /* ---------------- Port ---------------- */
-  function port(flash) {
-    const s = G.s, c = G.career;
-    const need = c.journeys === 0 ? 2 : 1;
-    const waiting = !!s.client;
-    const contactsBox = h('div', { class: 'panel' },
-      h('div', { class: 'panel-head' }, h('h3', null, 'Your contacts'), h('span', { class: 'muted small' }, `${s.contacts.length} / ${PP.contactSlots(s)} slots`)),
-      s.contacts.length ? h('ul', { class: 'contact-list' }, s.contacts.map((id) => {
-        const ct = PP.content.contacts[id];
-        return h('li', null, h('div', null, h('strong', null, ct.name), ' · ', ct.who, h('div', { class: 'small muted' }, ct.ability)),
-          h('button', { class: 'btn ghost small', onclick: () => { const i = s.contacts.indexOf(id); s.contacts.splice(i, 1); port(); } }, 'Drop'));
-      })) : h('p', { class: 'muted small' }, 'Nobody yet. Talk to people, then put them on call. Slots are limited, and your contacts stay with you from journey to journey.'));
-
-    const prospect = waiting
-      ? h('div', { class: 'prospect arrived' },
-        PP.ui.avatar(s.client, 52),
-        h('div', null, h('div', { class: 'eyebrow' }, s.warm ? 'A warm referral has arrived' : 'A prospect has arrived'), h('h3', null, `${s.client.name}, ${s.client.title.toLowerCase()}`), h('p', null, s.client.opener),
-          h('p', { class: 'small muted' }, `${s.client.name} is waiting on the bench. Each extra thing you do here costs a day (${money(PP.content.practice.dailyCost)}) and 1 Momentum.`)),
-        h('button', { class: 'btn primary big', onclick: packScreen }, 'Head out'))
-      : h('div', { class: 'prospect' }, h('div', { class: 'eyebrow' }, 'No client yet'),
-        h('p', null, `Someone usually turns up soon. ${Math.max(0, need - s.portActions)} more thing${need - s.portActions === 1 ? '' : 's'} to do before then. Each thing here takes a day.`),
-        h('button', { class: 'btn ghost small', onclick: () => portAction(() => PP.log(s, 'Waited by the dock.')) }, 'Wait by the dock'));
-
+    G.tab = tab || G.tab;
+    const tabs = [['prospect', 'Prospecting'], ['pipeline', `Pipeline (${c.pipeline.length})`], ['book', `Your clients (${c.book.filter((b) => ['life', 'steady', 'at-risk', 'door'].includes(b.status)).length})`], ['build', 'Build your practice'], ['people', 'Skills & people']];
+    const body = { prospect: tabProspect, pipeline: tabPipeline, book: tabBook, build: tabBuild, people: tabPeople }[G.tab]();
     screen(h('section', { class: 'port' },
-      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Prepare'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
-        h('p', { class: 'muted' }, 'Talk to people, practice, and choose who to keep on call. Skills and contacts stay with you for your whole career.')),
+      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Home base'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
+        h('p', { class: 'muted' }, 'Every activity here takes a day, and every day costs money. Balance prospecting, looking after clients, and time on the trail.')),
       practicePanel(c),
-      flash ? h('div', { class: 'flash', role: 'status' }, flash) : null,
-      prospect,
-      h('div', { class: 'port-grid' }, h('div', { class: 'npc-grid' }, PP.content.npcs.map(npcCard)), h('aside', { class: 'port-side' }, contactsBox, h('div', { class: 'panel' }, h('h3', null, 'Skills'), skillList(s))))));
+      flash && flash.length ? h('div', { class: 'flash', role: 'status' }, flash.map((n) => h('p', { class: 'fl-' + (n.kind || 'info') }, n.text))) : null,
+      h('p', { class: 'coach' }, h('span', { class: 'eyebrow' }, 'What now? '), coach(c)),
+      h('nav', { class: 'port-tabs', 'aria-label': 'Port Prospect' }, tabs.map(([id, label]) => h('button', { 'aria-current': G.tab === id ? 'true' : 'false', onclick: () => port(id) }, label))),
+      body));
   }
 
-  function npcCard(n) {
-    const s = G.s;
-    const met = s.met[n.id];
-    const q = n.quest && s.quests[n.quest.id];
-    const ct = PP.content.contacts[n.contact];
-    const canRecruit = (met || q === 'done') && !s.contacts.includes(n.contact);
-    const full = s.contacts.length >= PP.contactSlots(s);
-    return h('article', { class: 'npc' },
-      h('div', { class: 'npc-head' }, h('span', { class: 'npc-mark', 'aria-hidden': 'true' }, n.name[0]), h('div', null, h('h3', null, n.name), h('div', { class: 'small muted' }, n.role))),
-      h('p', { class: 'npc-greet' }, n.greet),
-      h('div', { class: 'npc-actions' },
-        n.talk ? h('button', { class: 'btn', disabled: met, onclick: () => portAction(() => { s.met[n.id] = true; PP.apply(s, n.talk.eff); }, n.talk.text + ' ' + skillGain(n.talk.eff)) }, met ? 'Talked ✓' : n.talk.label) : null,
-        n.quest ? h('button', { class: 'btn', disabled: q === 'done', onclick: () => runQuest(n) }, q === 'done' ? 'Practice passed ✓' : n.quest.label + (q === 'failed' ? ' (retry)' : '')) : null,
-        canRecruit ? h('button', { class: 'btn accent', disabled: full, title: full ? 'Your contact slots are full. Drop someone first.' : '', onclick: () => { s.contacts.push(n.contact); port(`${n.name} is on call as ${ct.name}.`); } }, full ? 'Slots full' : `Put ${n.name.split(' ').slice(-1)[0] === 'Okafor' ? 'Dev' : n.name} on call`) : null,
-        s.contacts.includes(n.contact) ? h('span', { class: 'pill good' }, 'On call') : null),
-      h('p', { class: 'small muted npc-ability' }, h('strong', null, ct.name + ': '), ct.ability, !met && !n.talk && !q ? ' (pass the practice to recruit)' : ''));
-  }
-
-  function skillGain(eff) {
-    if (!eff || !eff.skill) return '';
-    return '(+1 ' + Object.keys(eff.skill).map((k) => PP.SKILLS.find((x) => x.id === k).label).join(', ') + ')';
-  }
-
-  function portAction(fn, flash) {
-    const s = G.s, c = G.career;
-    fn();
-    s.portActions++;
-    PP.career.tickDay(c);
-    flash = (flash ? flash + ' ' : '') + `(A day passes: ${money(-PP.content.practice.dailyCost + PP.career.income(c))}.)`;
-    if (c.savings < 0) return journeyEnd('broke');
-    if (s.client) {
-      PP.apply(s, PP.content.portRules.waitingCost);
-      flash += ` ${s.client.name} checks the time. (−1 Momentum)`;
-    } else if (s.portActions >= (c.journeys === 0 ? 2 : 1)) {
-      arrive();
-      flash += ' Someone just walked into the harbor office.';
+  /* Spend a day at the port: do the thing, then the day passes. */
+  function spendDay(fn, tab, free) {
+    const c = G.career;
+    const lines = [];
+    const res = fn();
+    if (res) lines.push({ text: res, kind: 'info' });
+    if (!free) {
+      const notes = PP.career.tickDay(c, false);
+      c.inbox = [];
+      lines.push(...notes);
     }
+    if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
     PP.career.save(c);
-    port(flash);
+    port(tab || G.tab, lines);
   }
 
-  /* Pick the next client. Repeat archetypes get a new name so every client is someone new. */
-  const ALT = { taylor: ['Jamie', 'Alex', 'Robin'], morgan: ['Sam', 'Dana', 'Quinn'], rosa: ['Lena', 'Marisol', 'Bea'] };
-  function arrive(warm) {
-    const s = G.s, c = G.career;
-    const ids = Object.keys(PP.content.clients);
-    const id = s.nextClient || PP.pick(ids.filter((x) => x !== c.lastClient));
-    let client = PP.content.clients[id];
-    const used = c.history.filter((x) => x.clientId === id).length;
-    if (used > 0) {
-      const name = ALT[id][(used - 1) % ALT[id].length];
-      client = JSON.parse(JSON.stringify(client).split(client.name).join(name));
-      client.checkin = JSON.parse(JSON.stringify(PP.content.clients[id].checkin).split(PP.content.clients[id].name).join(name));
-    }
-    s.client = client;
-    c.lastClient = id;
-    if (warm) { s.warm = true; c.referral = false; PP.apply(s, { trust: 2 }); }
+  /* ---- Prospecting ---- */
+  function tabProspect() {
+    const c = G.career;
+    return h('div', { class: 'activity-grid' }, PP.content.prospecting.map((a) => {
+      const blocked = a.id === 'warm' && c.market <= 0;
+      return h('article', { class: 'panel activity' },
+        h('h3', null, a.name), h('p', { class: 'small' }, a.blurb),
+        h('div', { class: 'row between' },
+          h('span', { class: 'small muted' }, `1 day${a.cost ? ' · ' + money(a.cost) : ''}` + (a.id === 'warm' ? ` · ${c.market} contacts left` : '') + (a.minigame ? ' · mini-game' : '')),
+          h('button', { class: 'btn primary', disabled: blocked || c.savings < a.cost, onclick: () => runActivity(a) }, a.minigame ? 'Play' : 'Do it')));
+    }));
   }
+  function runActivity(a) {
+    const c = G.career;
+    if (a.simple) return spendDay(() => { c.savings -= a.cost; return PP.content.runSimpleProspecting(c, a.id).text; }, 'prospect');
+    const mg = PP.minigames[a.minigame];
+    overlayGame(mg, { state: { skills: c.skills, res: { trust: 5 } }, client: PP.content.clients.taylor, prep: c.skills.preparation || 0, practice: false }, (res) => {
+      spendDay(() => {
+        c.savings -= a.cost;
+        const got = (res.prospects || []).map((p) => PP.career.addProspect(c, p));
+        return got.length ? `${a.name}: ${got.length} new prospect${got.length > 1 ? 's' : ''} for your pipeline (${got.map((p) => `${p.name}, ${p.temp}`).join('; ')}).` : `${a.name}: no new prospects this time.`;
+      }, got0(res) ? 'pipeline' : 'prospect');
+    }, `${a.name} · ${a.cost ? money(a.cost) + ' · ' : ''}1 day`);
+  }
+  const got0 = (res) => (res.prospects || []).length > 0;
 
-  function runQuest(n) {
-    const s = G.s;
-    const q = n.quest;
-    const mg = PP.minigames[q.minigame];
-    const overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': q.label });
+  function overlayGame(mg, ctx, done, label) {
+    const overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': mg.title });
     const stage = h('div', { class: 'overlay-card' });
     overlay.appendChild(stage);
-    stage.appendChild(h('div', { class: 'scene' }, h('div', { class: 'eyebrow' }, n.name + ' · practice'), h('h3', { class: 'scene-title' }, q.label.replace('Practice: ', '')), h('p', { class: 'scene-text' }, q.text), h('p', { class: 'small muted' }, mg.blurb + ` Pass mark: ${q.pass}.`),
+    stage.appendChild(h('div', { class: 'scene' }, h('div', { class: 'eyebrow' }, label || 'Mini-game'), h('h3', { class: 'scene-title' }, mg.title), h('p', { class: 'scene-text' }, mg.blurb),
       h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: go }, 'Start'), h('button', { class: 'btn ghost', onclick: () => overlay.remove() }, 'Not now'))));
     document.body.appendChild(overlay);
     overlay.querySelector('.btn').focus();
@@ -4499,44 +5149,165 @@ window.PP = window.PP || {};
       stage.innerHTML = '';
       const inner = h('div', { class: 'scene mg-stage' });
       stage.appendChild(inner);
-      const client = q.minigame === 'conversation' ? PP.content.practiceClient : (s.client || PP.content.clients.taylor);
-      mg.start(inner, { state: s, client, prep: PP.skill(s, 'preparation'), practice: true, pass: q.pass }, (res) => {
-        overlay.remove();
-        portAction(() => {
-          s.met[n.id] = true;
-          if (res.passed) { s.quests[q.id] = 'done'; PP.apply(s, q.reward); } else s.quests[q.id] = 'failed';
-        }, res.passed ? `Passed! ${skillGain(q.reward)} ${n.name} can now be put on call.` : `Not quite (${res.score}/${res.max}). You can try again.`);
-      });
+      mg.start(inner, ctx, (res) => { overlay.remove(); done(res); });
     }
   }
 
-  function skillList(s) {
-    return h('ul', { class: 'skill-list' }, PP.SKILLS.map((k) => h('li', { class: s.skills[k.id] ? 'has' : '' },
-      h('span', { class: 'pips', 'aria-label': `level ${s.skills[k.id]} of 2` }, h('i', { class: s.skills[k.id] >= 1 ? 'on' : '' }), h('i', { class: s.skills[k.id] >= 2 ? 'on' : '' })),
+  /* ---- Pipeline ---- */
+  function tabPipeline() {
+    const c = G.career;
+    if (!c.pipeline.length) return h('div', { class: 'panel' }, h('p', null, 'Nobody in your pipeline yet. Prospects you meet show up here, ready to be guided along the trail.'), h('button', { class: 'btn primary', onclick: () => port('prospect') }, 'Go prospecting'));
+    const nurture = h('div', { class: 'panel row between' }, h('div', null, h('h3', null, 'Keep your pipeline warm'), h('p', { class: 'small muted' }, 'Prospects go cold if you leave them waiting. A day of follow-up notes and calls buys everyone another week.')),
+      h('button', { class: 'btn', onclick: () => spendDay(() => { c.pipeline.forEach((p) => (p.expires += 7)); return `You spend the day following up with ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''}. Everyone gets another week.`; }, 'pipeline') }, 'Nurture your pipeline (1 day)'));
+    return h('div', { class: 'stack' }, nurture, h('div', { class: 'pipeline-grid' }, c.pipeline.slice().sort((a, b) => a.expires - b.expires).map((p) => {
+      const cl = PP.content.clients[p.archetype];
+      const left = p.expires - c.days;
+      return h('article', { class: 'panel prospect-card t-' + p.temp },
+        h('div', { class: 'row tight' }, PP.ui.avatar({ name: p.name, hue: cl.hue }, 44), h('div', null, h('h3', null, p.name), h('div', { class: 'small muted' }, cl.title))),
+        h('div', { class: 'row tight' }, h('span', { class: 'pill temp-' + p.temp }, p.temp), h('span', { class: 'small muted' }, `From ${p.source}`)),
+        h('p', { class: 'small' }, cl.surface + ' ' + (p.temp === 'hot' ? 'Starts with +2 Trust.' : p.temp === 'cold' ? 'Starts with −1 Trust.' : '')),
+        h('p', { class: 'small ' + (left <= 4 ? 'warn' : 'muted') }, `Goes cold in ${left} day${left === 1 ? '' : 's'}.`),
+        h('button', { class: 'btn primary', onclick: () => packScreen(p) }, `Guide ${p.name} on the trail`));
+    })));
+  }
+
+  /* ---- Book ---- */
+  function tabBook() {
+    const c = G.career;
+    const list = c.book.filter((b) => b.status !== 'lost');
+    const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
+    return h('div', { class: 'stack' },
+      h('div', { class: 'panel' },
+        h('div', { class: 'row between' }, h('div', null, h('h3', null, 'Look after your clients'), h('p', { class: 'small muted' }, 'Satisfaction slips a little every day. Below 4, clients start to cancel. A service day checks in with everyone.' + (c.partner ? ' Your partner looks after them while you are on the trail.' : ''))),
+          h('button', { class: 'btn primary', disabled: !active.length, onclick: () => spendDay(() => { active.forEach((b) => (b.sat = Math.min(10, b.sat + 4))); c.lastService = c.days; return `You spend the day on reviews and check-in calls. ${active.length} client${active.length > 1 ? 's' : ''} feel looked after.`; }, 'book') }, 'Service day (1 day)'))),
+      list.length ? h('div', { class: 'book-grid' }, list.map((b) => h('article', { class: 'panel client-row b-' + b.status },
+        h('div', { class: 'row between' }, h('strong', null, b.name), h('span', { class: 'pill' }, { life: 'client for life', steady: 'steady', 'at-risk': 'might cancel', door: 'not yet', cancelled: 'cancelled' }[b.status])),
+        h('div', { class: 'small muted' }, `Journey ${b.journey}` + (b.perDay ? ` · ${money(b.perDay)}/day` : '')),
+        ['life', 'steady', 'at-risk'].includes(b.status) ? h('div', { class: 'sat' }, h('span', { class: 'lk' }, 'Satisfaction'), h('div', { class: 'gauge-track' }, h('div', { class: 'gauge-fill', style: { width: b.sat * 10 + '%', background: b.sat < 4 ? 'var(--red)' : b.sat < 6 ? 'var(--momentum)' : 'var(--energy)' } }))) : null))) : h('p', { class: 'panel' }, 'No clients yet. Guide a prospect to the right destination and they join your book.'));
+  }
+
+  /* ---- Build your practice ---- */
+  function tabBuild() {
+    const c = G.career, pr = P();
+    const activeCount = c.book.filter((b) => ['life', 'steady'].includes(b.status)).length;
+    const ws = h('div', { class: 'panel' }, h('h3', null, 'Workspace'), h('div', { class: 'option-list' }, Object.entries(pr.workspaces).map(([id, w]) => h('div', { class: 'option' + (c.workspace === id ? ' current' : '') },
+      h('div', null, h('strong', null, w.name), h('div', { class: 'small' }, w.blurb), h('div', { class: 'small muted' }, w.rent ? `${money(w.rent)}/day rent` : 'No rent')),
+      c.workspace === id ? h('span', { class: 'pill good' }, 'Current') : h('button', { class: 'btn', onclick: () => spendDay(() => { c.workspace = id; return `You move into: ${w.name}.`; }, 'build') }, 'Move here (1 day)')))));
+
+    const partner = c.partner ? pr.partners.find((x) => x.id === c.partner) : null;
+    const pt = h('div', { class: 'panel' }, h('h3', null, 'Partner with another agent'), h('p', { class: 'small' }, pr.partnerTerms),
+      partner ? h('div', { class: 'option current' }, h('div', null, h('strong', null, partner.name), h('div', { class: 'small' }, partner.blurb)),
+        h('button', { class: 'btn ghost', onclick: () => spendDay(() => { c.partner = null; return `You and ${partner.name} part ways, amicably.`; }, 'build') }, 'Part ways'))
+        : activeCount < pr.partnerNeeds ? h('p', { class: 'small muted' }, `Agents will only partner with you once you have ${pr.partnerNeeds} paying clients. You have ${activeCount}.`)
+          : h('div', { class: 'option-list' }, pr.partners.map((p) => h('div', { class: 'option' }, h('div', null, h('strong', null, p.name), h('div', { class: 'small' }, p.blurb)),
+            h('button', { class: 'btn', onclick: () => spendDay(() => { c.partner = p.id; return `You and ${p.name} shake on it. Partners.`; }, 'build') }, 'Partner up (1 day)')))));
+
+    const rc = h('div', { class: 'panel' }, h('h3', null, 'Recruit and train agents'),
+      h('p', { class: 'small' }, `Bring on new agents and train them. Once trained, they pay you an override every day. They need mentoring at least every ${pr.mentorEvery} days or they may quit.`),
+      c.workspace !== 'office' || activeCount < pr.recruitNeeds ? h('p', { class: 'small muted' }, `Needs your own office and ${pr.recruitNeeds} paying clients (you have ${activeCount}).`) : null,
+      h('div', { class: 'option-list' }, pr.recruits.map((r) => {
+        const mine = c.recruits.find((x) => x.id === r.id);
+        const canHire = c.workspace === 'office' && activeCount >= pr.recruitNeeds && c.savings >= pr.hireCost;
+        let action;
+        if (!mine) action = h('button', { class: 'btn', disabled: !canHire, onclick: () => spendDay(() => { c.savings -= pr.hireCost; c.recruits.push({ id: r.id, name: r.name, override: r.override, quit: r.quit, trained: false, training: 0, lastMentor: c.days }); return `${r.name} joins your practice. Licensing costs ${money(pr.hireCost)}. Now they need training.`; }, 'build') }, `Recruit (${money(pr.hireCost)}, 1 day)`);
+        else if (!mine.trained) action = h('button', { class: 'btn', onclick: () => spendDay(() => { mine.training++; mine.lastMentor = c.days; if (mine.training >= pr.trainDays) { mine.trained = true; return `${r.name} is trained and working on their own. +${money(r.override)}/day override.`; } return `A day of training with ${r.name} (${mine.training}/${pr.trainDays}).`; }, 'build') }, `Train (${mine.training}/${pr.trainDays})`);
+        else action = h('button', { class: 'btn', onclick: () => spendDay(() => { mine.lastMentor = c.days; mine.override += 5; return `A mentoring day with ${r.name}. They are growing (+${money(5)}/day override).`; }, 'build') }, `Mentor (last ${c.days - mine.lastMentor}d ago)`);
+        return h('div', { class: 'option' + (mine ? ' current' : '') }, h('div', null, h('strong', null, r.name), h('div', { class: 'small' }, r.blurb), h('div', { class: 'small muted' }, mine && mine.trained ? `Earning you ${money(mine.override)}/day` : `Will earn about ${money(r.override)}/day once trained`)), action);
+      })));
+
+    const sys = h('div', { class: 'panel' }, h('h3', null, 'Systems from the trail'),
+      h('p', { class: 'small' }, 'Handle a landmark well (prepare or get help, rather than pushing through) to earn its Mark. Each Mark lets you build a system that makes future journeys easier.'),
+      h('div', { class: 'option-list' }, Object.entries(pr.systems).map(([id, sy]) => {
+        const has = c.systems[id], mark = c.marks[sy.mark];
+        return h('div', { class: 'option' + (has ? ' current' : '') + (mark ? '' : ' locked') },
+          h('div', null, h('strong', null, sy.name), h('div', { class: 'small' }, sy.blurb), h('div', { class: 'small muted' }, mark ? `Mark earned at ${PP.content.nodes[sy.mark].name}` : `Earn the Mark at ${PP.content.nodes[sy.mark].name}`)),
+          has ? h('span', { class: 'pill good' }, 'Built') : h('button', { class: 'btn', disabled: !mark || c.savings < sy.cost, onclick: () => spendDay(() => { c.savings -= sy.cost; c.systems[id] = true; return `You build your ${sy.name.toLowerCase()}.`; }, 'build') }, `Build (${money(sy.cost)}, 1 day)`));
+      })));
+    return h('div', { class: 'build-grid' }, ws, pt, rc, sys);
+  }
+
+  /* ---- Skills & people ---- */
+  function tabPeople() {
+    const c = G.career;
+    const fake = { skills: c.skills, contacts: c.contacts, met: c.met, quests: c.quests, res: { trust: 5 } };
+    const contactsBox = h('div', { class: 'panel' },
+      h('div', { class: 'panel-head' }, h('h3', null, 'On call for the trail'), h('span', { class: 'muted small' }, `${c.contacts.length} / ${PP.contactSlots(fake)} slots`)),
+      c.contacts.length ? h('ul', { class: 'contact-list' }, c.contacts.map((id) => {
+        const ct = PP.content.contacts[id];
+        return h('li', null, h('div', null, h('strong', null, ct.name), ' · ', ct.who, h('div', { class: 'small muted' }, ct.ability)),
+          h('button', { class: 'btn ghost small', onclick: () => { c.contacts.splice(c.contacts.indexOf(id), 1); PP.career.save(c); port('people'); } }, 'Drop'));
+      })) : h('p', { class: 'muted small' }, 'Nobody yet. Talk to people, then put them on call. Each helps once per journey.'));
+    const free = c.agent === 'grad';
+    return h('div', { class: 'port-grid' },
+      h('div', { class: 'npc-grid' }, PP.content.npcs.map((n) => {
+        const met = c.met[n.id];
+        const q = n.quest && c.quests[n.quest.id];
+        const ct = PP.content.contacts[n.contact];
+        const canRecruit = (met || q === 'done') && !c.contacts.includes(n.contact);
+        const full = c.contacts.length >= PP.contactSlots(fake);
+        return h('article', { class: 'npc' },
+          h('div', { class: 'npc-head' }, h('span', { class: 'npc-mark', 'aria-hidden': 'true' }, n.name[0]), h('div', null, h('h3', null, n.name), h('div', { class: 'small muted' }, n.role))),
+          h('p', { class: 'npc-greet' }, n.greet),
+          h('div', { class: 'npc-actions' },
+            n.talk ? h('button', { class: 'btn', disabled: met, onclick: () => spendDay(() => { c.met[n.id] = true; PP.apply(fake, n.talk.eff); return n.talk.text + ' ' + skillGain(n.talk.eff); }, 'people', free) }, met ? 'Talked ✓' : n.talk.label + (free ? '' : ' (1 day)')) : null,
+            n.quest ? h('button', { class: 'btn', disabled: q === 'done', onclick: () => runQuest(n, fake, free) }, q === 'done' ? 'Practice passed ✓' : n.quest.label + (q === 'failed' ? ' (retry)' : '')) : null,
+            canRecruit ? h('button', { class: 'btn accent', disabled: full, onclick: () => { c.contacts.push(n.contact); PP.career.save(c); port('people', [{ text: `${n.name} is on call as ${ct.name}.` }]); } }, full ? 'Slots full' : 'Put on call') : null,
+            c.contacts.includes(n.contact) ? h('span', { class: 'pill good' }, 'On call') : null),
+          h('p', { class: 'small muted npc-ability' }, h('strong', null, ct.name + ': '), ct.ability));
+      })),
+      h('aside', { class: 'port-side' }, contactsBox, h('div', { class: 'panel' }, h('h3', null, 'Skills'), skillList(c.skills))));
+  }
+  function skillGain(eff) {
+    if (!eff || !eff.skill) return '';
+    return '(+1 ' + Object.keys(eff.skill).map((k) => PP.SKILLS.find((x) => x.id === k).label).join(', ') + ')';
+  }
+  function runQuest(n, fake, free) {
+    const c = G.career, q = n.quest, mg = PP.minigames[q.minigame];
+    overlayGame(mg, { state: fake, client: q.minigame === 'conversation' ? PP.content.practiceClient : PP.content.clients.taylor, prep: c.skills.preparation || 0, practice: true, pass: q.pass }, (res) => {
+      spendDay(() => {
+        c.met[n.id] = true;
+        if (res.passed) { c.quests[q.id] = 'done'; PP.apply(fake, q.reward); return `Passed! ${skillGain(q.reward)} ${n.name} can now be put on call.`; }
+        c.quests[q.id] = 'failed'; return `Not quite (${res.score}/${res.max}). You can try again.`;
+      }, 'people', free);
+    }, `${n.name} · practice`);
+  }
+  function skillList(skills) {
+    return h('ul', { class: 'skill-list' }, PP.SKILLS.map((k) => h('li', { class: skills[k.id] ? 'has' : '' },
+      h('span', { class: 'pips', 'aria-label': `level ${skills[k.id]} of 2` }, h('i', { class: skills[k.id] >= 1 ? 'on' : '' }), h('i', { class: skills[k.id] >= 2 ? 'on' : '' })),
       h('span', null, h('strong', null, k.label), h('span', { class: 'small muted' }, ' ' + k.blurb)))));
   }
 
-  /* ---------------- Pack ---------------- */
-  function packScreen() {
-    const s = G.s;
+  /* ---------------- Starting a journey ---------------- */
+  function packScreen(p) {
     const chosen = new Set();
-    const go = h('button', { class: 'btn primary big', disabled: true, onclick: () => { s.pack = [...chosen]; startJourney(); } }, `Choose ${PP.content.packSize}`);
+    const go = h('button', { class: 'btn primary big', disabled: true, onclick: () => startJourney(p, [...chosen]) }, `Choose ${PP.content.packSize}`);
     const list = h('div', { class: 'pack-grid' }, Object.entries(PP.content.items).map(([id, it]) => h('button', { class: 'pack-item', 'aria-pressed': 'false', 'data-id': id, onclick: () => {
       if (chosen.has(id)) chosen.delete(id); else if (chosen.size < PP.content.packSize) chosen.add(id);
       list.querySelectorAll('.pack-item').forEach((el) => el.setAttribute('aria-pressed', chosen.has(el.dataset.id) ? 'true' : 'false'));
       go.disabled = chosen.size !== PP.content.packSize;
-      go.textContent = chosen.size === PP.content.packSize ? 'Set out on the trail' : `Choose ${PP.content.packSize - chosen.size} more`;
+      go.textContent = chosen.size === PP.content.packSize ? `Set out with ${p.name}` : `Choose ${PP.content.packSize - chosen.size} more`;
     } }, h('strong', null, it.name), h('span', { class: 'small' }, it.blurb))));
     screen(h('section', { class: 'pack' },
-      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Before you go'), h('h2', { class: 'display-sm' }, 'Load the wagon')), h('p', { class: 'muted' }, `You can carry ${PP.content.packSize} things.`)),
-      list, h('div', { class: 'row' }, go, h('button', { class: 'btn ghost', onclick: () => port() }, 'Back to the port'))));
+      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, `Guiding ${p.name}`), h('h2', { class: 'display-sm' }, 'Pack your bag')), h('p', { class: 'muted' }, `You can carry ${PP.content.packSize} things. Days on the trail still cost money, and your other clients will be waiting.`)),
+      list, h('div', { class: 'row' }, go, h('button', { class: 'btn ghost', onclick: () => port('pipeline') }, 'Back to the port'))));
   }
 
-  function startJourney() {
-    const s = G.s;
+  function startJourney(p, pack) {
+    const c = G.career;
+    const s = PP.newState();
+    s.career = c;
+    s.skills = c.skills; s.contacts = c.contacts; s.met = c.met; s.quests = c.quests;
+    s.client = PP.career.makeClient(p);
+    s.map.known = c.known;
+    s.pack = pack;
     s.phase = 'journey';
+    c.pipeline = c.pipeline.filter((x) => x.id !== p.id);
+    const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
+    PP.apply(s, { trust: trustMod });
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
     if (s.pack.includes('cards')) { PP.apply(s, { trust: 1 }); PP.useItem(s, 'cards'); }
+    G.s = s;
+    PP.career.save(c);
     G.root.innerHTML = '';
     PP.ui.startTrail(G.root, s, { onEnd: journeyEnd });
   }
@@ -4544,9 +5315,9 @@ window.PP = window.PP || {};
   /* ---------------- Journey report ---------------- */
   function journeyEnd(kind, reckoned) {
     const s = G.s, c = G.career, cl = s.client;
-    s.phase = 'end';
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
-    let fit = null, pts = 0, pay = null;
+    let fit = null, pts = 0, pay = null, cut = 0;
+    Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
     if (kind === 'landed') {
       fit = cl.fit[s.destination] || 'poor';
       if (s.destination === 'not_now' && s.res.trust < 6) fit = 'poor';
@@ -4554,52 +5325,52 @@ window.PP = window.PP || {};
       pts += s.res.trust >= 7 ? 2 : s.res.trust >= 4 ? 1 : 0;
       pts += s.settled.some((d) => d.outcome === 'costly') ? 0 : 1;
       pts += s.res.insight >= 6 ? 1 : 0;
-      pay = PP.content.practice.payout(s, s.destination, fit);
-      c.savings += pay.now;
-      c.book.push({ id: PP.uid('b'), clientId: cl.id, name: cl.name, status: pay.status, perDay: pay.perDay, journey: c.journeys + 1 });
-      if (pay.referral) c.referral = true;
+      pay = P().payout(s, s.destination, fit);
+      cut = c.partner ? Math.round(pay.now * 0.25) : 0;
+      c.savings += pay.now - cut;
+      if (pay.status !== 'lost') c.book.push({ id: PP.uid('b'), archetype: cl.id, name: cl.name, status: pay.status, perDay: pay.perDay, sat: pay.sat, journey: c.journeys + 1 });
+      if (pay.referral) PP.career.addProspect(c, { temp: 'hot', source: `referral from ${cl.name}` });
     }
     if (kind !== 'broke') {
       c.journeys++;
-      c.history.push({ journey: c.journeys, clientId: cl.id, client: cl.name, outcome: kind === 'landed' ? PP.content.destinations[s.destination].name : kind, fit, cash: pay ? pay.now : 0 });
+      c.history.push({ journey: c.journeys, client: cl.name, outcome: kind === 'landed' ? PP.content.destinations[s.destination].name : kind, fit, cash: pay ? pay.now - cut : 0 });
     }
-    const broke = kind === 'broke' || c.savings < 0;
-    if (broke) c.over = true;
+    if (kind === 'broke' || c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
     const levelAfter = PP.career.level(c);
     const firstProfitable = levelAfter === 'profitable' && c.bestLevel !== 'profitable';
     if (levelAfter === 'profitable' || (levelAfter === 'sustainable' && c.bestLevel === 'survivable')) c.bestLevel = levelAfter;
-    if (broke) PP.career.clear(); else PP.career.save(c);
+    PP.career.save(c);
 
-    if (broke) return unemployed();
-
-    const rating = kind !== 'landed' ? (kind === 'walked' ? 'The client found another guide' : 'The trail went cold')
-      : pts >= 6 ? 'Trusted Guide' : pts >= 4 ? 'Steady Navigator' : pts >= 2 ? 'Got There, Eventually' : 'Lost at Sea';
-    const why = kind === 'walked' ? `${cl.name} stopped talking to you. Trust ran out before the trail did.`
-      : kind === 'stalled' ? `Everything slowed down until nothing was moving. ${cl.name} decided to "revisit this next year."`
-        : fitText(s, fit);
+    const rating = kind === 'poached' ? 'A rival took your client' : kind !== 'landed' ? (kind === 'walked' ? 'The client found another guide' : 'The trail went cold')
+      : pts >= 6 ? 'Trusted Guide' : pts >= 4 ? 'Steady Navigator' : pts >= 2 ? 'Got There, Eventually' : 'Lost in the Wilds';
+    const why = kind === 'poached' ? `${cl.name} went with Vance from Velocity Wealth. The relationship was not strong enough to hold.`
+      : kind === 'walked' ? `${cl.name} stopped talking to you. Trust ran out before the trail did.`
+        : kind === 'stalled' ? `Everything slowed down until nothing was moving. ${cl.name} decided to "revisit this next year."`
+          : fitText(s, fit);
     const shortcuts = s.settled.concat(s.debt.map((d) => Object.assign({}, d, { outcome: 'never came due' })));
     const unknown = Object.keys(cl.facts).filter((f) => s.facts[f] == null);
-    const lvlInfo = PP.career.levelInfo(c);
+    const newMarks = s.newMarks || [];
 
     screen(h('section', { class: 'ending' },
       h('header', { class: 'ending-head' },
-        h('div', { class: 'eyebrow' }, `Journey ${c.journeys} · ${kind === 'landed' ? PP.content.destinations[s.destination].name : 'journey over'} · ${s.day} days`),
+        h('div', { class: 'eyebrow' }, `Journey ${c.journeys} · ${cl.name} · ${s.day} days on the trail`),
         h('h2', { class: 'display' }, firstProfitable ? 'Profitable!' : rating),
         kind === 'landed' ? h('div', { class: 'stars', 'aria-label': `${pts} of 7` }, Array.from({ length: 7 }, (_, i) => h('span', { class: i < pts ? 'on' : '' }))) : null,
-        h('p', { class: 'lede' }, firstProfitable ? `Your book now pays twice your living costs. You did it. ${why}` : why),
+        h('p', { class: 'lede' }, firstProfitable ? `Your income now covers twice your costs. ${why}` : why),
         h('div', { class: 'row' },
-          h('button', { class: 'btn primary big', onclick: newJourney }, 'Back to Port Prospect for your next client'),
+          h('button', { class: 'btn primary big', onclick: () => port(c.pipeline.length ? 'pipeline' : 'prospect', [{ text: `Back at Port Prospect after ${s.day} days away.`, kind: 'info' }]) }, 'Back to Port Prospect'),
           h('button', { class: 'btn ghost', onclick: intro }, 'Title screen'))),
       h('div', { class: 'panel payday' },
         h('div', { class: 'eyebrow' }, 'What this journey did for your practice'),
         h('div', { class: 'practice-nums' },
-          stat('Commission', pay ? money(pay.now) : '$0'),
-          stat('Added to your book', pay && pay.perDay ? money(pay.perDay) + '/day' : 'nothing'),
+          stat('Commission', pay ? money(pay.now - cut) + (cut ? ` (after ${money(cut)} to your partner)` : '') : '$0'),
+          stat('Added income', pay && pay.perDay ? money(pay.perDay) + '/day' : 'nothing'),
           stat('Savings now', money(c.savings)),
-          stat('Level', levelBefore !== levelAfter ? `${PP.content.practice.levels.find((l) => l.id === levelBefore).label} → ${lvlInfo.label}` : lvlInfo.label)),
+          stat('Level', levelBefore !== levelAfter ? `${P().levels.find((l) => l.id === levelBefore).label} → ${PP.career.levelInfo(c).label}` : PP.career.levelInfo(c).label)),
         pay ? h('p', null, pay.note) : h('p', null, 'No sale, nothing added to your book. The days on the trail still cost money.'),
-        pay && pay.status === 'at-risk' ? h('p', { class: 'small warn' }, `Heads up: this one may cancel during a later journey, and ${money(PP.content.practice.clawback)} would be clawed back.`) : null,
-        pay && pay.referral ? h('p', { class: 'small good-text' }, 'They are sending a friend your way. Your next prospect arrives warm (+2 Trust).') : null,
+        pay && pay.status === 'at-risk' ? h('p', { class: 'small warn' }, `This one may cancel later, and ${money(P().clawback)} would be clawed back.`) : null,
+        pay && pay.referral ? h('p', { class: 'small good-text' }, 'They referred a friend. A hot prospect is waiting in your pipeline.') : null,
+        newMarks.length ? h('p', { class: 'small good-text' }, `Marks earned: ${newMarks.map((m) => PP.content.nodes[m].name).join(', ')}. New systems are available under Build your practice.`) : null,
         ladder(levelAfter)),
       h('div', { class: 'ending-grid' },
         h('div', { class: 'panel' }, h('h3', null, 'Where the journey ended'), PP.ui.gauges(s),
@@ -4613,11 +5384,10 @@ window.PP = window.PP || {};
             h('div', null, h('strong', null, PP.content.debts[d.tag].label)),
             h('div', { class: 'small muted' }, `Taken near ${PP.content.nodes[d.where] ? PP.content.nodes[d.where].name : '?'}` + (d.how === 'final reckoning' ? ' · came due at the final reckoning' : d.at ? ` · came due near ${PP.content.nodes[d.at].name}` : '')),
             h('span', { class: 'pill' }, d.how === 'Olu' || d.how === 'checklist' ? 'rescued by ' + d.how : d.outcome)))) : h('p', { class: 'muted' }, 'You took no shortcuts that left a debt. Thorough, possibly slow, definitely tidy.'),
-          reckoned ? h('p', { class: 'small muted' }, `${reckoned} unresolved shortcut${reckoned > 1 ? 's' : ''} rolled one last time when you landed.`) : null),
+          reckoned ? h('p', { class: 'small muted' }, `${reckoned} unresolved shortcut${reckoned > 1 ? 's' : ''} rolled one last time when you arrived.`) : null),
         h('div', { class: 'panel' }, h('h3', null, `What you never found out about ${cl.name}`),
           unknown.length ? h('ul', { class: 'facts' }, unknown.map((f) => h('li', { class: cl.facts[f].key ? 'key' : '' }, cl.facts[f].label + (cl.facts[f].key ? ' (this changes the destination)' : '')))) : h('p', null, 'Nothing. You got the full picture.')),
-        h('div', { class: 'panel' }, h('h3', null, 'Your trail'),
-          h('div', { class: 'map-host small-map', id: 'end-map' })))));
+        h('div', { class: 'panel' }, h('h3', null, 'Your route'), h('div', { class: 'map-host small-map', id: 'end-map' })))));
     s.map.beam = true;
     PP.ui.renderMap(document.getElementById('end-map'), s, {});
   }
@@ -4626,14 +5396,13 @@ window.PP = window.PP || {};
     const c = G.career;
     screen(h('section', { class: 'ending' },
       h('header', { class: 'ending-head' },
-        h('div', { class: 'eyebrow' }, `Career over after ${c.journeys} journey${c.journeys === 1 ? '' : 's'} and ${c.days} days`),
+        h('div', { class: 'eyebrow' }, `Career over after ${c.days} days and ${c.journeys} journey${c.journeys === 1 ? '' : 's'}`),
         h('h2', { class: 'display' }, 'Unemployed'),
-        h('p', { class: 'lede' }, 'Your savings ran out on the trail. You take a job at the bank. It has excellent dental, and nobody ever asks you to find out what a client really needs.'),
+        h('p', { class: 'lede' }, 'Your savings ran out. You take a salaried job at the bank. It has excellent dental, and nobody ever asks you to find out what a client really needs.'),
         ladder('unemployed'),
-        h('div', { class: 'row' }, h('button', { class: 'btn primary big', onclick: () => { G.career = PP.newCareer(); PP.career.save(G.career); newJourney(); } }, 'Start a new career'))),
+        h('div', { class: 'row' }, h('button', { class: 'btn primary big', onclick: chooseAgent }, 'Start a new career'))),
       h('div', { class: 'panel' }, h('h3', null, 'Your career'),
-        c.history.length ? h('ol', { class: 'plain' }, c.history.map((x) => h('li', null, `Journey ${x.journey}: ${x.client} → ${x.outcome}${x.fit ? ` (${x.fit} fit)` : ''}, ${money(x.cash)}`))) : h('p', { class: 'muted' }, 'You never made it off the first trail.'),
-        c.book.length ? h('p', { class: 'small muted' }, 'Your book at the end: ' + c.book.map((b) => `${b.name} (${bookStatus(b)})`).join('; ') + '.') : null)));
+        c.history.length ? h('ol', { class: 'plain' }, c.history.map((x) => h('li', null, `Journey ${x.journey}: ${x.client} → ${x.outcome}${x.fit ? ` (${x.fit} fit)` : ''}, ${money(x.cash)}`))) : h('p', { class: 'muted' }, 'You never landed a client.'))));
   }
 
   function fitText(s, fit) {
@@ -4720,53 +5489,59 @@ window.PP = window.PP || {};
       const node = Object.values(PP.content.nodes).find((n) => n.kind === scene.terrain);
       scene.cut(k, k === 'arrive' ? { kind: scene.terrain, title: node ? node.name : 'Arriving', caption: node ? node.arrive : '' } : { title: k[0].toUpperCase() + k.slice(1), caption: k === 'debt' ? 'A shortcut you took earlier finally catches up with you.' : '' });
     } }, k)));
-    root.append(intro('Trail & cut scenes', 'The Oregon Trail layer: the wagon travels day by day through terrain that matches each part of the map. Cut scenes play when you reach a landmark, meet someone, or when a past shortcut catches up with you.'),
+    root.append(intro('Trail & cut scenes', 'You and your client hike day by day through terrain that matches each part of the map. Cut scenes play when you reach a landmark, meet someone, or when a past shortcut catches up with you.'),
       h('div', { class: 'stage' }, canvas),
       h('div', { class: 'row wrap' },
         select('tr-terrain', 'Terrain', kinds, scene.terrain, (v) => scene.setTerrain(v)),
         select('tr-pace', 'Pace', [['steady', 'Steady'], ['brisk', 'Brisk'], ['breakneck', 'Breakneck']], 'steady', (v) => scene.setPace(v)),
-        h('label', { class: 'field check', for: 'tr-move' }, h('input', { type: 'checkbox', id: 'tr-move', checked: true, onchange: (e) => scene.setMoving(e.target.checked) }), h('span', null, 'Wagon moving')),
+        h('label', { class: 'field check', for: 'tr-move' }, h('input', { type: 'checkbox', id: 'tr-move', checked: true, onchange: (e) => scene.setMoving(e.target.checked) }), h('span', null, 'Hikers walking')),
         select('tr-lm', 'Landmark in view', [['', 'None']].concat(kinds), '', (v) => scene.setLandmark(v || null))),
       h('div', { class: 'panel' }, h('h4', null, 'Play a cut scene'), cuts));
   }
 
   /* ---------------- Your practice ---------------- */
   function labPractice(root) {
-    const P = PP.content.practice;
+    const P = PP.content.practice, M = PP.career.money;
     const fake = (trust) => ({ res: { trust } });
     const rows = [
-      ['Right destination, high trust (7+)', P.payout(fake(8), 'bridge_plan', 'appropriate')],
-      ['Right destination, okay trust', P.payout(fake(5), 'bridge_plan', 'appropriate')],
+      ['Right destination, high trust', P.payout(fake(8), 'bridge_plan', 'appropriate')],
       ['Acceptable destination', P.payout(fake(6), 'referral', 'acceptable')],
       ['The Grand Plan when it is the wrong fit', P.payout(fake(6), 'grand_plan', 'poor')],
-      ['Not Yet Harbor, trust 6+', P.payout(fake(7), 'not_now', 'acceptable')],
-      ['Not Yet Harbor, low trust', P.payout(fake(3), 'not_now', 'poor')]
+      ['Not Yet Harbor, trust 6+', P.payout(fake(7), 'not_now', 'acceptable')]
     ];
-    const c = PP.newCareer();
+    let agent = 'changer', c = PP.newCareer(agent), log = [];
     const sim = h('div');
+    const day = (away) => { log = PP.career.tickDay(c, away).map((n) => n.text).concat(log).slice(0, 8); };
     function renderSim() {
       sim.innerHTML = '';
-      sim.append(h('div', { class: 'practice-nums' },
-        h('div', { class: 'stat' }, h('span', { class: 'lk' }, 'Savings'), h('strong', null, PP.career.money(c.savings))),
-        h('div', { class: 'stat' }, h('span', { class: 'lk' }, 'Book income'), h('strong', null, PP.career.money(PP.career.income(c)) + '/day')),
-        h('div', { class: 'stat' }, h('span', { class: 'lk' }, 'Level'), h('strong', null, PP.career.levelInfo(c).label)),
-        h('div', { class: 'stat' }, h('span', { class: 'lk' }, 'Runway'), h('strong', null, PP.career.runway(c) === Infinity ? 'Covered' : PP.career.runway(c) + ' days'))),
-        h('div', { class: 'row wrap mt' }, rows.map(([label, pay]) => h('button', { class: 'btn small', onclick: () => {
-          for (let i = 0; i < 18; i++) PP.career.tickDay(c);
-          c.savings += pay.now; c.book.push({ id: PP.uid('b'), name: 'Client ' + (c.book.length + 1), status: pay.status, perDay: pay.perDay, journey: c.book.length + 1 }); renderSim();
-        } }, 'Journey: ' + label)),
-          h('button', { class: 'btn ghost small', onclick: () => { Object.assign(c, PP.newCareer()); renderSim(); } }, 'Reset')),
-        h('p', { class: 'small muted' }, 'Each button simulates an 18-day journey (living costs and book income), then adds that outcome to your book.'));
+      sim.append(
+        select('lp-agent', 'Agent type', PP.content.agentTypes.map((a) => [a.id, a.name]), agent, (v) => { agent = v; c = PP.newCareer(v); log = []; renderSim(); }),
+        h('div', { class: 'practice-nums' },
+          [['Day', String(c.days)], ['Savings', M(c.savings)], ['Income', M(PP.career.income(c)) + '/day'], ['Costs', M(PP.career.costs(c)) + '/day'], ['Level', PP.career.levelInfo(c).label], ['Pipeline', String(c.pipeline.length)], ['Clients', String(c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).length)]
+        ].map(([k, v]) => h('div', { class: 'stat' }, h('span', { class: 'lk' }, k), h('strong', null, v)))),
+        h('div', { class: 'row wrap mt' },
+          h('button', { class: 'btn small', onclick: () => { log.unshift(PP.content.runSimpleProspecting(c, 'warm').text); day(false); renderSim(); } }, 'Day: warm calls'),
+          h('button', { class: 'btn small', onclick: () => { c.book.forEach((b) => (b.sat = Math.min(10, b.sat + 4))); log.unshift('Service day.'); day(false); renderSim(); } }, 'Day: service clients'),
+          ...rows.map(([label, pay]) => h('button', { class: 'btn small', onclick: () => { for (let i = 0; i < 18; i++) day(true); c.savings += pay.now; if (pay.status !== 'lost') c.book.push({ id: PP.uid('b'), name: 'Client ' + (c.book.length + 1), status: pay.status, perDay: pay.perDay, sat: pay.sat, journey: c.book.length + 1 }); log.unshift(`18-day journey: ${label}.`); renderSim(); } }, '18-day journey: ' + label)),
+          h('button', { class: 'btn small', onclick: () => { c.workspace = c.workspace === 'office' ? 'kitchen' : 'office'; renderSim(); } }, c.workspace === 'office' ? 'Move out of the office' : 'Rent an office'),
+          h('button', { class: 'btn ghost small', onclick: () => { c = PP.newCareer(agent); log = []; renderSim(); } }, 'Reset')),
+        h('ul', { class: 'plain small mt' }, log.map((l) => h('li', null, l))));
     }
-    root.append(intro('Your practice', 'The reason to keep going. Every day costs money. Clients you guide well join your book and keep paying. Quick closes pay more now but can cancel later and get clawed back. Your level is your book income compared with your costs.'),
+    root.append(intro('Your practice', 'The reason to keep going. Every day costs money: living costs plus rent. Clients pay you every day while they are happy, but satisfaction slips without service days, and unhappy clients cancel. Prospects wait in your pipeline, go cold, and can be taken by rivals while you are away.'),
       h('div', { class: 'lab-cols two' },
-        h('div', { class: 'panel' }, h('h4', null, 'Levels'), h('table', { class: 'tbl' }, h('tbody', null, P.levels.map((l, i) => h('tr', null, h('th', null, l.label), h('td', null, [
-          'Savings below $0. Career over.', `Book income below ${PP.career.money(P.dailyCost)}/day.`, `Book income at least ${PP.career.money(P.dailyCost)}/day.`, `Book income at least ${PP.career.money(P.dailyCost * 2)}/day.`][i]))))),
-          h('p', { class: 'small muted' }, `Start with ${PP.career.money(P.startSavings)}. Living costs: ${PP.career.money(P.dailyCost)} per day, on the trail and at the port.`)),
+        h('div', { class: 'panel' }, h('h4', null, 'Agent types'), h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+          h('thead', null, h('tr', null, ['Agent', 'Savings', 'Living', 'Market', 'Perk'].map((x) => h('th', null, x)))),
+          h('tbody', null, PP.content.agentTypes.map((a) => h('tr', null, h('th', null, a.name), h('td', null, M(a.savings)), h('td', null, M(a.living) + '/day'), h('td', null, String(a.market)), h('td', { class: 'small' }, a.perk + ': ' + a.perkText))))))),
         h('div', { class: 'panel' }, h('h4', null, 'What each outcome pays'), h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-          h('thead', null, h('tr', null, ['Outcome', 'Now', 'Per day', 'Later'].map((x) => h('th', null, x)))),
-          h('tbody', null, rows.map(([label, p]) => h('tr', null, h('td', null, label), h('td', null, PP.career.money(p.now)), h('td', null, PP.career.money(p.perDay)),
-            h('td', { class: 'small' }, p.status === 'at-risk' ? `${Math.round(P.cancelChance * 100)}% chance per journey to cancel (−${PP.career.money(P.clawback)})` : p.status === 'door' ? `${Math.round(P.returnChance * 100)}% chance per journey they come back` : p.referral ? 'Sends a warm referral' : '—')))))))),
+          h('thead', null, h('tr', null, ['Outcome', 'Now', 'Per day', 'Starting satisfaction'].map((x) => h('th', null, x)))),
+          h('tbody', null, rows.map(([label, p]) => h('tr', null, h('td', null, label), h('td', null, M(p.now)), h('td', null, M(p.perDay)), h('td', null, String(p.sat))))))),
+          h('p', { class: 'small muted' }, `Poor fits can cancel at any time and ${M(P.clawback)} is clawed back. A "not yet" has a small daily chance of coming back as a client.`)),
+        h('div', { class: 'panel' }, h('h4', null, 'Building the practice'), h('table', { class: 'tbl' }, h('tbody', null,
+          Object.values(P.workspaces).map((w) => h('tr', null, h('th', null, w.name), h('td', { class: 'small' }, `${M(w.rent)}/day. ${w.blurb}`))),
+          h('tr', null, h('th', null, 'Partner'), h('td', { class: 'small' }, P.partnerTerms + ` Needs ${P.partnerNeeds} paying clients.`)),
+          h('tr', null, h('th', null, 'Recruits'), h('td', { class: 'small' }, `Hire for ${M(P.hireCost)}, train for ${P.trainDays} days, then earn an override. Mentor them every ${P.mentorEvery} days or they may quit. Needs an office and ${P.recruitNeeds} paying clients.`))))),
+        h('div', { class: 'panel' }, h('h4', null, 'Systems earned on the trail'), h('table', { class: 'tbl' }, h('tbody', null,
+          Object.values(P.systems).map((sy) => h('tr', null, h('th', null, sy.name), h('td', { class: 'small' }, `Mark: ${PP.content.nodes[sy.mark].name}. ${M(sy.cost)}. ${sy.blurb}`))))))),
       h('div', { class: 'panel' }, h('h4', null, 'Try a career'), sim));
     renderSim();
   }
@@ -4847,7 +5622,7 @@ window.PP = window.PP || {};
         h('button', { class: 'btn ghost', onclick: () => { Object.assign(s, sandbox()); render(); } }, 'Reset map'),
         h('p', { class: 'small muted' }, 'Click glowing markers to explore. Fog lifts around places you visit.'));
     }
-    root.append(intro('Fog map & world reaction', 'Your map from the concept doc. Parchment clouds cover places you have not reached yet, and the fog lifts as you travel, and its geography reflects your working style: the same world feels different across runs.'),
+    root.append(intro('Fog map & world reaction', 'Your map from the concept doc. Parchment clouds cover places you have not reached yet and lift as you travel. The geography also reflects your working style, so the same world feels different across runs.'),
       h('div', { class: 'lab-map-grid' }, h('div', { class: 'map-wrap' }, mapHost), controls));
     render();
   }
@@ -4881,7 +5656,7 @@ window.PP = window.PP || {};
       });
     }
     root._stop = () => running && running.stop();
-    root.append(intro('Mini-games', 'Each mini-game is a real judgment risk, and its result feeds back into the journey: insight, trust, momentum, and sometimes hidden risk debt. Three are judgment games from the concept doc; Inbox Rapids and the Snake Pit are the action games, like hunting in Oregon Trail.'), opts, cards, stage);
+    root.append(intro('Mini-games', 'Each mini-game is a real judgment risk, and its result feeds back into the journey: insight, trust, momentum, and sometimes hidden risk debt. Document Dash, The Conversation and Fraud or Friend are judgment games from the concept doc. Call-a-thon, the Mixer and the Farmers Market are prospecting games played at the port. Inbox Rapids and the Snake Pit are the action games.'), opts, cards, stage);
     root.parentNode && (root.parentNode._stop = root._stop);
   }
 

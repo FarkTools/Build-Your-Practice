@@ -39,7 +39,7 @@
   /* visited > named > rumored > uncharted */
   PP.visibility = function (s, id) {
     if (s.map.visited[id]) return 'visited';
-    if (s.map.beam) return 'named';
+    if (s.map.beam || (s.map.known && s.map.known[id])) return 'named';
     const near = PP.neighbors(s, id).some((n) => s.map.visited[n]);
     if (id === 'clients') return 'named'; // the goal is always marked on the map
     if (!near) return 'uncharted';
@@ -265,10 +265,25 @@
       });
     }
 
-    // Wagon marker: at a landmark, or partway along the current trail
-    const marker = el('g', { class: 'm-wagon' },
-      el('path', { d: 'M-16,0 C-16,-22 16,-22 16,0 Z', class: 'cover' }), el('rect', { x: -18, y: 0, width: 36, height: 8, class: 'body' }),
-      el('circle', { cx: -10, cy: 11, r: 5, class: 'wheel' }), el('circle', { cx: 10, cy: 11, r: 5, class: 'wheel' }));
+    // Practice systems built from trail Marks show up on the map
+    if (s.career && s.career.systems) {
+      const built = el('g', { class: 'm-built' });
+      Object.entries(PP.content.practice.systems).forEach(([id, sy]) => {
+        if (!s.career.systems[id]) return;
+        const n = PP.content.nodes[sy.mark];
+        if (id === 'planning') built.appendChild(el('path', { d: `M${n.x - 70},${n.y + 6} L${n.x + 70},${n.y - 6}`, class: 'boardwalk' }));
+        const g = el('g', { transform: `translate(${n.x - 34} ${n.y - 34})` },
+          el('path', { d: 'M0,0 L0,-26 L18,-20 L0,-14', class: 'pennant' }), el('line', { x1: 0, y1: 0, x2: 0, y2: -26, class: 'pole' }));
+        g.appendChild(el('title', null, sy.name));
+        built.appendChild(g);
+      });
+      svg.appendChild(built);
+    }
+
+    // You are here: a map pin, at a landmark or partway along the current trail
+    const marker = el('g', { class: 'm-pin' },
+      el('path', { d: 'M0,0 C-4,-8 -12,-14 -12,-24 A12,12 0 1 1 12,-24 C12,-14 4,-8 0,0 Z', class: 'pin' }),
+      el('circle', { cx: 0, cy: -24, r: 5, class: 'pin-dot' }));
     svg.appendChild(marker);
 
     host.innerHTML = '';
@@ -285,6 +300,6 @@
         pos = { x: pt.x, y: pt.y };
       }
     }
-    marker.setAttribute('transform', `translate(${pos.x} ${pos.y - 14})`);
+    marker.setAttribute('transform', `translate(${pos.x} ${pos.y - 4})`);
   };
 })(window.PP);

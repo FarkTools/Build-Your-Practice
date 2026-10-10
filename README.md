@@ -1,33 +1,41 @@
-# Port Prospect
+# Build Your Practice
 
-A light adventure game about learning to navigate client work. A new agent starts at Port Prospect with limited skills and incomplete information, a client shows up, and there is no dotted route.
+A light adventure game about building a client practice. You start as a new agent at **Port Prospect**, the home area, with some savings and a lot to learn. Find prospects, guide them through wild terrain to a plan that actually suits them, look after the clients you have, and grow a practice that pays the bills before the money runs out.
 
-This repo is a **playable concept prototype**: a vertical slice with a working example of every core element from the concept doc, plus an Element Lab where each mechanic can be tried on its own.
+This repo is a **playable concept prototype**, plus an Element Lab where each mechanic can be tried on its own.
 
 **Play:** open `index.html` in a browser, or host it on GitHub Pages (below).
 
 ## How it plays
 
-**Your career is the reason to keep going.** You start with savings, and every day costs living expenses. Clients you guide well join your book and keep paying a little every day. Your level is book income compared with costs: **Unemployed** (savings gone, career over), **Survivable**, **Sustainable**, **Profitable** (the goal).
+**Pick your agent.** Career Changer, Recent Grad, Community Connector or Industry Insider. Each trades savings, living costs, skills and the size of your natural market.
 
-**Each client is a journey, Oregon Trail style.** You load the wagon at Port Prospect and travel trails measured in days. A numbered "You may:" menu always shows the next move: continue on the trail, check in with the client, talk to people, rest, look at the map, change pace, use your pack. Forks are story choices ("North to the Lighthouse, 3 days, or the Loop of Endless Data Entry, 2 days?").
+**Port Prospect is home base.** Every activity takes a day, and every day costs money:
+- **Prospecting:** warm calls to your natural market, a Call-a-thon, the Chamber of Commerce mixer, a Farmers Market tent, a lunch & learn, or asking happy clients for referrals. Three of these are mini-games.
+- **Pipeline:** prospects wait for you, go cold, and can be taken by rivals while you are away. Nurture them to buy time.
+- **Your clients:** satisfaction slips every day. Service days keep them happy; unhappy clients cancel.
+- **Build your practice:** a shared desk or your own office, partnering with another agent as equals, recruiting and training agents for override income, and systems earned on the trail.
 
-**Along the trail:** travelers and opportunities (Slick Rick, a lost intern, a peddler with a Plan Generator 3000, Steve), campfire conversations where the client opens up, cut scenes at landmarks, and two arcade mini-games.
+**The trail.** Choose a prospect and hike with them across the map, day by day, to Clients for Life. A numbered menu always shows the next move. Rivals try to take your client, you meet new prospects and mentors, and shortcuts become hidden risk debt that comes due later.
 
-**Repercussions:** shortcuts become hidden risk debt that catches up days later. Quick closes pay more now but may cancel on a later journey and get clawed back, delivered by mail rider. Good fits keep paying and refer friends. A respectful "not yet" may come back.
+**Navigation builds the practice.** Handle a landmark well and you earn its Mark. Each Mark unlocks a system at the port (a CRM, planning software, a specialist partnership...) that shortens trails or adds better options on future journeys. Places you have explored stay on your map.
+
+**Your level** compares income with costs: **Unemployed** (savings gone), **Survivable**, **Sustainable**, **Profitable** (the goal).
 
 ## What's in it
 
 | Element | Where it lives |
 |---|---|
-| Career: savings, payouts, levels, clawbacks, referrals | `js/content/career.js` |
+| Agent types | `js/content/agents.js` |
+| Practice: costs, book, pipeline, workspace, partner, recruits, systems | `js/content/career.js` |
+| Prospecting activities | `js/content/prospecting.js` |
 | Map: 16 landmarks from the concept art, trails in days, side trails, Secret Shortcut | `js/content/world.js`, `js/ui/map.js` |
-| Trail scene and cut scenes (canvas) | `js/ui/trailscene.js` |
+| Trail scene and cut scenes (canvas, two hikers) | `js/ui/trailscene.js` |
 | Journey loop: days, pace, menu, forks, check-ins, finale | `js/ui/trail.js` |
 | 40+ events, multi-step conversations, risk-debt checks | `js/content/events.js` |
 | Clients, hidden facts, check-in answers | `js/content/clients.js` |
-| Port: people, practice quests, contacts, pack items | `js/content/port.js` |
-| Mini-games: Document Dash, The Conversation, Fraud or Friend?, Inbox Rapids, the Snake Pit | `js/minigames/` |
+| Port people, practice quests, contacts, pack items | `js/content/port.js` |
+| Mini-games: Call-a-thon, Mixer, Farmers Market, Document Dash, The Conversation, Fraud or Friend?, Inbox Rapids, the Snake Pit | `js/minigames/` |
 | Element Lab: every mechanic in isolation | `js/ui/lab.js` |
 
 ## How it's built

@@ -61,53 +61,59 @@
       const node = Object.values(PP.content.nodes).find((n) => n.kind === scene.terrain);
       scene.cut(k, k === 'arrive' ? { kind: scene.terrain, title: node ? node.name : 'Arriving', caption: node ? node.arrive : '' } : { title: k[0].toUpperCase() + k.slice(1), caption: k === 'debt' ? 'A shortcut you took earlier finally catches up with you.' : '' });
     } }, k)));
-    root.append(intro('Trail & cut scenes', 'The Oregon Trail layer: the wagon travels day by day through terrain that matches each part of the map. Cut scenes play when you reach a landmark, meet someone, or when a past shortcut catches up with you.'),
+    root.append(intro('Trail & cut scenes', 'You and your client hike day by day through terrain that matches each part of the map. Cut scenes play when you reach a landmark, meet someone, or when a past shortcut catches up with you.'),
       h('div', { class: 'stage' }, canvas),
       h('div', { class: 'row wrap' },
         select('tr-terrain', 'Terrain', kinds, scene.terrain, (v) => scene.setTerrain(v)),
         select('tr-pace', 'Pace', [['steady', 'Steady'], ['brisk', 'Brisk'], ['breakneck', 'Breakneck']], 'steady', (v) => scene.setPace(v)),
-        h('label', { class: 'field check', for: 'tr-move' }, h('input', { type: 'checkbox', id: 'tr-move', checked: true, onchange: (e) => scene.setMoving(e.target.checked) }), h('span', null, 'Wagon moving')),
+        h('label', { class: 'field check', for: 'tr-move' }, h('input', { type: 'checkbox', id: 'tr-move', checked: true, onchange: (e) => scene.setMoving(e.target.checked) }), h('span', null, 'Hikers walking')),
         select('tr-lm', 'Landmark in view', [['', 'None']].concat(kinds), '', (v) => scene.setLandmark(v || null))),
       h('div', { class: 'panel' }, h('h4', null, 'Play a cut scene'), cuts));
   }
 
   /* ---------------- Your practice ---------------- */
   function labPractice(root) {
-    const P = PP.content.practice;
+    const P = PP.content.practice, M = PP.career.money;
     const fake = (trust) => ({ res: { trust } });
     const rows = [
-      ['Right destination, high trust (7+)', P.payout(fake(8), 'bridge_plan', 'appropriate')],
-      ['Right destination, okay trust', P.payout(fake(5), 'bridge_plan', 'appropriate')],
+      ['Right destination, high trust', P.payout(fake(8), 'bridge_plan', 'appropriate')],
       ['Acceptable destination', P.payout(fake(6), 'referral', 'acceptable')],
       ['The Grand Plan when it is the wrong fit', P.payout(fake(6), 'grand_plan', 'poor')],
-      ['Not Yet Harbor, trust 6+', P.payout(fake(7), 'not_now', 'acceptable')],
-      ['Not Yet Harbor, low trust', P.payout(fake(3), 'not_now', 'poor')]
+      ['Not Yet Harbor, trust 6+', P.payout(fake(7), 'not_now', 'acceptable')]
     ];
-    const c = PP.newCareer();
+    let agent = 'changer', c = PP.newCareer(agent), log = [];
     const sim = h('div');
+    const day = (away) => { log = PP.career.tickDay(c, away).map((n) => n.text).concat(log).slice(0, 8); };
     function renderSim() {
       sim.innerHTML = '';
-      sim.append(h('div', { class: 'practice-nums' },
-        h('div', { class: 'stat' }, h('span', { class: 'lk' }, 'Savings'), h('strong', null, PP.career.money(c.savings))),
-        h('div', { class: 'stat' }, h('span', { class: 'lk' }, 'Book income'), h('strong', null, PP.career.money(PP.career.income(c)) + '/day')),
-        h('div', { class: 'stat' }, h('span', { class: 'lk' }, 'Level'), h('strong', null, PP.career.levelInfo(c).label)),
-        h('div', { class: 'stat' }, h('span', { class: 'lk' }, 'Runway'), h('strong', null, PP.career.runway(c) === Infinity ? 'Covered' : PP.career.runway(c) + ' days'))),
-        h('div', { class: 'row wrap mt' }, rows.map(([label, pay]) => h('button', { class: 'btn small', onclick: () => {
-          for (let i = 0; i < 18; i++) PP.career.tickDay(c);
-          c.savings += pay.now; c.book.push({ id: PP.uid('b'), name: 'Client ' + (c.book.length + 1), status: pay.status, perDay: pay.perDay, journey: c.book.length + 1 }); renderSim();
-        } }, 'Journey: ' + label)),
-          h('button', { class: 'btn ghost small', onclick: () => { Object.assign(c, PP.newCareer()); renderSim(); } }, 'Reset')),
-        h('p', { class: 'small muted' }, 'Each button simulates an 18-day journey (living costs and book income), then adds that outcome to your book.'));
+      sim.append(
+        select('lp-agent', 'Agent type', PP.content.agentTypes.map((a) => [a.id, a.name]), agent, (v) => { agent = v; c = PP.newCareer(v); log = []; renderSim(); }),
+        h('div', { class: 'practice-nums' },
+          [['Day', String(c.days)], ['Savings', M(c.savings)], ['Income', M(PP.career.income(c)) + '/day'], ['Costs', M(PP.career.costs(c)) + '/day'], ['Level', PP.career.levelInfo(c).label], ['Pipeline', String(c.pipeline.length)], ['Clients', String(c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).length)]
+        ].map(([k, v]) => h('div', { class: 'stat' }, h('span', { class: 'lk' }, k), h('strong', null, v)))),
+        h('div', { class: 'row wrap mt' },
+          h('button', { class: 'btn small', onclick: () => { log.unshift(PP.content.runSimpleProspecting(c, 'warm').text); day(false); renderSim(); } }, 'Day: warm calls'),
+          h('button', { class: 'btn small', onclick: () => { c.book.forEach((b) => (b.sat = Math.min(10, b.sat + 4))); log.unshift('Service day.'); day(false); renderSim(); } }, 'Day: service clients'),
+          ...rows.map(([label, pay]) => h('button', { class: 'btn small', onclick: () => { for (let i = 0; i < 18; i++) day(true); c.savings += pay.now; if (pay.status !== 'lost') c.book.push({ id: PP.uid('b'), name: 'Client ' + (c.book.length + 1), status: pay.status, perDay: pay.perDay, sat: pay.sat, journey: c.book.length + 1 }); log.unshift(`18-day journey: ${label}.`); renderSim(); } }, '18-day journey: ' + label)),
+          h('button', { class: 'btn small', onclick: () => { c.workspace = c.workspace === 'office' ? 'kitchen' : 'office'; renderSim(); } }, c.workspace === 'office' ? 'Move out of the office' : 'Rent an office'),
+          h('button', { class: 'btn ghost small', onclick: () => { c = PP.newCareer(agent); log = []; renderSim(); } }, 'Reset')),
+        h('ul', { class: 'plain small mt' }, log.map((l) => h('li', null, l))));
     }
-    root.append(intro('Your practice', 'The reason to keep going. Every day costs money. Clients you guide well join your book and keep paying. Quick closes pay more now but can cancel later and get clawed back. Your level is your book income compared with your costs.'),
+    root.append(intro('Your practice', 'The reason to keep going. Every day costs money: living costs plus rent. Clients pay you every day while they are happy, but satisfaction slips without service days, and unhappy clients cancel. Prospects wait in your pipeline, go cold, and can be taken by rivals while you are away.'),
       h('div', { class: 'lab-cols two' },
-        h('div', { class: 'panel' }, h('h4', null, 'Levels'), h('table', { class: 'tbl' }, h('tbody', null, P.levels.map((l, i) => h('tr', null, h('th', null, l.label), h('td', null, [
-          'Savings below $0. Career over.', `Book income below ${PP.career.money(P.dailyCost)}/day.`, `Book income at least ${PP.career.money(P.dailyCost)}/day.`, `Book income at least ${PP.career.money(P.dailyCost * 2)}/day.`][i]))))),
-          h('p', { class: 'small muted' }, `Start with ${PP.career.money(P.startSavings)}. Living costs: ${PP.career.money(P.dailyCost)} per day, on the trail and at the port.`)),
+        h('div', { class: 'panel' }, h('h4', null, 'Agent types'), h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+          h('thead', null, h('tr', null, ['Agent', 'Savings', 'Living', 'Market', 'Perk'].map((x) => h('th', null, x)))),
+          h('tbody', null, PP.content.agentTypes.map((a) => h('tr', null, h('th', null, a.name), h('td', null, M(a.savings)), h('td', null, M(a.living) + '/day'), h('td', null, String(a.market)), h('td', { class: 'small' }, a.perk + ': ' + a.perkText))))))),
         h('div', { class: 'panel' }, h('h4', null, 'What each outcome pays'), h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-          h('thead', null, h('tr', null, ['Outcome', 'Now', 'Per day', 'Later'].map((x) => h('th', null, x)))),
-          h('tbody', null, rows.map(([label, p]) => h('tr', null, h('td', null, label), h('td', null, PP.career.money(p.now)), h('td', null, PP.career.money(p.perDay)),
-            h('td', { class: 'small' }, p.status === 'at-risk' ? `${Math.round(P.cancelChance * 100)}% chance per journey to cancel (−${PP.career.money(P.clawback)})` : p.status === 'door' ? `${Math.round(P.returnChance * 100)}% chance per journey they come back` : p.referral ? 'Sends a warm referral' : '—')))))))),
+          h('thead', null, h('tr', null, ['Outcome', 'Now', 'Per day', 'Starting satisfaction'].map((x) => h('th', null, x)))),
+          h('tbody', null, rows.map(([label, p]) => h('tr', null, h('td', null, label), h('td', null, M(p.now)), h('td', null, M(p.perDay)), h('td', null, String(p.sat))))))),
+          h('p', { class: 'small muted' }, `Poor fits can cancel at any time and ${M(P.clawback)} is clawed back. A "not yet" has a small daily chance of coming back as a client.`)),
+        h('div', { class: 'panel' }, h('h4', null, 'Building the practice'), h('table', { class: 'tbl' }, h('tbody', null,
+          Object.values(P.workspaces).map((w) => h('tr', null, h('th', null, w.name), h('td', { class: 'small' }, `${M(w.rent)}/day. ${w.blurb}`))),
+          h('tr', null, h('th', null, 'Partner'), h('td', { class: 'small' }, P.partnerTerms + ` Needs ${P.partnerNeeds} paying clients.`)),
+          h('tr', null, h('th', null, 'Recruits'), h('td', { class: 'small' }, `Hire for ${M(P.hireCost)}, train for ${P.trainDays} days, then earn an override. Mentor them every ${P.mentorEvery} days or they may quit. Needs an office and ${P.recruitNeeds} paying clients.`))))),
+        h('div', { class: 'panel' }, h('h4', null, 'Systems earned on the trail'), h('table', { class: 'tbl' }, h('tbody', null,
+          Object.values(P.systems).map((sy) => h('tr', null, h('th', null, sy.name), h('td', { class: 'small' }, `Mark: ${PP.content.nodes[sy.mark].name}. ${M(sy.cost)}. ${sy.blurb}`))))))),
       h('div', { class: 'panel' }, h('h4', null, 'Try a career'), sim));
     renderSim();
   }
@@ -188,7 +194,7 @@
         h('button', { class: 'btn ghost', onclick: () => { Object.assign(s, sandbox()); render(); } }, 'Reset map'),
         h('p', { class: 'small muted' }, 'Click glowing markers to explore. Fog lifts around places you visit.'));
     }
-    root.append(intro('Fog map & world reaction', 'Your map from the concept doc. Parchment clouds cover places you have not reached yet, and the fog lifts as you travel, and its geography reflects your working style: the same world feels different across runs.'),
+    root.append(intro('Fog map & world reaction', 'Your map from the concept doc. Parchment clouds cover places you have not reached yet and lift as you travel. The geography also reflects your working style, so the same world feels different across runs.'),
       h('div', { class: 'lab-map-grid' }, h('div', { class: 'map-wrap' }, mapHost), controls));
     render();
   }
@@ -222,7 +228,7 @@
       });
     }
     root._stop = () => running && running.stop();
-    root.append(intro('Mini-games', 'Each mini-game is a real judgment risk, and its result feeds back into the journey: insight, trust, momentum, and sometimes hidden risk debt. Three are judgment games from the concept doc; Inbox Rapids and the Snake Pit are the action games, like hunting in Oregon Trail.'), opts, cards, stage);
+    root.append(intro('Mini-games', 'Each mini-game is a real judgment risk, and its result feeds back into the journey: insight, trust, momentum, and sometimes hidden risk debt. Document Dash, The Conversation and Fraud or Friend are judgment games from the concept doc. Call-a-thon, the Mixer and the Farmers Market are prospecting games played at the port. Inbox Rapids and the Snake Pit are the action games.'), opts, cards, stage);
     root.parentNode && (root.parentNode._stop = root._stop);
   }
 
