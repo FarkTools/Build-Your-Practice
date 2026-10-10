@@ -176,11 +176,11 @@
     {
       id: 'fu_copy_paste_plan', title: 'Copy last time\'s plan?', at: ['loop', 'swamp'],
       when: (s) => F(s),
-      text: (s) => `The trail curls back on itself. A sign reads: "RETURNING CLIENT? Simply re-use your previous plan! (Recommended.)" Below it, a button: COPY ${String(lastPlan(s)).toUpperCase()}. It would be so easy. ${C(s)}'s life has changed, but has it changed THAT much?`,
+      text: (s) => `${s.map.current === 'swamp' ? 'A Hydra head rises from the gridded water, wearing a name badge from last time.' : 'The Paperwork Ouroboros lifts its head. "Oh, you two. I remember you. I ate your forms."'} It nudges a sign toward you: "RETURNING CLIENT? Simply re-use your previous plan! (Recommended.)" Below it, a button: COPY ${String(lastPlan(s)).toUpperCase()}. It would be so easy. ${C(s)}'s life has changed, but has it changed THAT much?`,
       choices: [
         { label: 'Press the button', kind: 'through', hint: 'Last time\'s answer to last time\'s life.',
           eff: { momentum: 2, debt: [{ tag: 'ignored_change', sev: 2 }, { tag: 'assumed_goal', sev: 1 }] },
-          result: 'Everything fills in beautifully. Every field is green. None of them mention the change.' },
+          result: 'Everything fills in beautifully. Every field is green. None of them mention the change. Somewhere behind you, the creature looks very pleased with itself.' },
         { label: 'Go through the old plan with them, line by line', kind: 'prepare', hint: 'Slow. Shows you what still fits and what doesn\'t.',
           eff: { energy: -1, insight: 1 },
           then: { text: (s) => `Line by line, ${C(s)} reads along. Most of it still holds. Then they stop at one line and frown. "That bit was for before."`,
@@ -198,11 +198,11 @@
     {
       id: 'fu_fog_history', title: 'They remember for you', at: ['fog'],
       when: (s) => F(s),
-      text: (s) => `In the fog, you reach for a detail from last time and it isn't there. Was it their brother or their cousin? Before you can guess, ${C(s)} says, "My cousin. You were going to ask. You always tilt your head when you're about to ask." Shared history works both ways.`,
+      text: (s) => `A wisp drifts up, glowing smugly. It's a detail from last time, and you can't quite catch it. Was it their brother or their cousin? Before you can follow the wrong light, ${C(s)} swats it away and says, "My cousin. You were going to ask. You always tilt your head when you're about to ask." Shared history works both ways.`,
       choices: [
         { label: 'Laugh, admit it, and let them lead for a bit', kind: 'around', hint: 'Humble. Slower. Clients like being the expert on their own life.',
           eff: { trust: 1, insight: 1, momentum: -1 },
-          result: (s) => `${C(s)} walks you through the fog, filling in gaps. They know the way. It's their life, after all.` },
+          result: (s) => `${C(s)} walks you through the fog, filling in gaps. The wisps don't even try with them. It's their life, after all.` },
         { label: 'Bluff through the rest of the details', kind: 'through', hint: 'You\'ll get most of it right.',
           eff: { momentum: 1, debt: { tag: 'guessed_key', sev: 2 } },
           result: 'You nod confidently through the next three details. You are confident about two of them.' },
@@ -215,14 +215,14 @@
     {
       id: 'fu_caves_resurface', title: 'It catches up with them', at: ['caves'],
       when: (s) => F(s),
-      text: (s) => `Deep in the Caves of What-Ifs, the voices echo: "but what if...?" ${C(s)} stops walking. "I've been fine about the ${change(s)}. Really fine. Totally fine." Their voice cracks on the third "fine."`,
+      text: (s) => `Deep in the cave, the What-If Dragon opens one eye. It remembers ${C(s)} from last time, and it has added something new to its hoard: the ${change(s)}. ${C(s)} stops walking. "I've been fine about the ${change(s)}. Really fine. Totally fine." Their voice cracks on the third "fine."`,
       choices: [
         { label: 'Sit down with them and say nothing for a while', kind: 'prepare', hint: 'Costs energy. Says more than a plan would.',
           eff: (s) => ({ energy: -1, trust: 2, fact: s.res.trust >= 5 ? 'change_need' : undefined }),
-          result: (s) => (needKnown(s) ? `After a long while, ${C(s)} says the real thing out loud. The cave seems smaller afterwards.` : `You sit on a cold rock together. ${C(s)} doesn't say much. But they don't let go of your sleeve either.`) },
+          result: (s) => (needKnown(s) ? `After a long while, ${C(s)} says the real thing out loud. The dragon seems smaller afterwards. So does the cave.` : `You sit on a cold rock together. ${C(s)} doesn't say much. But they don't let go of your sleeve either.`) },
         { label: 'Gently walk through the what-ifs one at a time', kind: 'help', hint: 'Turn fear into a list.',
           eff: { insight: 2, energy: -1 },
-          then: { text: (s) => `One by one, the what-ifs get smaller when you name them. Then ${C(s)} says, "There's one I haven't said."`,
+          then: { text: (s) => `One by one, the what-ifs get smaller when you name them, and the dragon's tail stops twitching. Then ${C(s)} says, "There's one I haven't said."`,
             choices: [
               { label: '"Go on."', kind: 'prepare', eff: (s) => (opens(s) ? { fact: 'change_need' } : { trust: 1 }),
                 result: (s) => (opens(s) ? 'They say it. That one is the one that matters.' : `"Not yet," ${C(s)} says. "But I will."`) },
@@ -237,73 +237,73 @@
     {
       id: 'fu_old_spreadsheet', title: 'Last time\'s spreadsheet', at: ['swamp'],
       when: (s) => F(s),
-      text: (s) => `${C(s)} opens the spreadsheet you built together last time. It's lovely. It's color-coded. Every number in it assumes life before the ${change(s)}. "Can we just... change a couple of cells?"`,
+      text: (s) => `The Spreadsheet Hydra surfaces wearing the spreadsheet you built together last time. It's lovely. It's color-coded. Every head assumes life before the ${change(s)}. ${C(s)} whispers, "Can we just... change a couple of cells?"`,
       choices: [
         { label: 'Change a couple of cells', kind: 'through', hint: 'Quick. Nobody remembers what the other cells assumed.',
           eff: { momentum: 1, debt: { tag: 'spreadsheet_assumptions', sev: 2 } },
-          result: 'Two cells change. Forty others quietly carry on believing in a different life.' },
+          result: 'Two cells change. Two new heads grow. Forty others quietly carry on believing in a different life.' },
         { label: 'Start fresh from what\'s true now', kind: 'prepare', hint: 'A tiring afternoon. A model that fits.',
           eff: (s) => ({ energy: -2, insight: 2, fact: opens(s) ? 'change_need' : undefined }),
           result: (s) => (needKnown(s) ? `Rebuilding row by row, the real shape of the change appears in the numbers before ${C(s)} says it out loud.` : 'A fresh sheet. Cleaner. Something is still missing from it, but at least it\'s an honest gap.') },
         { label: 'Ask Marge which numbers actually matter', kind: 'help', contact: 'veteran', show: (s) => PP.contactReady(s, 'veteran'), hint: 'The Veteran spots overcomplication from a mile away.',
           eff: { insight: 1, momentum: 1, energy: 1 },
-          result: 'Marge squints at it for ten seconds. "Three numbers matter. Delete the rest." She is right, and slightly smug about it.' }
+          result: 'Marge squints at the Hydra for ten seconds. "Three heads matter. Ignore the rest." The other heads sink, offended. She is right, and slightly smug about it.' }
       ]
     },
 
     {
       id: 'fu_snakepit_calls', title: 'They called twice before', at: ['snakepit'],
       when: (s) => F(s),
-      text: (s) => `Down in the pit, a phone is ringing. You recognize the number: it's ${C(s)}. From a few weeks ago. And another one before that. They called about small things before the ${change(s)}. You meant to call back.`,
+      text: (s) => `The Voicemail Gorgon smiles and holds up one of her snakes. It's ringing, and you recognize the number: it's ${C(s)}. From a few weeks ago. And another one before that. They called about small things before the ${change(s)}. You meant to call back.`,
       choices: [
         { label: 'Own it, out loud, to the client', kind: 'prepare', hint: 'Uncomfortable. Honest.',
           eff: { trust: 1, energy: -1 },
-          result: (s) => `"I missed your calls. I'm sorry." ${C(s)} blinks. "Honestly, I'd forgotten. But thanks for saying it."` },
+          result: (s) => `"I missed your calls. I'm sorry." ${C(s)} blinks. "Honestly, I'd forgotten. But thanks for saying it." The snake goes quiet. The Gorgon looks disappointed.` },
         { label: 'Set up a regular check-in schedule, now', kind: 'help', hint: 'Follow-up you don\'t have to remember is follow-up that happens.',
           eff: (s) => (comm(s) ? { trust: 2, momentum: -1, clearDebt: 'missed_message' } : { trust: 1, momentum: -1, clearDebt: 'missed_message' }),
           result: (s) => `Every three months, in both your calendars. ${C(s)} adds it with a little emoji of a phone.` },
         { label: 'Climb out quietly and hope it never comes up', kind: 'through', hint: 'It will come up.',
           eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } },
-          result: 'The ringing fades behind you. It does not stop.' }
+          result: 'The ringing fades behind you. It does not stop. The Gorgon waves goodbye with several snakes.' }
       ]
     },
 
     {
       id: 'fu_specialist_again', title: 'The Specialist remembers', at: ['summit'],
       when: (s) => F(s),
-      text: (s) => `At the summit, the Specialist looks up from a stack of files. "Ah. ${C(s)}. We met last time." A pause. "Something's changed. People don't climb up here twice for fun."`,
+      text: (s) => `The Summit Sphinx looks up from a stack of files. "Ah. ${C(s)}. We met last time." She narrows her eyes. "A riddle, then: what arrives in a moment, but rearranges a year?" Everyone knows the answer is the ${change(s)}. "People don't climb up here twice for fun."`,
       choices: [
         { label: 'Brief them properly: last time, the change, what you still don\'t know', kind: 'prepare', hint: 'Takes energy. Saves everyone from repeating themselves.',
           eff: { energy: -1, insight: 1, clearDebt: 'bad_handoff' },
-          then: { text: (s) => `The Specialist listens, then turns to ${C(s)}. "One question. What's the part of this you're avoiding?"`,
+          then: { text: (s) => `The Sphinx listens, then turns to ${C(s)}. "Second riddle, and it isn't one. What's the part of this you're avoiding?"`,
             choices: [
               { label: 'Let the client answer', kind: 'around', eff: (s) => (s.res.trust >= 6 ? { fact: 'change_need', trust: 1 } : { insight: 1 }),
-                result: (s) => (needKnown(s) ? `${C(s)} answers. The Specialist nods slowly. "That changes what I'd suggest."` : `${C(s)} says "nothing," which tells everyone something.`) },
-              { label: 'Answer for them', kind: 'through', eff: { momentum: 1, trust: -1 }, result: (s) => `You answer. ${C(s)} looks at the floor. The Specialist notices.` }
+                result: (s) => (needKnown(s) ? `${C(s)} answers. The Sphinx nods slowly. "That changes what I'd suggest."` : `${C(s)} says "nothing," which tells everyone something.`) },
+              { label: 'Answer for them', kind: 'through', eff: { momentum: 1, trust: -1 }, result: (s) => `You answer. ${C(s)} looks at the floor. The Sphinx notices. Sphinxes always notice.` }
             ] } },
         { label: 'Call in Dr. Okafor to translate for the client', kind: 'help', contact: 'specialist', show: (s) => PP.contactReady(s, 'specialist'), hint: 'The Specialist contact: experts made understandable.',
           eff: { insight: 2, momentum: 1 },
-          result: (s) => `Dev explains it with a napkin and three arrows. ${C(s)} says, "Why didn't anyone draw it like that before?"` },
+          result: (s) => `Dev, who has known the Sphinx for years, translates her answer with a napkin and three arrows. ${C(s)} says, "Why didn't anyone draw it like that before?"` },
         { label: 'Forward last time\'s file and let them get on with it', kind: 'through', hint: 'Fast. Last time\'s file is about last time.',
           eff: { momentum: 2, debt: { tag: 'bad_handoff', sev: 2 } },
-          result: 'The file goes up. A reply comes back in three to five business days.' }
+          result: 'The file goes up. The Sphinx replies with a riddle, in three to five business days.' }
       ]
     },
 
     {
       id: 'fu_toll_still_fits', title: 'Does the old plan still fit?', at: ['toll'],
       when: (s) => F(s),
-      text: (s) => `The troll at the toll booth recognizes ${C(s)}. "Back again? Then before anything new crosses, the old one gets checked. Annual review rules. Even if it hasn't been a year. Especially then."`,
+      text: (s) => `The Toll Troll peers out from under the bridge and finds ${C(s)} on his list. "Back again? Then before anything new crosses, the old one gets checked. Annual review rules. Even if it hasn't been a year. Especially then."`,
       choices: [
         { label: 'Review the existing plan properly, with the client', kind: 'prepare', hint: 'A day. Everything on the bridge is up to date.',
           eff: { days: 1, insight: 1, trust: 1, clearDebt: 'stale_info' },
-          result: (s) => `Most of it still fits. One piece needed a nudge after the ${change(s)}. The troll stamps it with enormous satisfaction.` },
+          result: (s) => `Most of it still fits. One piece needed a nudge after the ${change(s)}. The Troll stamps it with enormous satisfaction.` },
         { label: 'Ask the client what else has shifted besides the obvious', kind: 'help', hint: 'Big changes travel in groups.',
           eff: (s) => (opens(s) ? { fact: 'change_need', insight: 1 } : { insight: 1 }),
-          result: (s) => (needKnown(s) ? `"Well, since you ask..." It isn't just the ${change(s)}. There's the part underneath it.` : `"Nothing else," ${C(s)} says, a bit too fast. The troll raises an eyebrow. So do you.`) },
-        { label: 'Wave the old plan through: it was fine last time', kind: 'through', hint: 'The troll will accept this. The future might not.',
+          result: (s) => (needKnown(s) ? `"Well, since you ask..." It isn't just the ${change(s)}. There's the part underneath it.` : `"Nothing else," ${C(s)} says, a bit too fast. The Troll raises one enormous eyebrow. So do you.`) },
+        { label: 'Wave the old plan through: it was fine last time', kind: 'through', hint: 'The Troll will accept this. The future might not.',
           eff: { momentum: 1, debt: { tag: 'stale_info', sev: 2 } },
-          result: 'The troll shrugs and lifts the barrier. "Your bridge."' }
+          result: 'The Troll shrugs and lifts the barrier. "Your bridge. I\'ll see you next year."' }
       ]
     },
 

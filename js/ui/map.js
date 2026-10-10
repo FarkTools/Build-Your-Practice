@@ -96,7 +96,7 @@
       }
       case 'snakepit':
         add(el('path', { d: `M${x - 34},${y + 6} Q${x},${y - 22} ${x + 34},${y + 6} Z`, class: 'pit' }),
-          el('path', { d: `M${x - 12},${y - 4} q6,-10 12,0 t12,0`, class: 'snake' }));
+          el('path', { d: `M${x - 30},${y + 4} q5,-8 10,0 t10,0`, class: 'snake' }));
         break;
       case 'sands': {
         const k = 1 + Math.min(4, s.style.chase) * 0.25;
@@ -137,6 +137,124 @@
         break;
     }
     if (n.skull) add(skull(n.x + 38, n.y - 4));
+    const cr = creature(kind, n, s);
+    if (cr) add(cr);
+    return g;
+  }
+
+  /* Each landmark's guardian creature, as a tiny ink doodle placed clear of labels and trails. */
+  function creature(kind, n, s) {
+    const C = { ink: '#4a2e14', skin: '#f3d6b6', green: '#9fbd7a', paper: '#fbf1e1', fog: '#fcf6ee', gold: '#ffd76a', orange: ORANGE, red: '#c86f4f', navy: NAVY, blue: '#9cc2e6', tan: '#b0763c', lav: '#9f86b0', lion: '#e0ac6a' };
+    const g = el('g', { class: 'm-creature', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+    const P = (d, fill, w = 1.6, stroke = C.ink) => g.appendChild(el('path', { d, fill: fill || 'none', stroke, 'stroke-width': w }));
+    const O = (cx, cy, r, fill, w = 1.5) => g.appendChild(el('circle', { cx, cy, r, fill, stroke: w ? C.ink : 'none', 'stroke-width': w }));
+    const E = (cx, cy, rx, ry, fill, w = 1.5) => g.appendChild(el('ellipse', { cx, cy, rx, ry, fill, stroke: w ? C.ink : 'none', 'stroke-width': w }));
+    const dots = (x, y, gap, r = 1) => { O(x - gap / 2, y, r, C.ink, 0); O(x + gap / 2, y, r, C.ink, 0); };
+    let x, y;
+    switch (kind) {
+      case 'meadow': // Small-Talk Sprite with a weather bubble
+        x = 236; y = 382;
+        E(x - 6, y - 4, 6, 3.5, C.blue, 1.2); E(x + 6, y - 4, 6, 3.5, C.blue, 1.2);
+        O(x, y, 5, C.gold); dots(x, y - 0.5, 4, 0.9);
+        P(`M${x + 6},${y - 7} l3,-3`, null, 1.2); O(x + 15, y - 15, 6.5, C.paper, 1.2); O(x + 15, y - 15, 2.6, C.orange, 0);
+        break;
+      case 'lighthouse': // the Oracle
+        x = 310; y = 264;
+        P(`M${x - 8},${y} Q${x - 7},${y - 14} ${x},${y - 24} Q${x + 7},${y - 14} ${x + 8},${y} Z`, C.navy);
+        E(x, y - 14, 3.6, 4.2, C.skin, 1.1); P(`M${x - 3},${y - 12} Q${x},${y - 3} ${x + 3},${y - 12} Z`, C.fog, 1);
+        P(`M${x - 11},${y} v-22`, null, 1.6, '#7a5a3a'); O(x - 11, y - 24, 2.8, C.gold, 1.2);
+        break;
+      case 'wreck': // a Siren on her rock
+        x = 176; y = 232;
+        P(`M${x - 13},${y + 4} Q${x - 11},${y - 8} ${x},${y - 9} Q${x + 11},${y - 8} ${x + 13},${y + 4} Z`, '#e3c6a0');
+        P(`M${x - 6},${y - 22} Q${x - 9},${y - 12} ${x - 7},${y - 6} L${x + 5},${y - 10} Q${x + 7},${y - 20} ${x + 4},${y - 24} Z`, C.red, 1.2);
+        P(`M${x - 3},${y - 10} Q${x - 4},${y - 2} ${x + 7},${y} l2,-3 Q${x + 2},${y - 3} ${x + 3},${y - 10} Z`, C.green, 1.2);
+        O(x, y - 19, 4.5, C.skin, 1.2); O(x + 1.5, y - 17, 0.9, C.ink, 0);
+        P(`M${x + 9},${y - 24} v-7 l4,2`, null, 1.3, C.navy); O(x + 8, y - 24, 1.6, C.navy, 0);
+        break;
+      case 'fog': { // two Will-o'-Wisps
+        const w = (wx, wy) => { P(`M${wx},${wy - 11} Q${wx + 6},${wy - 5} ${wx + 5},${wy} A5,5 0 0 1 ${wx - 5},${wy} Q${wx - 6},${wy - 5} ${wx},${wy - 11} Z`, C.gold, 1.3); dots(wx, wy - 1, 3.4, 0.8); };
+        w(476, 216); w(560, 214);
+        break;
+      }
+      case 'loop': // the Paperwork Ouroboros
+        x = 606; y = 312;
+        P(`M${x + 10},${y - 2} A10,10 0 1 1 ${x + 4},${y - 9}`, null, 7);
+        P(`M${x + 10},${y - 2} A10,10 0 1 1 ${x + 4},${y - 9}`, null, 4.2, C.paper);
+        E(x + 8, y - 7, 4.5, 3.5, C.paper, 1.3); O(x + 8.5, y - 8.5, 0.9, C.ink, 0);
+        break;
+      case 'cliffs': // a Pitch Harpy
+        x = 366; y = 438;
+        P(`M${x - 2},${y - 2} Q${x - 8},${y - 12} ${x - 15},${y - 13} Q${x - 10},${y - 6} ${x - 9},${y} Z`, '#e3c6a0', 1.2);
+        E(x, y, 7, 4.5, C.tan, 1.3); O(x + 7, y - 5, 4, C.skin, 1.2);
+        O(x + 8.5, y - 5.5, 0.8, C.ink, 0); O(x + 10, y - 3, 0.9, C.ink, 0);
+        g.appendChild(el('rect', { x: x - 5, y: y + 6, width: 10, height: 6, fill: C.paper, stroke: C.ink, 'stroke-width': 1 }));
+        break;
+      case 'swamp': { // the Spreadsheet Hydra's heads (grow with the swamp)
+        const k = 1 + Math.min(5, s.style.overcomplicate) * 0.18, cx = n.x, cy = n.y;
+        const hg = el('g', { transform: `translate(${cx} ${cy}) scale(${k}) translate(${-cx} ${-cy})` });
+        [[34, 0, -18], [44, 2, -24], [54, 4, -16]].forEach(([dx, dy, h]) => {
+          const bx = cx + dx, by = cy + dy;
+          hg.appendChild(el('path', { d: `M${bx},${by} q-1,${h / 2} ${2},${h}`, fill: 'none', stroke: C.ink, 'stroke-width': 5.6, 'stroke-linecap': 'round' }));
+          hg.appendChild(el('path', { d: `M${bx},${by} q-1,${h / 2} ${2},${h}`, fill: 'none', stroke: C.green, 'stroke-width': 3, 'stroke-linecap': 'round' }));
+          hg.appendChild(el('ellipse', { cx: bx + 4, cy: by + h - 1, rx: 5, ry: 3.5, fill: C.green, stroke: C.ink, 'stroke-width': 1.2 }));
+          hg.appendChild(el('circle', { cx: bx + 5, cy: by + h - 2, r: 0.9, fill: C.ink }));
+        });
+        g.appendChild(hg);
+        break;
+      }
+      case 'snakepit': { // the Voicemail Gorgon peeking out, phone-cord hair
+        x = 705; y = 484;
+        [[-12, -8, C.red], [-4, -14, C.navy], [5, -14, C.orange], [13, -7, '#2f5a9c']].forEach(([dx, dy, col]) => {
+          const x0 = x + dx * 0.35, y0 = y - 5, x1 = x + dx, y1 = y + dy;
+          let d = `M${x0},${y0}`;
+          for (let k = 1; k <= 4; k++) { const u = k / 4, px = x0 + (x1 - x0) * u, py = y0 + (y1 - y0) * u; d += ` A1.6,1.6 0 1 ${k % 2} ${px.toFixed(1)},${py.toFixed(1)}`; }
+          P(d, null, 1.2, col);
+          E(x1, y1 - 1.5, 3.4, 1.8, col, 0.9);
+        });
+        O(x, y, 6.5, C.green, 1.4); dots(x, y - 0.5, 4.6, 1);
+        break;
+      }
+      case 'sands': // the Djinn and its trophy lamp
+        x = 818; y = 306;
+        P(`M${x + 5},${y - 5} Q${x + 12},${y - 10} ${x + 8},${y - 16} Q${x + 4},${y - 22} ${x + 10},${y - 24}`, null, 4.6);
+        P(`M${x + 5},${y - 5} Q${x + 12},${y - 10} ${x + 8},${y - 16} Q${x + 4},${y - 22} ${x + 10},${y - 24}`, null, 2.4, C.blue);
+        P(`M${x - 6},${y - 6} h11 l3,-3 Q${x + 6},${y + 2} ${x},${y + 2} Q${x - 6},${y + 1} ${x - 6},${y - 6} Z M${x - 3},${y + 5} h6`, C.orange, 1.2);
+        O(x + 11, y - 28, 4.2, C.blue, 1.2); dots(x + 12, y - 28.5, 3, 0.8);
+        break;
+      case 'caves': // the What-If Dragon, asleep
+        x = 936; y = 418;
+        P(`M${x - 12},${y} Q${x - 12},${y - 12} ${x - 2},${y - 12} Q${x + 8},${y - 12} ${x + 8},${y} Z`, C.red, 1.3);
+        P(`M${x - 8},${y - 10} l2,-4 l2,3 l2,-4 l2,4`, C.orange, 1);
+        E(x + 10, y - 3, 5, 3.6, C.red, 1.2); P(`M${x + 8},${y - 4} q1.5,1.5 3,0`, null, 1);
+        g.appendChild(el('text', { x: x + 14, y: y - 12, class: 'm-zz', style: 'font: 700 11px var(--hand, sans-serif); fill: ' + NAVY }, 'z'));
+        g.appendChild(el('text', { x: x + 20, y: y - 20, class: 'm-zz', style: 'font: 700 14px var(--hand, sans-serif); fill: ' + NAVY }, 'Z'));
+        break;
+      case 'summit': // the Sphinx
+        x = 822; y = 182;
+        P(`M${x - 4},${y} Q${x - 4},${y - 8} ${x + 4},${y - 8} Q${x + 13},${y - 8} ${x + 13},${y} Z`, C.lion, 1.3);
+        P(`M${x - 10},${y} h8`, null, 2.4, C.lion); P(`M${x - 10},${y + 1.5} h8`, null, 1);
+        P(`M${x - 9},${y - 4} Q${x - 9},${y - 13} ${x - 4},${y - 13} Q${x + 1},${y - 13} ${x + 1},${y - 4} l1.5,5 h-12 Z`, C.navy, 1.2);
+        E(x - 4, y - 7, 2.8, 3.4, C.skin, 1);
+        P(`M${x + 13},${y - 2} q4,-3 2,-9`, null, 1.3);
+        break;
+      case 'isles': // the Password Kraken
+        x = 1052; y = 336;
+        [[-8, -1], [8, 1]].forEach(([dx, sd]) => { P(`M${x + dx * 0.6},${y} q${dx * 0.6},-6 ${dx},-12`, null, 4.4); P(`M${x + dx * 0.6},${y} q${dx * 0.6},-6 ${dx},-12`, null, 2.4, C.lav); });
+        P(`M${x - 6},${y} Q${x - 7},${y - 13} ${x},${y - 13} Q${x + 7},${y - 13} ${x + 6},${y} Z`, C.lav, 1.3);
+        dots(x, y - 6, 4.4, 0.9);
+        g.appendChild(el('rect', { x: x + 6, y: y - 19, width: 5, height: 4, fill: C.orange, stroke: C.ink, 'stroke-width': 0.9 }));
+        break;
+      case 'toll': // the Toll Troll at the end of his bridge
+        x = 1128; y = 304;
+        P(`M${x - 7},${y + 8} Q${x - 8},${y - 3} ${x},${y - 4} Q${x + 8},${y - 3} ${x + 7},${y + 8} Z`, C.green, 1.3);
+        O(x, y - 9, 6, C.green, 1.3);
+        P(`M${x - 5},${y - 12} Q${x},${y - 19} ${x + 5},${y - 12} Z`, C.navy, 1);
+        dots(x, y - 9.5, 4.4, 0.9); E(x, y - 6.5, 1.8, 1.4, '#7f9f5a', 0.8);
+        g.appendChild(el('rect', { x: x - 13, y: y - 3, width: 6, height: 8, fill: C.paper, stroke: C.ink, 'stroke-width': 1 }));
+        break;
+      default: return null;
+    }
     return g;
   }
   function boat(x, y) {

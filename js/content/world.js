@@ -35,6 +35,38 @@
       arrive: 'The X on the map. Now the real question: where does this client actually need to land?' }
   };
 
+  /* The creatures of the trail. Each one IS the real-world blocker at its landmark, played
+   * as myth: deal with the creature well and you have handled the real thing well. */
+  PP.content.guardians = {
+    meadows: { name: 'the Small-Talk Sprites', title: 'Small-Talk Sprites', real: 'Clients who won\'t open up',
+      arrive: 'Tiny sprites flit between the wildflowers, steering every conversation back to the weather. Get past them and people start telling you what actually matters.' },
+    lighthouse: { name: 'the Lighthouse Oracle', title: 'The Lighthouse Oracle', real: 'Advice from someone who has done this for decades', helper: true,
+      arrive: 'The Oracle of the lighthouse answers every question with a riddle. Annoyingly, the riddles are always right.' },
+    wreck: { name: 'the Sirens of the Quick Close', title: 'Sirens of the Quick Close', real: 'Rushing to close the sale',
+      arrive: 'On the rocks, the Sirens of the Quick Close sing their song: "Sign today, sign today." The wreck behind them is what happens to agents who listen.' },
+    fog: { name: 'the Will-o\'-Wisps', title: 'Will-o\'-Wisps', real: 'Losing track of details',
+      arrive: 'Little lights bob in the fog, each one a half-remembered fact. "Was it next month? Next year?" Follow the wrong wisp and you are lost.' },
+    loop: { name: 'the Paperwork Ouroboros', title: 'The Paperwork Ouroboros', real: 'Entering the same information again and again',
+      arrive: 'A great serpent made of forms lies coiled around the trail, eating its own tail. Every page it swallows, it asks you to fill in again.' },
+    cliffs: { name: 'the Pitch Harpies', title: 'Pitch Harpies', real: 'Pitching a product before understanding the client',
+      arrive: 'Harpies circle the cliff edge, shrieking product names. They herd eager agents straight toward the drop.' },
+    swamp: { name: 'the Spreadsheet Hydra', title: 'The Spreadsheet Hydra', real: 'Overcomplicating the plan',
+      arrive: 'Something stirs in the gridded water: the Spreadsheet Hydra. Answer one cell and two new tabs grow in its place.' },
+    snakepit: { name: 'the Voicemail Gorgon', title: 'The Voicemail Gorgon', real: 'Not returning calls',
+      arrive: 'At the bottom of the pit, the Voicemail Gorgon\'s snakes are all ringing phones. Ignore her long enough and the relationship turns to stone.' },
+    sands: { name: 'the Djinn of Incentives', title: 'The Djinn of Incentives', real: 'Bonuses and contests that pull you away from the client',
+      arrive: 'A Djinn rises from a lamp shaped like a trophy. "Three wishes," it purrs. "A bonus trip, a quota met, a prize. There is only a little fine print."' },
+    caves: { name: 'the What-If Dragon', title: 'The What-If Dragon', real: 'Avoiding the scary questions about risk',
+      arrive: 'Deep in the cave, a dragon sleeps on a hoard of worst cases: lost jobs, hospital bills, money running out. Nobody wants to wake it. The good plans are made by those who do.' },
+    summit: { name: 'the Summit Sphinx', title: 'The Summit Sphinx', real: 'Specialist reviews and approvals',
+      arrive: 'At the top of the mountain the Sphinx blocks the path. "Three riddles," she says, "and allow three to five business days for my answer."' },
+    isles: { name: 'the Password Kraken', title: 'The Password Kraken', real: 'Logins, portals and passwords',
+      arrive: 'Between the islands the water churns. The Password Kraken rises, and every tentacle wants a different code, a security question, and a text sent to a phone you no longer own.' },
+    toll: { name: 'the Toll Troll', title: 'The Toll Troll', real: 'Out-of-date paperwork at the annual review',
+      arrive: 'Under the bridge lives the Toll Troll. Nobody crosses until their file is current. He checks the dates. Twice.' }
+  };
+  Object.entries(PP.content.guardians).forEach(([id, g]) => { const n = PP.content.nodes[id]; if (n) { n.guardian = g; n.arrive = g.arrive; } });
+
   /* Each landmark belongs to a stage of the client relationship. */
   PP.content.stages = [
     { id: 'rapport', label: 'Rapport', blurb: 'They trust you enough to talk honestly.' },

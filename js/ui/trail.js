@@ -15,16 +15,19 @@
   const WEATHER = ['Clear skies. 3 unread emails.', 'Light drizzle of meeting invites.', 'Overcast, with a chance of scope creep.', 'Warm. Someone is microwaving fish two towns over.', 'Breezy. Your calendar is wide open, which is suspicious.', 'Foggy in the mornings. Nobody remembers anything before coffee.', 'Sunny. The client is in a good mood.', 'Windy. Several memos blow past.', 'Humid. Every spreadsheet feels heavier.'];
   const PEOPLE = {
     port: [{ who: 'Marge, waving from the dock', line: '"Remember: the shortcut that works is the one that gets you. Write things down!"' }],
-    meadows: [{ who: 'A shepherd', line: '"Folks who rush through the meadow come back through it later. Usually lost."', eff: { insight: 1 } }],
-    lighthouse: [{ who: 'A fisherman mending nets', line: '"See them rocks? Relation-Ship Wreck. Folks hear the singing and go running. Don\'t."' }],
-    fog: [{ who: 'A traveler who has been here a while', line: '"What was I saying? Oh, right. Write down dates. Write down everything."', eff: { insight: 1 } }],
-    loop: [{ who: 'A clerk on lap 14', line: '"I\'ve typed this same address since spring. Tip: check it once, properly, and you only do it once."', eff: { insight: 1 } }],
-    swamp: [{ who: 'A frog in a green visor', line: '"Ribbit." (You\'re fairly sure that means: ask what the spreadsheet is FOR.)' }],
-    sands: [{ who: 'A nomad wearing nine contest lanyards', line: '"Won a trip every year for a decade. Lost a client every year too. The trips were nice. I don\'t remember them."', eff: { insight: 1 } }],
-    caves: [{ who: 'An old miner with a lantern', line: '"Folks think there are monsters down here. It\'s just the questions nobody wanted to ask. Go slow, bring a light, and let them lead."', eff: { insight: 1 } }],
-    summit: [{ who: 'The Specialist\'s assistant', line: '"Bring context. The Specialist hates \'see below.\'"' }],
-    isles: [{ who: 'A ferryman', line: '"Password hint? It\'s always the pet\'s name. Always."' }],
-    toll: [{ who: 'The troll, off duty', line: '"I\'m not mean. I just like tidy files. You\'d be amazed how few people keep tidy files."' }]
+    meadows: [{ who: 'A sprite-wrangler with a butterfly net', line: '"Answer the weather once, then ask a real question. The sprites can\'t stand a real question. They fly off in a huff, and the client finally talks."', eff: { insight: 1 } }],
+    lighthouse: [{ who: 'A fisherman mending nets', line: '"The Oracle told me \'the net that is never mended catches only wind.\' Took me ten years. She meant check in with your people. Also, stay off those rocks: the Sirens are singing again."' }],
+    wreck: [{ who: 'A damp agent drying his socks', line: '"They sang \'sign today\' and I signed today. The client un-signed tomorrow. Bring earplugs, and let them talk first."' }],
+    fog: [{ who: 'A traveler who followed a wisp in here', line: '"Lovely little light. Said the deadline was next year. It was last Tuesday. Write down dates. Write down everything."', eff: { insight: 1 } }],
+    loop: [{ who: 'A clerk on lap 14 of the Ouroboros', line: '"It\'s eaten the same address form forty times since spring. Tip: feed it once, properly, and it stops being hungry."', eff: { insight: 1 } }],
+    cliffs: [{ who: 'A harpy-watcher with binoculars', line: '"Hear that shrieking? Product names. They only swoop on agents who talk first. Sit down, ask a question, and they get bored and leave."' }],
+    swamp: [{ who: 'A hydra hunter in a green visor', line: '"Never cut a head off in a hurry. Two grow back. Find out what the whole beast is FOR, then cut at the root."' }],
+    snakepit: [{ who: 'A former Gorgon victim, mostly un-stoned', line: '"I let one call go a week. Then two weeks. Next thing, my left arm was granite. Call people back. Even just to say you\'ll call them back."' }],
+    sands: [{ who: 'A nomad wearing nine contest lanyards', line: '"The Djinn gave me a trip every year for a decade. Took a client every year too. That was the fine print. The trips were nice. I don\'t remember them."', eff: { insight: 1 } }],
+    caves: [{ who: 'An old miner with a lantern', line: '"The dragon\'s not as fierce as it looks. It just sleeps on the questions nobody wanted to ask. Go slow, bring a light, and let the client wake it."', eff: { insight: 1 } }],
+    summit: [{ who: 'The Sphinx\'s assistant', line: '"She loves context and hates \'see below.\' Send it ahead and she sometimes skips the riddles. Sometimes."' }],
+    isles: [{ who: 'A ferryman who rows past the Kraken daily', line: '"Every tentacle wants a different code. The trick is to have them all ready before it surfaces. Also, the password hint is always the pet\'s name. Always."' }],
+    toll: [{ who: 'The Troll\'s cousin, selling snacks by the bridge', line: '"He\'s not mean. He just likes tidy files. You\'d be amazed how few people keep tidy files. Brings a tear to his eye when someone does."' }]
   };
 
   const T = (PP.trail = {});

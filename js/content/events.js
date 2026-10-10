@@ -31,239 +31,248 @@
   const ciWorry = (s) => (s.client.checkin && s.client.checkin.worry) || null;
   const worryOpen = (s) => PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6;
   const worryText = (s) => { const w = ciWorry(s); return w ? (worryOpen(s) ? w.text : (w.guarded || w.text)) : '"I don\'t even know which one scares me most."'; };
+  const here = (s, id) => !s.seg && s.map && s.map.current === id; // at this landmark, not on the road
 
   PP.content.events = [
-    /* ================= LANDMARKS ================= */
+    /* ================= LANDMARKS =================
+     * Each landmark has a creature (PP.content.guardians in world.js), and each
+     * creature IS the real blocker there. Handle the creature well and you have
+     * handled the real thing well. */
 
-    /* ---- Meadows of Understanding ---- */
+    /* ---- Meadows of Understanding: the Small-Talk Sprites ---- */
     {
-      id: 'meadow_first_talk', title: 'The first real conversation', at: ['meadows'], first: true,
-      text: (s) => `${C(s)} sits on a bench overlooking the meadow. ${s.client.opener} It is quiet here. This is your chance to understand what is actually going on.`,
+      id: 'meadow_first_talk', title: 'The Small-Talk Sprites', at: ['meadows'], first: true,
+      text: (s) => `${C(s)} sits on a bench overlooking the meadow. ${s.client.opener} Before you can answer, a cloud of Small-Talk Sprites swirls up out of the wildflowers, chiming "Lovely weather! Busy week? Traffic was awful!" ${C(s)} chimes along out of habit. Get past the sprites and people start telling you what actually matters.`,
       choices: [
-        { label: 'Sit down and really talk', kind: 'prepare', minigame: 'conversation', hint: 'Costs energy. Insight lives here.', eff: { energy: -1 }, result: 'You head back to the trail with a lot to think about.' },
-        { label: 'Skip the small talk and pitch the Grand Plan', kind: 'through', hint: 'Fast. You will be acting on assumptions.', eff: { momentum: 2, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { avoid: 1 } }, result: (s) => `${C(s)} nods politely. "Sure. That sounds... comprehensive."` },
-        { label: 'Hand over a questionnaire for later', kind: 'around', hint: 'Safe and slow. Forms miss tone.', eff: (s) => ({ momentum: -1, insight: 1, trust: s.client.prefers === 'email' ? 1 : -1 }), result: (s) => s.client.prefers === 'email' ? `${C(s)} loves a form. It comes back annotated.` : `${C(s)} fills in half of it on their phone.` }
+        { label: 'Scatter the sprites with a real question', kind: 'prepare', minigame: 'conversation', hint: 'Costs energy. Sprites can\'t stand a real question, and insight lives past them.', eff: { energy: -1 }, result: 'The sprites drift off in search of someone discussing humidity. You head back to the trail with a lot to think about.' },
+        { label: 'Talk over the sprites and pitch the Grand Plan', kind: 'through', hint: 'Fast. The sprites still run the conversation, and you will be acting on assumptions.', eff: { momentum: 2, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { avoid: 1 } }, result: (s) => `${C(s)} nods politely between sprite chirps. "Sure. That sounds... comprehensive." A sprite lands on your shoulder and whispers "nice weather," smugly.` },
+        { label: 'Hand over a questionnaire and leave the sprites to it', kind: 'around', hint: 'Safe and slow. Sprites can\'t follow a form home, but forms miss tone.', eff: (s) => ({ momentum: -1, insight: 1, trust: s.client.prefers === 'email' ? 1 : -1 }), result: (s) => s.client.prefers === 'email' ? `${C(s)} loves a form. It comes back annotated, and entirely sprite-free.` : `${C(s)} fills in half of it on their phone while the sprites debate the chance of rain.` }
       ]
     },
     {
       id: 'meadow_we', title: 'Who is "we"?', at: ['meadows', 'travel'],
       when: (s) => !K(s, s.client.stakeholderFact),
-      text: (s) => `Mid-sentence, ${C(s)} says: ${s.client.we} Then moves right on to something else.`,
+      text: (s) => (here(s, 'meadows')
+        ? `A sprite settles on ${C(s)}'s shoulder and the chat drifts toward the weekend forecast. Then, mid-sentence, ${C(s)} says: ${s.client.we} The sprite hurries everyone along to the subject of clouds.`
+        : `Mid-sentence, ${C(s)} says: ${s.client.we} Then moves right on to something else.`),
       choices: [
-        { label: 'Stop and ask who else is involved', kind: 'prepare', hint: 'A small detour now.', eff: (s) => ({ momentum: -1, insight: 2, fact: s.client.stakeholderFact }), result: (s) => `It turns out ${s.client.stakeholder} matters a lot here.` },
-        { label: 'Make a note and keep going', kind: 'through', hint: 'Notes are only as good as the follow-up.', eff: (s) => ({ momentum: 1, debt: { tag: 'unknown_stakeholder', sev: 2 }, missed: s.client.stakeholderFact }), result: 'You scribble "we = ?" in the margin. Momentum feels great.' },
+        { label: 'Stop and ask who else is involved', kind: 'prepare', hint: 'A small detour now.', eff: (s) => ({ momentum: -1, insight: 2, fact: s.client.stakeholderFact }), result: (s) => `${here(s, 'meadows') ? 'The sprite gives up and goes to find a picnic. ' : ''}It turns out ${s.client.stakeholder} matters a lot here.` },
+        { label: 'Make a note and keep going', kind: 'through', hint: 'Notes are only as good as the follow-up.', eff: (s) => ({ momentum: 1, debt: { tag: 'unknown_stakeholder', sev: 2 }, missed: s.client.stakeholderFact }), result: (s) => `You scribble "we = ?" in the margin.${here(s, 'meadows') ? ' The sprite approves.' : ''} Momentum feels great.` },
         { label: 'Invite everyone to the next meeting', kind: 'around', show: (s) => PP.skill(s, 'communication') > 0, hint: 'Communication: slower, but it builds trust.', eff: (s) => ({ momentum: -2, trust: 2, fact: s.client.stakeholderFact }), result: (s) => `${C(s)} looks relieved. "Honestly? That would help."` }
       ]
     },
 
-    /* ---- Veteran's Lighthouse ---- */
+    /* ---- Veteran's Lighthouse: the Lighthouse Oracle (a helper) ---- */
     {
-      id: 'lighthouse_marge', title: 'Tea with the keeper', at: ['lighthouse'], first: true,
-      text: 'The keeper pours you a tea strong enough to stand a spoon in. "Long trip so far? Sit. Tell me where you think you\'re going."',
+      id: 'lighthouse_marge', title: 'The Lighthouse Oracle', at: ['lighthouse'], first: true,
+      text: (s) => `At the top of the spiral stairs sits the Lighthouse Oracle: small, ancient, in a cardigan, pouring tea strong enough to stand a spoon in. "Sit," she says. "Tell me where you think you are going, and I shall tell you something annoying." ${C(s)} takes the comfy chair and looks thrilled to be here.`,
       choices: [
-        { label: 'Talk through your plan with her', kind: 'help', hint: 'Help is rarely free, but it is often cheap.', eff: { insight: 1, style: { soloist: -1 } },
-          then: { text: (s) => s.debt.length ? `She taps your notes. "This bit here. ${PP.content.debts[s.debt[0].tag].label}. That'll come back, you know." She refills your tea. "Want to fix it now, or find out later?"` : '"Honestly? Looks clean. Don\'t get cocky. Anything you haven\'t asked the client yet?"',
+        { label: 'Ask the Oracle about your plan', kind: 'help', hint: 'Oracles are rarely free, but they are often cheap.', eff: { insight: 1, style: { soloist: -1 } },
+          then: { text: (s) => s.debt.length ? `She taps your notes and intones: "What you skipped walks behind you, and it is gaining." Her finger stops on one line: ${PP.content.debts[s.debt[0].tag].label.toLowerCase()}. Then, in a perfectly normal voice: "That'll come back, you know. Fix it now, or find out later?"` : '"The path is clean; the traveler is cocky," she intones. Then, normally: "Meaning: looks good. Don\'t get smug. What haven\'t you asked the client yet?"',
             choices: [
-              { label: 'Fix it now, while you\'re here', kind: 'prepare', show: (s) => s.debt.length > 0, eff: (s) => ({ energy: -1, days: 1, clearDebt: s.debt[0].tag }), result: 'It takes a day at her kitchen table. One less thing following you.' },
-              { label: 'Ask for her best advice', kind: 'help', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 } } : { insight: 1 }), result: '"Shortcuts are loans. Know who you\'re borrowing from." You write it down.' },
-              { label: 'Thank her and get going', kind: 'through', eff: { momentum: 1 }, result: 'She waves you off with a biscuit for the road.' }
+              { label: 'Fix it now, by lamplight', kind: 'prepare', show: (s) => s.debt.length > 0, eff: (s) => ({ energy: -1, days: 1, clearDebt: s.debt[0].tag }), result: 'It takes a day at the Oracle\'s kitchen table. Whatever was following you gives up and goes home.' },
+              { label: 'Ask for one more prophecy', kind: 'help', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 } } : { insight: 1 }), result: '"A shortcut is a loan," she says, "and the lender always knows your address." You write it down. Annoyingly, it is excellent advice.' },
+              { label: 'Thank her and get going', kind: 'through', eff: { momentum: 1 }, result: 'She sends you off with a riddle and a biscuit. The biscuit is easier to understand.' }
             ] } },
-        { label: 'Rest here a day', kind: 'prepare', hint: 'Energy back, momentum slips.', eff: { energy: 3, days: 1, momentum: -1 }, result: 'You nap in a chair shaped like a whale. Refreshing.' },
-        { label: 'Climb the tower and study the land', kind: 'prepare', eff: { energy: -1, reveal: true }, result: 'From the lamp room, the fog thins. You can see the whole region, all the way to the X.' }
+        { label: 'Rest in the lamp room for a day', kind: 'prepare', hint: 'Energy back, momentum slips.', eff: { energy: 3, days: 1, momentum: -1 }, result: 'You nap in a chair shaped like a whale while the Oracle hums prophecies to the kettle. Refreshing.' },
+        { label: 'Climb to the lamp and look where she points', kind: 'prepare', eff: { energy: -1, reveal: true }, result: 'The Oracle swings the great beam across the land. "Behold," she says, then: "Well, look, then." The fog thins and the whole region lies below you, all the way to the X.' }
       ]
     },
 
-    /* ---- Relation-Ship Wreck (side trail) ---- */
+    /* ---- Relation-Ship Wreck (side trail): the Sirens of the Quick Close ---- */
     {
       id: 'wreck_sirens', title: 'The Sirens of the Quick Close', at: ['wreck'], first: true, cut: 'sirens',
-      text: 'On the rocks, three sirens sing: "Close it to-day! Close it to-day! Sign right here and sail a-way!" It is incredibly catchy. Beside the wreck, a soggy agent sits on a crate.',
+      text: (s) => `On the rocks, the Sirens of the Quick Close are in full voice: "Sign to-day! Sign to-day! Sign right here and sail a-way!" It is incredibly catchy. ${C(s)} is already tapping a foot. Beside the wreck, a soggy agent sits on a crate, wringing out his tie.`,
       choices: [
-        { label: 'Follow the song', kind: 'through', hint: 'Fastest route to a signature. Not always to a client.', eff: { momentum: 3, trust: -2, debt: { tag: 'assumed_goal', sev: 3 } }, result: 'You hum it for the next three days. Your client watched the whole thing.' },
+        { label: 'Sing along and close it today', kind: 'through', hint: 'Fastest route to a signature. Not always to a client.', eff: { momentum: 3, trust: -2, debt: { tag: 'assumed_goal', sev: 3 } }, result: (s) => `The paper is signed before the second chorus. ${C(s)} looks at it, then at you: "Wait. What did we decide?" You hum the song for three days.` },
         { label: 'Ask the soggy agent what happened', kind: 'prepare',
-          then: { text: '"Had a great client. Heard the song, closed in a day. Wrong plan, wrong time. They left, told their friends." He wrings out his tie. "Ask more questions than you think you need to. That\'s all I\'ve got."',
+          then: { text: '"Had a great client. Heard the song, closed in a day. Wrong plan, wrong time. They left and told their friends." He squeezes a small fish out of his sleeve. "Ask more questions than the song gives you time for. That\'s all I\'ve got."',
             choices: [
-              { label: 'Help him off the rocks', kind: 'help', eff: { energy: -1, trust: 1, insight: 1 }, result: 'Your client saw that. They look at you a little differently.' },
-              { label: 'Thank him and head back', kind: 'around', eff: { insight: 1 }, result: 'You leave with your ears plugged and a lesson.' }
+              { label: 'Help him off the rocks', kind: 'help', eff: { energy: -1, trust: 1, insight: 1 }, result: (s) => `${C(s)} saw that. They look at you a little differently.` },
+              { label: 'Thank him and head back', kind: 'around', eff: { insight: 1 }, result: 'You leave with your ears plugged and a lesson. The Sirens switch to a ballad about limited-time offers.' }
             ] } },
-        { label: 'Plug your ears and turn back', kind: 'around', eff: { energy: -1 }, result: 'Wasted a trip, but your plan is intact.' }
+        { label: 'Plug your ears and turn back', kind: 'around', eff: { energy: -1 }, result: 'A wasted trip, but your plan is intact. The Sirens boo you in three-part harmony.' }
       ]
     },
 
-    /* ---- Fog of Forgotten Info ---- */
+    /* ---- Fog of Forgotten Info: the Will-o'-Wisps ---- */
     {
-      id: 'fog_forgot', title: 'The Fog of Forgotten Info', at: ['fog'], first: true, cut: 'fog',
-      text: (s) => `Fog rolls over the trail. Did ${C(s)} say "next year" or "next month"? You genuinely can't remember. Neither can they, apparently.`,
+      id: 'fog_forgot', title: 'The Will-o\'-Wisps', at: ['fog'], first: true, cut: 'fog',
+      text: (s) => `Fog rolls over the trail, and the Will-o'-Wisps come out to play. One glows "NEXT YEAR." Another glows "NEXT MONTH." Both look extremely sure of themselves. Which did ${C(s)} say? You genuinely can't remember. Neither can they, apparently.`,
       choices: [
-        { label: 'Go with your best guess', kind: 'through', hint: 'Fast and confident. Possibly wrong.', eff: { momentum: 1, debt: { tag: 'timeline', sev: 2 }, style: { avoid: 1 } }, result: '"Next year." Probably. Sure.' },
-        { label: 'Ask the client again', kind: 'prepare', hint: 'Asking twice costs a little credibility, unless you ask well.', eff: (s) => ({ insight: 1, trust: PP.skill(s, 'communication') > 0 ? 0 : -1, momentum: -1 }), result: (s) => PP.skill(s, 'communication') > 0 ? '"Just want to get this exactly right." No harm done.' : `${C(s)}: "I told you that already?" Slightly awkward.` },
-        { label: 'Check your battered notebook', kind: 'help', item: 'notebook', show: (s) => PP.hasItem(s, 'notebook'), eff: { insight: 1 }, result: 'Page four, underlined twice: "NEXT MONTH." Past you is a hero.' }
+        { label: 'Follow the brighter wisp', kind: 'through', hint: 'Fast and confident. Possibly the wrong light.', eff: { momentum: 1, debt: { tag: 'timeline', sev: 2 }, style: { avoid: 1 } }, result: '"Next year." The wisp bobs ahead of you, delighted to be chosen. Probably right. Sure.' },
+        { label: 'Ask the client again', kind: 'prepare', hint: 'Asking twice costs a little credibility, unless you ask well.', eff: (s) => ({ insight: 1, trust: PP.skill(s, 'communication') > 0 ? 0 : -1, momentum: -1 }), result: (s) => PP.skill(s, 'communication') > 0 ? `"Just want to get this exactly right." ${C(s)} answers, and the wrong wisp fizzles out in a sulk.` : `${C(s)}: "I told you that already?" Slightly awkward. One of the wisps snickers.` },
+        { label: 'Check your battered notebook', kind: 'help', item: 'notebook', show: (s) => PP.hasItem(s, 'notebook'), eff: { insight: 1 }, result: 'Page four, underlined twice: "NEXT MONTH." The wrong wisp pops like a soap bubble. Past you is a hero.' }
       ]
     },
 
-    /* ---- Loop of Endless Data Entry ---- */
+    /* ---- Loop of Endless Data Entry: the Paperwork Ouroboros ---- */
     {
-      id: 'loop_reentry', title: 'The same form, again', at: ['loop'], first: true, cut: 'loop',
-      text: (s) => `The trail curves, and curves, and curves. A sign: "Please re-enter all of ${C(s)}'s information." You entered it two days ago. And at the port. And on a napkin.`,
+      id: 'loop_reentry', title: 'The Paperwork Ouroboros', at: ['loop'], first: true, cut: 'loop',
+      text: (s) => `The trail curves, and curves, and curves, because it is not a trail. It is the Paperwork Ouroboros, a serpent made of forms, chewing on its own tail. "Pleassse re-enter all of ${C(s)}'sss information," it hisses. You entered it two days ago. And at the port. And on a napkin. ${C(s)} groans: "Do I really have to give my address again?"`,
       choices: [
-        { label: 'Copy-paste everything from last time', kind: 'through', hint: 'Fast, if last time was right.', eff: () => (PP.chance(0.4) ? { momentum: -1, days: 1, debt: { tag: 'stale_info', sev: 2 } } : { momentum: 1, debt: { tag: 'stale_info', sev: 2 } }), preview: 'Quick, adds hidden risk, and 40% of the time the loop sends you round again (lose a day).', result: (s) => 'Pasted. The trail straightens out. Or did it loop? You can\'t tell.' },
-        { label: 'Go through the shoebox of paperwork properly', kind: 'prepare', minigame: 'factFind', hint: 'Sort what\'s current, what needs updating, and what to ask about.', result: 'The paperwork is sorted. The trail straightens out.' },
-        { label: 'Re-type everything, checking as you go', kind: 'prepare', eff: { energy: -2, insight: 1 }, result: 'Slow. Tedious. You catch an old address in the process.' },
-        { label: 'Ask Olu if there is a way out of the loop', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), eff: { momentum: 1, insight: 1 }, result: 'Olu: "There\'s a button. Nobody uses the button." There is a button.' }
+        { label: 'Copy-paste everything from last time', kind: 'through', hint: 'Fast, if last time was right.', eff: () => (PP.chance(0.4) ? { momentum: -1, days: 1, debt: { tag: 'stale_info', sev: 2 } } : { momentum: 1, debt: { tag: 'stale_info', sev: 2 } }), preview: 'Quick, adds hidden risk, and 40% of the time the serpent swallows it and sends you round again (lose a day).', result: 'Pasted. The serpent gulps it down happily. The trail straightens out. Or did it loop? You can\'t tell.' },
+        { label: 'Sort the shoebox of paperwork properly, once', kind: 'prepare', minigame: 'factFind', hint: 'Sort what\'s current, what needs updating, and what to ask about.', result: 'The paperwork is sorted. With nothing new to swallow, the Ouroboros loosens its coils and the trail straightens out.' },
+        { label: 'Re-type everything, checking as you go', kind: 'prepare', eff: { energy: -2, insight: 1 }, result: 'Slow. Tedious. The serpent watches every keystroke. You catch an old address in the process.' },
+        { label: 'Ask Olu how to break the loop', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), eff: { momentum: 1, insight: 1 }, result: 'Olu: "There\'s a button. Nobody uses the button." There is a button. The Ouroboros lets go of its own tail, looking embarrassed.' }
       ]
     },
 
-    /* ---- Product-First Cliffs (side trail) ---- */
+    /* ---- Product-First Cliffs (side trail): the Pitch Harpies ---- */
     {
-      id: 'cliffs_edge', title: 'Product-First Cliffs', at: ['cliffs'], first: true, cut: 'cliffs',
-      text: 'A crowd of eager agents sprints toward the cliff edge, waving brochures and shouting product names. One by one they disappear over the side. Faintly, from below: "...but it has great features!"',
+      id: 'cliffs_edge', title: 'The Pitch Harpies', at: ['cliffs'], first: true, cut: 'cliffs',
+      text: (s) => `Harpies wheel over the cliff edge, shrieking product names: "NEW AND IMPROVED! BEST SELLER! ACT NOW!" They swoop at eager agents and herd them, brochures first, toward the drop. One by one the agents disappear over the side. Faintly, from below: "...but it has great features!" A harpy lands beside ${C(s)} and tilts its head, waiting for your pitch.`,
       choices: [
-        { label: 'Join them: pitch the product right now', kind: 'through', hint: 'It feels like progress the whole way down.', eff: { momentum: 2, trust: -2, debt: { tag: 'premature_pitch', sev: 2 } }, result: (s) => `${C(s)} listens to the whole pitch, then asks, "But do I need that?" You don't know.` },
-        { label: 'Stand at the edge and watch what happens', kind: 'prepare', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 }, energy: -1 } : { insight: 1 }), result: 'You watch three agents go over before they know what the client needs. Lesson learned, safely.' },
-        { label: 'Turn around', kind: 'around', result: 'A day wasted, nobody hurt.' }
+        { label: 'Let them herd you: pitch the product right now', kind: 'through', hint: 'It feels like progress the whole way down.', eff: { momentum: 2, trust: -2, debt: { tag: 'premature_pitch', sev: 2 } }, result: (s) => `The harpies cheer. ${C(s)} listens to the whole pitch, then asks, "But do I need that?" You don't know. The harpies have already flown off to find someone else.` },
+        { label: 'Hold your ground at the edge and watch', kind: 'prepare', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 }, energy: -1 } : { insight: 1 }), result: 'You plant your feet while the harpies shriek in your ears. Three agents go over before anyone learns what their client needs. Lesson learned, safely.' },
+        { label: 'Turn your back on the harpies', kind: 'around', result: 'A day wasted, nobody hurt. Harpies lose interest in anyone who isn\'t pitching.' }
       ]
     },
 
-    /* ---- Spreadsheet Swamp ---- */
+    /* ---- Spreadsheet Swamp: the Spreadsheet Hydra ---- */
     {
-      id: 'swamp_sheet', title: 'The spreadsheet', at: ['swamp'], first: true, cut: 'swamp',
-      text: (s) => s.client.spreadsheet + ' It all looks very official.',
+      id: 'swamp_sheet', title: 'The Spreadsheet Hydra', at: ['swamp'], first: true, cut: 'swamp',
+      text: (s) => `${s.client.spreadsheet} As you study it, something stirs in the gridded water: the Spreadsheet Hydra. Every head is a tab, and every tab looks very official. Answer one cell and two more grow in its place.`,
       choices: [
-        { label: 'Accept the assumptions and move on', kind: 'through', hint: 'Momentum now. The model may be answering the wrong question.', eff: (s) => ({ momentum: 2, debt: { tag: 'spreadsheet_assumptions', sev: 2 }, missed: s.client.spreadsheetFact }), result: 'Momentum rises. So does something you cannot see.' },
-        { label: 'Ask what decision this is meant to support', kind: 'prepare', hint: 'Curiosity makes this question land.',
-          then: { text: (s) => `${C(s)} pauses. "What decision? I mean... the future, I guess?" You can push a little further, or let it be.`,
+        { label: 'Accept the assumptions and wade on', kind: 'through', hint: 'Momentum now. The beast may be answering the wrong question.', eff: (s) => ({ momentum: 2, debt: { tag: 'spreadsheet_assumptions', sev: 2 }, missed: s.client.spreadsheetFact }), result: 'You stop looking at the heads and the Hydra lets you pass. Momentum rises. So does something under the water.' },
+        { label: 'Ask the one question that matters: what decision is this for?', kind: 'prepare', hint: 'Curiosity makes this question land.',
+          then: { text: (s) => `${C(s)} pauses. "What decision? I mean... the future, I guess?" Several Hydra heads glance at each other, unsure. You can push a little further, or let it be.`,
             choices: [
-              { label: '"What would change your mind?"', kind: 'prepare', eff: (s) => (PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6 ? { insight: 2, momentum: -1, fact: s.client.spreadsheetFact } : { insight: 1, momentum: -1 }), preview: 'With Curiosity or Trust 6+, they tell you the real reason.', result: (s) => (PP.knows(s, s.client.spreadsheetFact) ? `The real answer has nothing to do with the spreadsheet: ${s.client.facts[s.client.spreadsheetFact].label.toLowerCase()}.` : `${C(s)} shrugs. You sense there is more, but not today.`) },
-              { label: 'Let it be for now', kind: 'around', eff: { insight: 1 }, result: 'You note the question for later.' }
+              { label: '"What would change your mind?"', kind: 'prepare', eff: (s) => (PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6 ? { insight: 2, momentum: -1, fact: s.client.spreadsheetFact } : { insight: 1, momentum: -1 }), preview: 'With Curiosity or Trust 6+, they tell you the real reason.', result: (s) => (PP.knows(s, s.client.spreadsheetFact) ? `The heads go quiet. The real answer has nothing to do with the spreadsheet: ${s.client.facts[s.client.spreadsheetFact].label.toLowerCase()}. Most of the Hydra sinks without a ripple.` : `${C(s)} shrugs. One head grows back, slightly smaller. You sense there is more, but not today.`) },
+              { label: 'Let it be for now', kind: 'around', eff: { insight: 1 }, result: 'You note the question for later. The Hydra keeps one eye on you.' }
             ] } },
-        { label: 'Rebuild the whole model yourself', kind: 'through', hint: 'You will understand it. It will cost you.', eff: (s) => ({ energy: -3, days: 1, insight: 1, style: { overcomplicate: 2 }, fact: s.client.spreadsheetFact }), result: 'You now own a 22-tab spreadsheet. You found something, but at what cost.' },
-        { label: 'Call Marge: "What\'s the one number that matters?"', kind: 'help', contact: 'veteran', show: (s) => PP.contactReady(s, 'veteran'), eff: (s) => ({ insight: 2, fact: s.client.spreadsheetFact, style: { overcomplicate: -1 } }), result: 'Marge ignores thirteen tabs and points at one cell. She\'s right.' }
+        { label: 'Fight every head: rebuild the whole model yourself', kind: 'through', hint: 'You will understand it. Cut one head and two grow back.', eff: (s) => ({ energy: -3, days: 1, insight: 1, style: { overcomplicate: 2 }, fact: s.client.spreadsheetFact }), result: 'Every tab you add grows two more. You now own a 22-headed Hydra. You found something, but at what cost.' },
+        { label: 'Call Marge: "Which head is the real one?"', kind: 'help', contact: 'veteran', show: (s) => PP.contactReady(s, 'veteran'), eff: (s) => ({ insight: 2, fact: s.client.spreadsheetFact, style: { overcomplicate: -1 } }), result: 'Marge ignores thirteen heads and points at one cell. "That one. The rest are noise with teeth." She\'s right.' }
       ]
     },
     {
-      id: 'swamp_one_more_tab', title: 'Just one more tab', at: ['swamp'],
+      id: 'swamp_one_more_tab', title: 'Just one more head', at: ['swamp'],
       when: (s) => s.style.overcomplicate > 0,
-      text: 'You feel the pull of the swamp. What if you modeled interest rates by lunar phase? Just to be thorough.',
+      text: 'A small, friendly Hydra head pops up beside you. "What if," it whispers, "you modeled interest rates by lunar phase? Just to be thorough."',
       choices: [
-        { label: 'Add the tab', kind: 'through', eff: { energy: -2, insight: 1, style: { overcomplicate: 1 } }, result: 'The moon does not affect interest rates. You now know this for sure.' },
-        { label: 'Close the laptop', kind: 'around', eff: { momentum: 1, style: { overcomplicate: -1 } }, result: 'The swamp recedes slightly.' }
+        { label: 'Grow the extra head', kind: 'through', eff: { energy: -2, insight: 1, style: { overcomplicate: 1 } }, result: 'The moon does not affect interest rates. You now know this for sure. The Hydra has one more head and looks very pleased with itself.' },
+        { label: 'Close the laptop', kind: 'around', eff: { momentum: 1, style: { overcomplicate: -1 } }, result: 'The head sinks with a disappointed gurgle. The swamp recedes slightly.' }
       ]
     },
 
-    /* ---- Snake Pit of Unreturned Calls (side trail) ---- */
+    /* ---- Snake Pit of Unreturned Calls (side trail): the Voicemail Gorgon ---- */
     {
-      id: 'snakepit_calls', title: 'The Snake Pit of Unreturned Calls', at: ['snakepit'], first: true, cut: 'phones',
-      text: 'The pit is full of ringing phones, coiled like snakes. Your other clients have been busy living: a new baby, a layoff, a birthday you nearly forgot. All of them want to hear from you.',
+      id: 'snakepit_calls', title: 'The Voicemail Gorgon', at: ['snakepit'], first: true, cut: 'phones',
+      text: (s) => `At the bottom of the pit coils the Voicemail Gorgon. Every snake in her hair is a ringing phone, and every phone is one of your other clients, busy living: a new baby, a layoff, a birthday you nearly forgot. "Return them," she hisses, "or watch them turn to stone." ${C(s)} peers over the edge, quietly wondering whether you return calls.`,
       choices: [
-        { label: 'Climb in and get back to everyone', kind: 'prepare', minigame: 'lifeHappens', hint: 'Hard news needs a call. Big plans need a review. Celebrations get a card.', result: 'You climb out with a sore ear and a lot of grateful clients.' },
-        { label: 'Let them ring', kind: 'through', eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } }, result: 'The ringing fades behind you. For now.' },
-        { label: 'Send one group text to everyone', kind: 'around', eff: { momentum: 1, trust: -1 }, result: '"Hi all! Circling back!" Three people reply "who is this?"' }
+        { label: 'Climb down and return every call', kind: 'prepare', minigame: 'lifeHappens', hint: 'Hard news needs a call. Big plans need a review. Celebrations get a card.', result: 'You climb out with a sore ear and a lot of grateful clients. The Gorgon\'s hair has gone quiet. She very nearly smiles.' },
+        { label: 'Don\'t meet her eye; let them ring', kind: 'through', eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } }, result: 'The ringing fades behind you. Somewhere, a relationship goes a little stiff around the edges. Only a little. For now.' },
+        { label: 'Send one group text to every snake at once', kind: 'around', eff: { momentum: 1, trust: -1 }, result: '"Hi all! Circling back!" Three snakes reply "who is this?" One of them turns slightly to stone.' }
       ]
     },
 
-    /* ---- Shifting Sands of Incentives ---- */
+    /* ---- Shifting Sands of Incentives: the Djinn of Incentives ---- */
     {
-      id: 'sands_change', title: 'The contest banner', at: ['sands'], first: true,
-      text: (s) => `The dunes are plastered with banners. This quarter's sales contest: place enough of the featured product and win a week at a beach resort. Your manager has circled your name on the leaderboard. ${C(s)} is reading the banner too. "Is that... something I should have?"`,
+      id: 'sands_change', title: 'The Djinn of Incentives', at: ['sands'], first: true,
+      text: (s) => `The dunes ripple and a Djinn pours out of a trophy-shaped lamp, wearing a lanyard. "A wish, little agent! Place enough of this quarter's featured product and I shall grant you a week at a beach resort. Your manager already rubbed the lamp on your behalf." Your name glows on a leaderboard in the sky. ${C(s)} is staring at it too. "Is that... something I should have?"`,
       choices: [
-        { label: 'Steer them toward the featured product', kind: 'through', hint: 'A bonus now. Is it right for them, or right for the leaderboard?', eff: { cash: 400, momentum: 1, trust: -2, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `You climb two places on the leaderboard. ${C(s)} goes along with it, but keeps glancing back at the banner like it might explain itself.` },
-        { label: '"Honestly? Maybe not. Let\'s find out what fits you first."', kind: 'prepare', hint: 'No trip. A client who remembers you said it.', eff: (s) => (worryOpen(s) ? { trust: 2, insight: 1, momentum: -1, fact: s.client.keyFact } : { trust: 2, momentum: -1 }), preview: 'With Curiosity or Trust 6+, they tell you what they actually need.', result: (s) => `${C(s)} blinks. "You'd say that with a beach on the line?" ` + (PP.knows(s, s.client.keyFact) ? `Then, more quietly, they tell you what is really going on: ${s.client.facts[s.client.keyFact].label.toLowerCase()}.` : 'They don\'t say much more today, but they remember it.') },
-        { label: 'Tell them about the contest, openly, then talk about fit', kind: 'around', hint: 'Awkward to say. Easier to defend.', eff: (s) => ({ trust: PP.skill(s, 'communication') > 0 ? 2 : 1, insight: 1 }), result: '"Full disclosure: I\'d win a trip if you bought that. Here\'s why it might not be for you." It is the strangest sentence you have said all week. It works.' },
-        { label: 'Walk past the banners without a word', kind: 'around', eff: { momentum: 1 }, result: (s) => `${C(s)} keeps looking back at the beach on the banner. You never explain. They wonder about it later.` }
+        { label: 'Take the wish: steer them toward the featured product', kind: 'through', hint: 'A bonus now. Read the fine print: right for them, or right for the leaderboard?', eff: { cash: 400, momentum: 1, trust: -2, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `Poof: two places up the leaderboard and a warm breeze of cash. ${C(s)} goes along with it, but keeps glancing at the Djinn as if it might explain itself. In tiny letters at the bottom of your wish: "client's trust not included."` },
+        { label: '"Honestly? Maybe not. Let\'s find out what fits you first."', kind: 'prepare', hint: 'No wish. A client who remembers you turned it down.', eff: (s) => (worryOpen(s) ? { trust: 2, insight: 1, momentum: -1, fact: s.client.keyFact } : { trust: 2, momentum: -1 }), preview: 'With Curiosity or Trust 6+, they tell you what they actually need.', result: (s) => `The Djinn deflates like a sad balloon. ${C(s)} blinks. "You'd turn down a genie for me?" ` + (PP.knows(s, s.client.keyFact) ? `Then, more quietly, they tell you what is really going on: ${s.client.facts[s.client.keyFact].label.toLowerCase()}.` : 'They don\'t say much more today, but they remember it.') },
+        { label: 'Read the fine print out loud, then talk about fit', kind: 'around', hint: 'Awkward to say. Easier to defend.', eff: (s) => ({ trust: PP.skill(s, 'communication') > 0 ? 2 : 1, insight: 1 }), result: '"Full disclosure: this Djinn gives me a trip if you buy that. Here\'s why it might not be for you." It is the strangest sentence you have said all week. The Djinn coughs a puff of purple smoke. It works.' },
+        { label: 'Walk past the lamp without a word', kind: 'around', eff: { momentum: 1 }, result: (s) => `The Djinn trails after you for a while, still offering. ${C(s)} keeps looking back at the glowing beach. You never explain. They wonder about it later.` }
       ]
     },
     {
-      id: 'sands_initiative', title: 'Two short of quota', at: ['sands'],
-      text: (s) => `Your phone buzzes. Your manager: "You're two sales short of quota this month, and this month's featured product is a great fit for ${C(s)}, isn't it?" You haven't finished understanding ${C(s)} yet.`,
+      id: 'sands_initiative', title: 'The Djinn\'s second wish', at: ['sands'],
+      text: (s) => `Your phone buzzes and the Djinn reads the message aloud, in a perfect impression of your manager: "You're two sales short of quota this month, and the featured product is a great fit for ${C(s)}, isn't it?" It wiggles its fingers. "One little wish." You haven't finished understanding ${C(s)} yet.`,
       choices: [
-        { label: 'Push it to make quota', kind: 'through', hint: 'Your manager will be happy until the client is not.', eff: { cash: 250, momentum: 1, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `Quota made. ${C(s)} asks, twice, why this came up so suddenly.` },
-        { label: 'Tell your manager it isn\'t a fit yet', kind: 'prepare', hint: 'Short-term pain. Long-term reputation.', eff: { energy: -1, insight: 1, trust: 1 }, result: 'Your manager sighs down the phone. "Fine. But next month..." You hang up and get back to the actual client, who overheard your half of the call.' },
-        { label: 'Ask your manager what would make it a fit', kind: 'prepare', eff: { insight: 1 }, result: '"I mean, if they needed it, I guess." A pause. "Do they?" You don\'t know yet. Now you both know that.' }
+        { label: 'Make the wish: push it to make quota', kind: 'through', hint: 'Your manager will be happy until the client is not.', eff: { cash: 250, momentum: 1, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `Quota made, in a puff of glitter. ${C(s)} asks, twice, why this came up so suddenly.` },
+        { label: 'Tell your manager it isn\'t a fit yet', kind: 'prepare', hint: 'Short-term pain. Long-term reputation.', eff: { energy: -1, insight: 1, trust: 1 }, result: 'Your manager sighs down the phone. "Fine. But next month..." The Djinn sulks back into its lamp. You return to the actual client, who overheard your half of the call.' },
+        { label: 'Ask your manager what would make it a fit', kind: 'prepare', eff: { insight: 1 }, result: '"I mean, if they needed it, I guess." A pause. "Do they?" You don\'t know yet. Now you both know that. The Djinn, bored, files its nails.' }
       ]
     },
 
-    /* ---- Caves of What-Ifs (side trail) ---- */
+    /* ---- Caves of What-Ifs (side trail): the What-If Dragon ---- */
     {
-      id: 'caves_process', title: 'The Caves of What-Ifs', at: ['caves'], first: true, cut: 'caves',
-      text: (s) => `The cave mouth is cold, and somewhere inside a voice keeps asking, "...but what if?" ${C(s)} hangs back. "Do we have to go in there? I'd honestly rather not think about the bad stuff."`,
+      id: 'caves_process', title: 'The What-If Dragon', at: ['caves'], first: true, cut: 'caves',
+      text: (s) => `Deep in the cave, the What-If Dragon sleeps on a hoard of worst cases. Every snore rattles a coin stamped with a different "but what if?" ${C(s)} hangs back. "Do we have to wake it? I'd honestly rather not think about the bad stuff."`,
       choices: [
-        { label: 'March through every scary scenario at once', kind: 'through', hint: 'Thorough on paper. A lot to hear in ten minutes.', eff: { insight: 1, trust: -2, energy: -1, debt: { tag: 'confused_client', sev: 1 } }, result: (s) => `Job loss, illness, a long life, a parent needing care: all of it, in ten minutes, with charts. ${C(s)} goes pale and stops asking questions.` },
-        { label: 'Go in slowly, one what-if at a time', kind: 'prepare', hint: 'Slower. The real worry is usually a few tunnels in.',
-          then: { text: (s) => `"What if work changed suddenly?" ${C(s)} thinks about it. "What if you were sick for a few months?" Each one gets smaller once it is said out loud. At the third, they stop and say: ${worryText(s)}`,
+        { label: 'Poke the dragon with every scary scenario at once', kind: 'through', hint: 'Thorough on paper. A lot of dragon in ten minutes.', eff: { insight: 1, trust: -2, energy: -1, debt: { tag: 'confused_client', sev: 1 } }, result: (s) => `Job loss, illness, a long life, a parent needing care: you poke it with all of them, with charts. The dragon wakes up roaring. ${C(s)} goes pale and stops asking questions.` },
+        { label: 'Wake it gently: name one what-if at a time', kind: 'prepare', hint: 'Slower. The real worry is usually a few tunnels in.',
+          then: { text: (s) => `"What if work changed suddenly?" you say, out loud. The dragon opens one eye, and shrinks a little. "What if you were sick for a few months?" Smaller again. Each fear gets smaller once it has a name. At the third, ${C(s)} stops and says: ${worryText(s)}`,
             choices: [
-              { label: '"Is that the one that keeps you up at night?"', kind: 'prepare', preview: 'With Curiosity or Trust 6+, they tell you the whole thing.', eff: (s) => { const w = ciWorry(s); R.cave = worryOpen(s) && !!(w && w.fact); return R.cave ? { trust: 2, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; }, result: () => (R.cave ? `They nod. You spend the rest of the afternoon in that tunnel, together, and it turns out to be where the plan has to start.` : 'They shrug. "Maybe." The door is open a crack. You will come back to it.') },
-              { label: 'Write the what-ifs down for next time', kind: 'around', eff: { insight: 1, trust: 1 }, result: 'A short list, in their handwriting. Less scary on paper than in the dark.' }
+              { label: '"Is that the one that keeps you up at night?"', kind: 'prepare', preview: 'With Curiosity or Trust 6+, they tell you the whole thing.', eff: (s) => { const w = ciWorry(s); R.cave = worryOpen(s) && !!(w && w.fact); return R.cave ? { trust: 2, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; }, result: () => (R.cave ? 'They nod. The dragon, now roughly the size of a corgi, curls up at their feet. You spend the afternoon in that tunnel together, and it turns out to be where the plan has to start.' : 'They shrug. "Maybe." The dragon rolls over, still big, still sleepy. The door is open a crack. You will come back to it.') },
+              { label: 'Write the what-ifs down for next time', kind: 'around', eff: { insight: 1, trust: 1 }, result: 'A short list, in their handwriting. Much less scary on paper than snoring in the dark.' }
             ] } },
-        { label: 'Sit at the cave mouth and just let them talk', kind: 'prepare', minigame: 'conversation', hint: 'Listen for the worry under the words.', eff: { energy: -1 }, result: 'By the time the lantern burns low, you know more about what scares them than any form could tell you.' },
-        { label: 'Skip the cave and keep things upbeat', kind: 'around', hint: 'Everyone feels better today.', eff: (s) => ({ momentum: 1, debt: { tag: 'guessed_key', sev: 2 }, missed: s.client.keyFact, style: { avoid: 1 } }), result: 'Everyone is relieved. The plan now has a blind spot exactly the shape of whatever was in that cave.' }
+        { label: 'Sit at the cave mouth and just let them talk', kind: 'prepare', minigame: 'conversation', hint: 'Listen for the worry under the words.', eff: { energy: -1 }, result: 'By the time the lantern burns low, you know more about what scares them than any form could tell you. Deep inside, the dragon\'s snoring has gone soft and even.' },
+        { label: 'Tiptoe past and keep things upbeat', kind: 'around', hint: 'Everyone feels better today.', eff: (s) => ({ momentum: 1, debt: { tag: 'guessed_key', sev: 2 }, missed: s.client.keyFact, style: { avoid: 1 } }), result: 'Everyone is relieved. The dragon sleeps on. The plan now has a blind spot exactly the shape of a dragon.' }
       ]
     },
 
-    /* ---- Specialist Summit ---- */
+    /* ---- Specialist Summit: the Summit Sphinx ---- */
     {
-      id: 'summit_question', title: 'The question from the summit', at: ['summit'], first: true, cut: 'summit',
+      id: 'summit_question', title: 'The Sphinx\'s riddle', at: ['summit'], first: true, cut: 'summit',
       text: (s) => (K(s, s.client.keyFact)
-        ? `The Specialist reads your notes. "${s.client.facts[s.client.keyFact].label}. Good. That changes the approach, and you already knew it."`
-        : s.client.keyQuestion + ' You blink. Somewhere back on the trail, you think you heard something about that.') + (s.style.soloist >= 2 ? ' (The path up was icy. You took the hard way, alone.)' : ''),
+        ? `The Summit Sphinx (her nameplate says SPECIALIST) blocks the path and opens your case file with one enormous paw. "Riddle the first: what changes everything?" You answer before she finishes: ${s.client.facts[s.client.keyFact].label.toLowerCase()}. She purrs. "Good. That changes the approach, and you already knew it."`
+        : `The Summit Sphinx (her nameplate says SPECIALIST) blocks the path. Her first two riddles you can bluff. The third is not a riddle at all. ${s.client.keyQuestion} You blink. Somewhere back on the trail, you think you heard something about that. ${C(s)} looks at you hopefully.`) + (s.style.soloist >= 2 ? ' (The path up was icy. You took the hard way, alone.)' : ''),
       choices: [
-        { label: 'Work through it with the Specialist', kind: 'help', show: (s) => K(s, s.client.keyFact), eff: (s) => ({ insight: 2, momentum: 1, energy: s.style.soloist >= 2 ? -2 : 0 }), result: 'You come down the mountain with a sharper plan.' },
-        { label: 'Backtrack: ask the client directly', kind: 'prepare', show: (s) => !K(s, s.client.keyFact), hint: 'Costs momentum. Catching it yourself may build trust.', eff: (s) => ({ momentum: -2, trust: 1, insight: 1, fact: s.client.keyFact, energy: s.style.soloist >= 2 ? -2 : 0 }), result: (s) => `${C(s)}: "Oh! Yes, I mentioned that, didn't I? Thanks for catching it."` },
-        { label: 'Adjust the plan with a reasonable guess', kind: 'around', show: (s) => !K(s, s.client.keyFact), hint: 'Plausible guesses are the most dangerous kind.', eff: { momentum: -1, debt: { tag: 'guessed_key', sev: 3 } }, result: 'You pencil in an assumption. It looks great on paper.' },
-        { label: 'Proceed anyway', kind: 'through', show: (s) => !K(s, s.client.keyFact), eff: (s) => ({ momentum: 1, debt: { tag: 'guessed_key', sev: 3 }, style: { avoid: 1 }, missed: s.client.keyFact }), result: '"Probably not relevant," you say. The Specialist raises one eyebrow.' }
+        { label: 'Answer her riddles together', kind: 'help', show: (s) => K(s, s.client.keyFact), eff: (s) => ({ insight: 2, momentum: 1, energy: s.style.soloist >= 2 ? -2 : 0 }), result: 'The Sphinx stamps your file. "Allow three to five business days," she says, then, quietly: "Joking. Go." You come down the mountain with a sharper plan.' },
+        { label: 'Backtrack: ask the client directly', kind: 'prepare', show: (s) => !K(s, s.client.keyFact), hint: 'Costs momentum. Catching it yourself may build trust.', eff: (s) => ({ momentum: -2, trust: 1, insight: 1, fact: s.client.keyFact, energy: s.style.soloist >= 2 ? -2 : 0 }), result: (s) => `${C(s)}: "Oh! Yes, I mentioned that, didn't I? Thanks for catching it." You climb back up with the real answer. The Sphinx looks almost disappointed.` },
+        { label: 'Answer with a reasonable guess', kind: 'around', show: (s) => !K(s, s.client.keyFact), hint: 'Plausible guesses are the most dangerous kind.', eff: { momentum: -1, debt: { tag: 'guessed_key', sev: 3 } }, result: 'You give a sensible-sounding answer. The Sphinx writes it down without comment. It looks great on paper. Sphinxes remember.' },
+        { label: 'Bluff your way past', kind: 'through', show: (s) => !K(s, s.client.keyFact), eff: (s) => ({ momentum: 1, debt: { tag: 'guessed_key', sev: 3 }, style: { avoid: 1 }, missed: s.client.keyFact }), result: '"Probably not relevant," you say. The Sphinx raises one eyebrow and quietly adds a riddle to your file, for later.' }
       ]
     },
     {
-      id: 'summit_handoff', title: 'The handoff', at: ['summit'],
-      text: (s) => `You need an expert's help with part of ${C(s)}'s situation. The expert can only help with what you pass along.`,
+      id: 'summit_handoff', title: 'The Sphinx wants your case file', at: ['summit'],
+      text: (s) => `"Before I can help with ${C(s)}," the Sphinx says, "you must answer my riddles." She unrolls a scroll. Every riddle is really a question about the client: who, what, when, and why. Whatever you hand over is all she has to work with.`,
       choices: [
-        { label: 'Write a proper handoff: what you know and what you don\'t', kind: 'prepare', hint: 'Only as good as your Insight.', eff: (s) => (s.res.insight >= 5 ? { energy: -1, insight: 1, momentum: 1 } : { energy: -1, debt: { tag: 'bad_handoff', sev: 1 } }), preview: 'Energy -1. If your Insight is low, the handoff will have gaps.', result: (s) => s.res.insight >= 5 ? 'The expert reads it once and asks one good question.' : 'You write what you can. It is shorter than you hoped.' },
-        { label: 'Forward the whole email chain', kind: 'through', hint: '"See below."', eff: { momentum: 1, debt: { tag: 'bad_handoff', sev: 2 } }, result: '"See below." 47 messages below.' },
-        { label: 'Skip the expert and do it yourself', kind: 'around', eff: { energy: -3, insight: 1, style: { soloist: 1 } }, result: 'You learn a lot. Slowly. Painfully.' },
-        { label: 'Bring Dev in, with context', kind: 'help', contact: 'specialist', show: (s) => PP.contactReady(s, 'specialist'), eff: { insight: 2, momentum: 1, style: { soloist: -1 } }, result: 'Dev already knows the area and asks exactly the right follow-ups.' }
+        { label: 'Write a proper case file: what you know and what you don\'t', kind: 'prepare', hint: 'Only as good as your Insight.', eff: (s) => (s.res.insight >= 5 ? { energy: -1, insight: 1, momentum: 1 } : { energy: -1, debt: { tag: 'bad_handoff', sev: 1 } }), preview: 'Energy -1. If your Insight is low, the file will have gaps, and she will notice.', result: (s) => s.res.insight >= 5 ? 'The Sphinx reads it once and asks one riddle. It is an easy one.' : 'You write what you can. It is shorter than you hoped. The Sphinx adds two riddles of her own.' },
+        { label: 'Forward the whole email chain', kind: 'through', hint: '"See below."', eff: { momentum: 1, debt: { tag: 'bad_handoff', sev: 2 } }, result: '"See below." 47 messages below. The Sphinx lets out a sigh that lasts three to five business days.' },
+        { label: 'Skip the Sphinx and climb around her yourself', kind: 'around', eff: { energy: -3, insight: 1, style: { soloist: 1 } }, result: 'You scale the rock face behind her. You learn a lot. Slowly. Painfully. She watches the whole way, chin on paws.' },
+        { label: 'Bring Dev in, with context', kind: 'help', contact: 'specialist', show: (s) => PP.contactReady(s, 'specialist'), eff: { insight: 2, momentum: 1, style: { soloist: -1 } }, result: 'Dev and the Sphinx are old friends. They finish each other\'s riddles, and ask exactly the right follow-ups.' }
       ]
     },
     {
       id: 'summit_jargon', title: 'Explain it', at: ['summit', 'isles'],
-      text: (s) => `The Specialist explains the options to ${C(s)} using the phrase "tax-advantaged sequencing optionality." ${C(s)} is nodding the way people nod when they are lost.`,
+      text: (s) => (here(s, 'isles')
+        ? `On a crackly video call between islands (a tentacle keeps nudging the signal), the Specialist explains the options to ${C(s)} using the phrase "tax-advantaged sequencing optionality." ${C(s)} is nodding the way people nod when they are lost.`
+        : `The Sphinx explains the options to ${C(s)} in pure riddle: "tax-advantaged sequencing optionality." ${C(s)} is nodding the way people nod when they are lost.`),
       choices: [
-        { label: 'Translate it into plain language', kind: 'prepare', hint: 'Simple without being wrong is a skill.', eff: (s) => (PP.skill(s, 'communication') > 0 || PP.chance(0.5) ? { trust: 2, insight: 1 } : { trust: -1, debt: { tag: 'confused_client', sev: 1 } }), preview: 'With Communication: Trust +2. Without it, a coin flip.', result: 'You draw it on a napkin. Napkins are underrated.' },
-        { label: 'Let the expert finish, it\'s their area', kind: 'through', eff: (s) => ({ momentum: 1, debt: { tag: 'confused_client', sev: s.client.complexity === 'high' ? 1 : 2 } }), result: 'Very thorough. Very long. Nods all round.' },
-        { label: 'Send a one-page summary afterwards', kind: 'around', eff: { energy: -1, trust: 1 }, result: 'One page. Three bullets. One diagram. It gets stuck to a fridge.' }
+        { label: 'Translate it into plain language', kind: 'prepare', hint: 'Simple without being wrong is a skill.', eff: (s) => (PP.skill(s, 'communication') > 0 || PP.chance(0.5) ? { trust: 2, insight: 1 } : { trust: -1, debt: { tag: 'confused_client', sev: 1 } }), preview: 'With Communication: Trust +2. Without it, a coin flip.', result: 'You draw it on a napkin. The riddle turns out to mean something quite sensible. Napkins are underrated.' },
+        { label: 'Let the expert finish, it\'s their area', kind: 'through', eff: (s) => ({ momentum: 1, debt: { tag: 'confused_client', sev: s.client.complexity === 'high' ? 1 : 2 } }), result: 'Very thorough. Very long. Nods all round. Nobody solved the riddle.' },
+        { label: 'Send a one-page summary afterwards', kind: 'around', eff: { energy: -1, trust: 1 }, result: 'One page. Three bullets. One diagram. Zero riddles. It gets stuck to a fridge.' }
       ]
     },
 
-    /* ---- The Login Isles ---- */
+    /* ---- The Login Isles: the Password Kraken ---- */
     {
-      id: 'isles_locked', title: 'Locked out', at: ['isles'], first: true, cut: 'isles',
-      text: (s) => `${C(s)} is locked out of the portal. The reset email goes to an address that no longer exists. The security question asks for "your first pet's favorite color."`,
+      id: 'isles_locked', title: 'The Password Kraken', at: ['isles'], first: true, cut: 'isles',
+      text: (s) => `The water churns and the Password Kraken rises between the islands. One tentacle has ${C(s)}'s portal in a headlock. Another wants a reset code sent to an email address that no longer exists. A third demands "your first pet's favorite color." ${C(s)} stares at it. "I never had a pet."`,
       choices: [
-        { label: 'Walk them through it on the phone', kind: 'through', hint: 'Patience required, on both ends.', eff: (s) => ({ energy: -2, trust: PP.skill(s, 'communication') > 0 ? 1 : -1 }), result: (s) => PP.skill(s, 'communication') > 0 ? 'Forty minutes, but you stayed calm and so did they.' : 'Forty minutes. Someone said "I AM clicking it" more than once.' },
-        { label: 'Switch to paper forms', kind: 'around', hint: 'Bulletproof. Glacial.', eff: { momentum: -1, days: 2 }, result: 'The forms are in the mail. Two days later, they arrive.' },
-        { label: 'Call Kenji', kind: 'help', contact: 'whisperer', show: (s) => PP.contactReady(s, 'whisperer'), eff: { momentum: 1, trust: 1 }, result: 'Kenji fixes it in ninety seconds and refuses to explain how.' }
+        { label: 'Wrestle it tentacle by tentacle, on the phone', kind: 'through', hint: 'Patience required, on both ends.', eff: (s) => ({ energy: -2, trust: PP.skill(s, 'communication') > 0 ? 1 : -1 }), result: (s) => PP.skill(s, 'communication') > 0 ? 'Forty minutes, one tentacle at a time. You stayed calm, so did they, and the Kraken lets go out of sheer boredom.' : 'Forty minutes. Someone said "I AM clicking it" more than once. The Kraken seemed to enjoy that part.' },
+        { label: 'Switch to paper forms, out of tentacle range', kind: 'around', hint: 'Bulletproof. Glacial.', eff: { momentum: -1, days: 2 }, result: 'The forms go by mail boat, well clear of the Kraken. Two days later, they arrive.' },
+        { label: 'Call Kenji', kind: 'help', contact: 'whisperer', show: (s) => PP.contactReady(s, 'whisperer'), eff: { momentum: 1, trust: 1 }, result: 'Kenji leans over the water and whispers something. The Kraken sinks in ninety seconds. He refuses to say what he told it.' }
       ]
     },
     {
       id: 'isles_message', title: 'Suspicious messages', at: ['isles', 'travel'],
-      text: (s) => `Your inbox lights up. Some of these are from ${C(s)}. Some of them only claim to be.`,
+      text: (s) => (here(s, 'isles')
+        ? `A tentacle slaps a dripping inbox onto the beach. Some of these messages are from ${C(s)}. Some only claim to be: the Kraken has been writing a few of them itself.`
+        : `Your inbox lights up. Some of these are from ${C(s)}. Some of them only claim to be.`),
       choices: [
-        { label: 'Work through the inbox carefully', kind: 'prepare', minigame: 'inbox', hint: 'Quick ones now, big news gets a call, paperwork to your assistant, verify anything odd.', result: 'Inbox cleared.' },
-        { label: 'Act on everything, it\'s probably fine', kind: 'through', hint: 'It is probably fine.', eff: { momentum: 2, debt: { tag: 'fraud', sev: 3 } }, result: 'Everything is done. Very efficient. Hmm.' },
+        { label: 'Work through the inbox carefully', kind: 'prepare', minigame: 'inbox', hint: 'Quick ones now, big news gets a call, paperwork to your assistant, verify anything odd.', result: (s) => (here(s, 'isles') ? 'Inbox cleared. The fakes go back in the sea where they came from.' : 'Inbox cleared.') },
+        { label: 'Act on everything, it\'s probably fine', kind: 'through', hint: 'It is probably fine.', eff: { momentum: 2, debt: { tag: 'fraud', sev: 3 } }, result: (s) => (here(s, 'isles') ? 'Everything is done. Very efficient. Somewhere below the surface, a tentacle gives a thumbs up. Hmm.' : 'Everything is done. Very efficient. Hmm.') },
         { label: 'Escalate the whole lot to Operations', kind: 'around', eff: { momentum: -2, energy: 1 }, result: 'Operations sighs and sorts it. Safe, slow, slightly embarrassing.' },
         { label: 'Call Kenji', kind: 'help', contact: 'whisperer', show: (s) => PP.contactReady(s, 'whisperer'), eff: { insight: 1 }, result: 'Kenji glances at the headers. "That one\'s fake. Those are fine." Done.' }
       ]
     },
 
-    /* ---- Annual Review Toll Bridge ---- */
+    /* ---- Annual Review Toll Bridge: the Toll Troll ---- */
     {
-      id: 'toll_bridge', title: 'The Annual Review Toll Bridge', at: ['toll'], first: true, cut: 'bridge',
-      text: (s) => `A troll in a green visor leans out of the toll booth. "Toll is: show me the file's up to date." The river below is fast and cold. ${s.res.insight >= 5 ? 'Your file is in decent shape.' : 'Your file is... thin.'}`,
+      id: 'toll_bridge', title: 'The Toll Troll', at: ['toll'], first: true, cut: 'bridge',
+      text: (s) => `Under the bridge lives the Toll Troll: green visor, date stamp, very large. "Nobody crosses till the file's current," he rumbles. "I check the dates. Twice." The river below is fast and cold. ${s.res.insight >= 5 ? 'Your file is in decent shape.' : 'Your file is... thin.'} ${C(s)} leans over: "Is all my stuff up to date?"`,
       choices: [
-        { label: 'Pay the toll: walk through the file together', kind: 'prepare', hint: 'Easy if you did the work earlier.', eff: (s) => (s.res.insight >= 5 ? { trust: 1, momentum: 1 } : { energy: -2, days: 1, insight: 1 }), preview: 'With Insight 5+: smooth. Otherwise a day of catch-up.', result: (s) => (s.res.insight >= 5 ? 'The troll nods at every page. "Tidy." The gate swings open.' : 'A long day of digging up what you should have collected earlier. The troll waits, eating a sandwich.') },
-        { label: 'Ford the river, skip the review', kind: 'through', hint: 'Wet, fast, and you might lose something.', eff: () => (PP.chance(0.35) ? { momentum: -1, energy: -2, trust: -1, debt: { tag: 'rushed_pace', sev: 2 } } : { momentum: 2, debt: { tag: 'rushed_pace', sev: 2 } }), preview: 'Fast, adds hidden risk, and 35% of the time you slip (Energy -2, Trust -1).', result: 'Splash. You make it across. Mostly dry. Mostly.' },
-        { label: 'Wait for the ferry', kind: 'around', eff: { days: 2, energy: 2, momentum: -1 }, result: 'Two days on the riverbank. Restful. The client keeps checking their watch.' },
-        { label: 'Ask Olu to get the file ready', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), eff: { momentum: 1, trust: 1 }, result: 'Olu shows up with a binder. The troll salutes.' }
+        { label: 'Pay the toll: bring the file up to date together', kind: 'prepare', hint: 'Easy if you did the work earlier.', eff: (s) => (s.res.insight >= 5 ? { trust: 1, momentum: 1 } : { energy: -2, days: 1, insight: 1 }), preview: 'With Insight 5+: smooth. Otherwise a day of catch-up while the troll waits.', result: (s) => (s.res.insight >= 5 ? 'The troll checks every date, twice, and grunts. "Tidy." The gate swings open.' : 'A long day of digging up what you should have collected earlier. The troll waits, eating a sandwich and stamping things.') },
+        { label: 'Ford the river and skip the review', kind: 'through', hint: 'Wet, fast, and you might lose something.', eff: () => (PP.chance(0.35) ? { momentum: -1, energy: -2, trust: -1, debt: { tag: 'rushed_pace', sev: 2 } } : { momentum: 2, debt: { tag: 'rushed_pace', sev: 2 } }), preview: 'Fast, adds hidden risk, and 35% of the time you slip (Energy -2, Trust -1).', result: 'Splash. You make it across while the troll shouts a list of expired dates after you. Mostly dry. Mostly.' },
+        { label: 'Wait for the ferry', kind: 'around', eff: { days: 2, energy: 2, momentum: -1 }, result: 'Two days on the riverbank. Restful. The troll waves from his booth now and then. The client keeps checking their watch.' },
+        { label: 'Ask Olu to get the file ready', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), eff: { momentum: 1, trust: 1 }, result: 'Olu shows up with a binder. The troll checks the dates twice, then salutes.' }
       ]
     },
-
     /* ================= ON THE TRAIL ================= */
     {
       id: 'road_change_of_mind', title: 'Change of mind', at: ['travel'],
@@ -604,15 +613,15 @@
 (function (PP) {
   const has = (id) => (s) => PP.career && PP.career.hasSystem(s.career, id);
   const add = (eventId, choice) => { const e = PP.content.events.find((x) => x.id === eventId); if (e) e.choices.push(Object.assign({ kind: 'help' }, choice)); };
-  add('meadow_first_talk', { label: 'Work through your discovery guide', show: has('discovery'), eff: (s) => ({ insight: 2, trust: 1, fact: s.client.stakeholderFact }), result: 'Your proven questions surface something you would have missed.' });
-  add('fog_forgot', { label: 'Check your note-taking system', show: has('notes'), eff: { insight: 1, momentum: 1 }, result: 'It is all there, dated and searchable. The fog thins.' });
-  add('loop_reentry', { label: 'Pull everything from your CRM', show: has('crm'), eff: { momentum: 1, insight: 1 }, result: 'Entered once, used forever. The loop straightens into a line.' });
-  add('swamp_sheet', { label: 'Run it through your planning software', show: has('planning'), eff: (s) => ({ insight: 2, fact: s.client.spreadsheetFact }), result: 'You cross on your own boardwalk. The software flags the one assumption that matters.' });
-  add('sands_initiative', { label: 'Check it against your focus routine', show: has('focus'), eff: { insight: 1, momentum: 1 }, result: 'Your routine asks one question: would you sell this if there were no quota? Not to this client, not yet. You tell your manager so, with reasons. Done.' });
-  add('sands_change', { label: 'Run the banner through your focus routine', show: has('focus'), eff: (s) => ({ insight: 2, trust: 1, fact: s.client.keyFact }), result: 'Client first, prize second. You talk about what they need instead, and the real reason they came comes out.' });
+  add('meadow_first_talk', { label: 'Work through your discovery guide', show: has('discovery'), eff: (s) => ({ insight: 2, trust: 1, fact: s.client.stakeholderFact }), result: 'Your proven questions go straight past the sprites. They sulk off to discuss the humidity, and something you would have missed comes out.' });
+  add('fog_forgot', { label: 'Check your note-taking system', show: has('notes'), eff: { insight: 1, momentum: 1 }, result: 'It is all there, dated and searchable. The wisps have nothing left to lie about and drift away. The fog thins.' });
+  add('loop_reentry', { label: 'Pull everything from your CRM', show: has('crm'), eff: { momentum: 1, insight: 1 }, result: 'Entered once, used forever. The Ouroboros finds nothing left to chew, lets go of its tail, and uncoils into a straight line.' });
+  add('swamp_sheet', { label: 'Run it through your planning software', show: has('planning'), eff: (s) => ({ insight: 2, fact: s.client.spreadsheetFact }), result: 'You cross on your own boardwalk, high above the heads. The software flags the one assumption that matters, and the rest of the Hydra sinks.' });
+  add('sands_initiative', { label: 'Check it against your focus routine', show: has('focus'), eff: { insight: 1, momentum: 1 }, result: 'Your routine asks the one question Djinns hate: would you sell this if there were no wish on offer? Not to this client, not yet. You tell your manager so, with reasons. The lamp goes quiet.' });
+  add('sands_change', { label: 'Hold your focus routine up to the Djinn', show: has('focus'), eff: (s) => ({ insight: 2, trust: 1, fact: s.client.keyFact }), result: 'Client first, wishes second. The Djinn sighs and drifts back into its lamp. You talk about what they need instead, and the real reason they came comes out.' });
   add('road_change_of_mind', { label: 'Use your focus routine to sort what really changed', show: has('focus'), eff: (s) => ({ insight: 2, fact: s.client.keyFact }), result: 'You separate the signal from the noise together.' });
-  add('summit_handoff', { label: 'Send it to your specialist partner', show: has('specialist'), eff: { insight: 2, momentum: 1 }, result: 'They know how you work. The handoff takes ten minutes.' });
-  add('isles_locked', { label: 'Your tech setup handles it', show: has('tech'), eff: { momentum: 1, trust: 1 }, result: 'One tap, a code, and you are in.' });
+  add('summit_handoff', { label: 'Send it to your specialist partner', show: has('specialist'), eff: { insight: 2, momentum: 1 }, result: 'They know how you work, and so does the Sphinx. The riddles take ten minutes.' });
+  add('isles_locked', { label: 'Your tech setup handles it', show: has('tech'), eff: { momentum: 1, trust: 1 }, result: 'One tap, a code, and you are in. The Kraken pats around for something to demand and comes up empty.' });
   add('isles_message', { label: 'Let your tech setup screen them', show: has('tech'), eff: { insight: 1 }, result: 'The fakes are flagged before you even see them.' });
-  add('toll_bridge', { label: 'Hand over your review file', show: has('review'), eff: { trust: 1, momentum: 2 }, result: 'The troll flips through it and waves you across. "Now that is a tidy file."' });
+  add('toll_bridge', { label: 'Hand over your review file', show: has('review'), eff: { trust: 1, momentum: 2 }, result: 'The troll flips through it, checks every date twice, and waves you across. "Now that is a tidy file."' });
 })(window.PP);
