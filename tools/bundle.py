@@ -7,11 +7,11 @@
 import re, sys, pathlib
 root = pathlib.Path(__file__).resolve().parent.parent
 html = (root / 'index.html').read_text()
-html = re.sub(r'<link rel="stylesheet" href="(css/[^"]+)">', lambda m: '<style>\n' + (root / m.group(1)).read_text() + '\n</style>', html)
+html = re.sub(r'<link rel="stylesheet" href="(css/[^"?]+)(?:\?v=[^"]*)?">', lambda m: '<style>\n' + (root / m.group(1)).read_text() + '\n</style>', html)
 def inline(m):
     src = (root / m.group(1)).read_text()
     return '<script>\n' + src.replace('</script', '<\\/script') + '\n</script>'
-html = re.sub(r'<script src="(js/[^"]+)"></script>', inline, html)
+html = re.sub(r'<script src="(js/[^"?]+)(?:\?v=[^"]*)?"></script>', inline, html)
 out = root / 'dist'; out.mkdir(exist_ok=True)
 if '--fragment' in sys.argv:
     head = re.search(r'<head>(.*?)</head>', html, re.S).group(1)

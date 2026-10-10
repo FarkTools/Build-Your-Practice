@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.11.1';
+  PP.VERSION = '0.11.2';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.11.2', 'Always loads the newest files after an update, and offers an Update now button when a newer version is out'],
     ['0.11.1', 'Doing something at a place keeps you there and shows the result right at that place'],
     ['0.11.0', 'The trail follows the relationship: stage tracker, hidden passages at every obstacle, follow-up journeys when clients\' lives change, a Trailhead in town, and place-specific sounds'],
     ['0.10.2', 'Music keeps playing when you tap: effects and music now share one mixer'],

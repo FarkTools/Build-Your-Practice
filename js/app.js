@@ -61,3 +61,26 @@
     if (foot) foot.appendChild(h('button', { class: 'foot-link', onclick: about }, `© ${PP.BUILT.slice(0, 4)} FarkTools · v${PP.VERSION}`));
   });
 })(window.PP);
+
+/* Update check: when the game is hosted (GitHub Pages), look for a newer version every few
+ * minutes and offer a one-tap reload, so nobody gets stuck on a cached old copy. */
+(function (PP) {
+  if (!/^https?:/.test(location.protocol) || !document.querySelector('script[src*="js/version.js"]')) return;
+  const h = PP.h;
+  let shown = false;
+  async function check() {
+    if (shown) return;
+    try {
+      const txt = await (await fetch('js/version.js?check=' + Date.now(), { cache: 'no-store' })).text();
+      const m = txt.match(/PP\.VERSION = '([^']+)'/);
+      if (m && m[1] !== PP.VERSION) {
+        shown = true;
+        document.body.appendChild(h('div', { class: 'update-bar', role: 'status' },
+          h('span', null, `A new version (v${m[1]}) is ready.`),
+          h('button', { class: 'btn primary small', onclick: () => { const u = new URL(location.href); u.searchParams.set('v', m[1]); location.replace(u.toString()); } }, 'Update now')));
+      }
+    } catch (e) { /* offline or not hosted */ }
+  }
+  document.addEventListener('DOMContentLoaded', () => { setTimeout(check, 3000); setInterval(check, 5 * 60 * 1000); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+})(window.PP);

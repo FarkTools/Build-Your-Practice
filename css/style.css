@@ -967,3 +967,4 @@ input, select, textarea { font-size: 16px; }
 .stages-end li.missed strong { color: var(--ink-3); }
 .prospect-card.followup { box-shadow: inset 4px 0 0 var(--orange); }
 .town-map .t-small { font-size: 9px; }
+.update-bar { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--navy); color: var(--parch); border: 2px solid var(--orange); border-radius: 12px; padding: 10px 12px; font-weight: 600; font-size: 0.9rem; box-shadow: 0 10px 24px -10px #000; }
