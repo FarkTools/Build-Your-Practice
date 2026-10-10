@@ -35,6 +35,11 @@
       const onKey = (e) => { const n = parseInt(e.key, 10); if (n >= 1 && n <= 9) { e.preventDefault(); hit(n - 1); } };
       document.addEventListener('keydown', onKey);
       const timer = PP.mg.timer(ui.bar, 25 + prep * 4, () => finish());
+      const F = PP.fx;
+      const ansC = F.counter('Answered'), missC = F.counter('Voicemail'), comboC = F.counter('Combo');
+      ui.hud.append(ansC.el, missC.el, comboC.el);
+      let combo = 0;
+      const pitBox = grid;
 
       function spawn() {
         if (finished) return;
@@ -49,6 +54,7 @@
           const pop = holes[i].el.querySelector('.phone-pop');
           pop.textContent = caller.who;
           holes[i].el.classList.add('up', caller.good ? 'good' : 'junk');
+          if (caller.good) F.sfx('ring');
         }
         spawnT = setTimeout(spawn, Math.max(380, 820 - stats.total * 18));
       }
@@ -61,7 +67,7 @@
       function expire(i) {
         const call = holes[i].call;
         if (!call) return;
-        if (call.caller.good) { stats.missed++; say(`Voicemail. ${call.caller.who} sighs.`, 'bad'); }
+        if (call.caller.good) { stats.missed++; missC.set(stats.missed); combo = 0; comboC.set(0); F.popOn(pitBox, holes[i].el, 'Voicemail…', 'bad'); F.sfx('meh'); say(`Voicemail. ${call.caller.who} sighs.`, 'bad'); }
         clear(i);
         status();
       }
@@ -69,8 +75,8 @@
         if (finished) return;
         const call = holes[i].call;
         if (!call) return;
-        if (call.caller.good) { stats.answered++; say(`"Oh! Thanks for picking up." (${call.caller.who})`, 'good'); }
-        else { stats.robo++; timer.sub(1); say(`${call.caller.who}. You lose a second of your life.`, 'ok'); }
+        if (call.caller.good) { stats.answered++; combo++; ansC.set(stats.answered); comboC.set(combo); F.popOn(pitBox, holes[i].el, combo >= 3 ? `Answered! x${combo}` : 'Answered!', 'good'); F.burstOn(pitBox, holes[i].el, 'good', 10); F.sfx(combo >= 3 ? 'great' : 'good'); say(`"Oh! Thanks for picking up." (${call.caller.who})`, 'good'); }
+        else { stats.robo++; combo = 0; comboC.set(0); timer.sub(1); F.popOn(pitBox, holes[i].el, 'Robocall! −1s', 'bad'); F.shake(holes[i].el); F.sfx('bad'); say(`${call.caller.who}. You lose a second of your life.`, 'ok'); }
         clear(i);
         status();
       }

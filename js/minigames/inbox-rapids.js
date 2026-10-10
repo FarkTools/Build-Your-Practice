@@ -43,6 +43,12 @@
       document.addEventListener('keydown', onKey);
       cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(); move(e.clientX - r.left < r.width / 2 ? -1 : 1); });
       const timer = PP.mg.timer(ui.bar, dur, () => finish());
+      const F = PP.fx, floats = [], parts = [];
+      let combo = 0, shakeT = 0;
+      const caughtC = F.counter('Caught'), comboC = F.counter('Combo'), junkC = F.counter('Junk hit');
+      ui.hud.append(caughtC.el, comboC.el, junkC.el);
+      const float = (x, y, text, color) => floats.push({ x, y, text, color, t: 0 });
+      const spray = (x, y, color, n) => { for (let k = 0; k < n; k++) { const a = Math.random() * Math.PI * 2, v = 60 + Math.random() * 120; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0, color }); } };
 
       function frame(now) {
         if (finished) return;
@@ -63,15 +69,16 @@
           const ix = laneX(it.lane);
           if (it.y > H - 92 && it.y < H - 40 && Math.abs(ix - x) < 40) {
             const k = KINDS[it.kind];
-            if (k.good) { stats.gold++; flash('Caught: ' + k.label(client), 'good'); }
-            else if (k.scam) { stats.scam++; flash('Oops. You opened the URGENT one.', 'bad'); }
-            else { stats.junk++; flash('Splash. Junk.', 'ok'); }
+            if (k.good) { stats.gold++; combo++; caughtC.set(stats.gold); comboC.set(combo); float(ix, it.y - 20, combo >= 3 ? `+1  x${combo}!` : '+1 ' + k.label(client), '#2f7a3a'); spray(ix, it.y, '#f2b544', 14); F.sfx(combo >= 3 ? 'great' : 'coin'); flash('Caught: ' + k.label(client), 'good'); }
+            else if (k.scam) { stats.scam++; combo = 0; comboC.set(0); junkC.set(stats.junk + stats.scam); float(ix, it.y - 20, 'SCAM!', '#b4321f'); spray(ix, it.y, '#ff7262', 18); shakeT = 0.35; F.sfx('bad'); flash('Oops. You opened the URGENT one.', 'bad'); }
+            else { stats.junk++; combo = 0; comboC.set(0); junkC.set(stats.junk + stats.scam); float(ix, it.y - 20, 'Splash. Junk.', '#7a5a3a'); spray(ix, it.y, '#cfe3f2', 10); F.sfx('meh'); flash('Splash. Junk.', 'ok'); }
             return false;
           }
-          if (it.y > H + 20) { if (KINDS[it.kind].good) { stats.goldMissed++; if (practice) flash('Missed a real one!', 'bad'); } return false; }
+          if (it.y > H + 20) { if (KINDS[it.kind].good) { stats.goldMissed++; combo = 0; comboC.set(0); float(laneX(it.lane), H - 30, 'Missed!', '#b4321f'); F.sfx('meh'); flash('A real message floated past!', 'bad'); } return false; }
           return true;
         });
         draw();
+        drawFx(dt);
         ui.status.textContent = `Caught ${stats.gold} · Junk ${stats.junk + stats.scam}`;
         raf = requestAnimationFrame(frame);
       }
@@ -106,6 +113,17 @@
         c.fillStyle = '#10196b'; c.fillRect(10, -26, 13, 4);
         c.beginPath(); c.moveTo(30, -20); c.lineTo(44, 10); c.stroke();
         c.restore();
+      }
+
+      function drawFx(dt) {
+        parts.forEach((p) => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; });
+        for (let k = parts.length - 1; k >= 0; k--) if (parts[k].t > 0.7) parts.splice(k, 1);
+        parts.forEach((p) => { c.globalAlpha = 1 - p.t / 0.7; c.fillStyle = p.color; c.fillRect(p.x - 3, p.y - 3, 6, 6); });
+        floats.forEach((f) => { f.t += dt; f.y -= 40 * dt; });
+        for (let k = floats.length - 1; k >= 0; k--) if (floats[k].t > 1) floats.splice(k, 1);
+        floats.forEach((f) => { c.globalAlpha = 1 - f.t; c.fillStyle = f.color; c.font = `22px ${FONT}`; c.textAlign = 'center'; c.strokeStyle = '#fffaf0'; c.lineWidth = 4; c.strokeText(f.text, f.x, f.y); c.fillText(f.text, f.x, f.y); });
+        c.globalAlpha = 1;
+        if (shakeT > 0) { shakeT -= dt; cv.style.transform = `translate(${(Math.random() - 0.5) * 8}px, ${(Math.random() - 0.5) * 6}px)`; } else cv.style.transform = '';
       }
 
       function finish() {

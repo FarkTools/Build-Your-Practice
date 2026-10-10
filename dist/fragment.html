@@ -603,6 +603,200 @@ kbd { font-family: var(--mono); font-size: 0.7rem; border: 1px solid currentColo
   .walker { width: 72px; }
 }
 
+/* =========================================================
+   Mini-game feel: HUD, effects, and illustrated scenes
+   ========================================================= */
+.mg-head-right { display: flex; gap: 10px; align-items: center; }
+.fx-sound { font: 0.72rem var(--mono); background: var(--paper); border: 1.5px solid var(--edge); border-radius: 999px; padding: 3px 10px; cursor: pointer; color: var(--ink-soft); }
+.fx-sound[aria-pressed="true"] { color: var(--green); border-color: var(--green); }
+.mg-hud { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.mg-hud:empty { display: none; }
+.fx-counter { display: inline-flex; align-items: baseline; gap: 6px; font: 0.7rem var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+.fx-counter strong { font: 1.6rem var(--hand); color: var(--blue); display: inline-block; }
+.fx-meter { display: inline-grid; grid-template-columns: auto minmax(90px, 160px) auto; gap: 8px; align-items: center; font: 0.7rem var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+.fx-meter-track { height: 12px; border: 1.5px solid var(--edge); border-radius: 6px; background: var(--parch-2); overflow: hidden; }
+.fx-meter-fill { height: 100%; transition: width .45s cubic-bezier(.3, 1.4, .5, 1); }
+.fx-meter-fill.k-good { background: var(--energy); }
+.fx-meter-fill.k-bad { background: var(--red); }
+.fx-meter-fill.k-warn { background: var(--momentum); }
+.fx-meter-num { font: 1.05rem var(--hand); color: var(--ink); text-transform: none; letter-spacing: 0; display: inline-block; min-width: 3.5em; }
+.fx-bump { animation: fxbump .35s ease-out; }
+@keyframes fxbump { 40% { transform: scale(1.45); } }
+.mg-stage-area, .pit-grid { position: relative; }
+.fx-pop { position: absolute; transform: translate(-50%, -50%); pointer-events: none; font: 1.45rem var(--hand); white-space: nowrap; z-index: 20; animation: fxpop 1.15s ease-out forwards; paint-order: stroke; -webkit-text-stroke: 4px #fffaf0; text-shadow: 0 2px 0 rgba(0,0,0,.08); }
+.fx-pop.k-good { color: var(--green); }
+.fx-pop.k-great { color: #c26a00; font-size: 1.7rem; }
+.fx-pop.k-bad { color: var(--red); }
+.fx-pop.k-meh { color: var(--ink-soft); }
+@keyframes fxpop { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.6); } 15% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); } 30% { transform: translate(-50%, -70%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -190%); } }
+.fx-spark { position: absolute; width: 8px; height: 8px; border-radius: 2px; pointer-events: none; z-index: 19; animation: fxspark .7s ease-out forwards; }
+.fx-spark.k-good { background: var(--orange); }
+.fx-spark.k-great { background: #ffd76a; box-shadow: 0 0 0 1px var(--ink); }
+.fx-spark.k-bad { background: var(--red); }
+@keyframes fxspark { to { transform: translate(var(--dx), var(--dy)) rotate(180deg); opacity: 0; } }
+.fx-shake { animation: fxshake .45s ease-in-out; }
+@keyframes fxshake { 20% { transform: translateX(-7px) rotate(-1deg); } 40% { transform: translateX(6px) rotate(1deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+.fx-glow-good { animation: fxglowg .6s ease-out; }
+.fx-glow-bad { animation: fxglowb .6s ease-out; }
+.fx-glow-great { animation: fxglowy .6s ease-out; }
+@keyframes fxglowg { 30% { box-shadow: 0 0 0 6px rgba(63,138,74,.45); } }
+@keyframes fxglowb { 30% { box-shadow: 0 0 0 6px rgba(180,50,31,.45); } }
+@keyframes fxglowy { 30% { box-shadow: 0 0 0 6px rgba(242,155,31,.6); } }
+.fx-stamp { position: absolute; left: 50%; top: 42%; z-index: 25; pointer-events: none; font: 2.2rem var(--hand); padding: 2px 18px; border: 4px solid currentColor; border-radius: 10px; background: rgba(255,250,240,.85); transform: translate(-50%, -50%) rotate(-8deg); animation: fxstamp .9s ease-out forwards; white-space: nowrap; }
+.fx-stamp.k-good { color: var(--green); }
+.fx-stamp.k-bad { color: var(--red); }
+.fx-stamp.k-meh { color: #8a5a00; }
+@keyframes fxstamp { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-8deg) scale(2.2); } 18% { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(.95); } 28% { transform: translate(-50%, -50%) rotate(-8deg) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
+.fx-ghost { position: absolute !important; z-index: 30; margin: 0 !important; pointer-events: none; transition: transform .45s cubic-bezier(.5, -0.2, .6, 1), opacity .45s; }
+.chip-btn { font: 1rem var(--hand); background: var(--paper); border: 1.5px solid var(--ink); border-radius: 999px; padding: 3px 12px; cursor: pointer; color: var(--ink); }
+.chip-btn:hover { background: #fff3d6; }
+.chip-btn.primary { background: var(--orange); }
+.mx-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.art-face, .art-figure { display: block; width: 100%; height: 100%; }
+
+/* ---------- Call-a-thon ---------- */
+.ct-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px; min-height: 260px; }
+.ct-phone { position: relative; background: #fff; border: 2px solid var(--edge); border-radius: 18px; padding: 16px; display: grid; justify-items: center; align-content: start; gap: 6px; text-align: center; }
+.ct-handset { position: absolute; left: 14px; top: 14px; width: 30px; height: 30px; color: var(--green); }
+.ct-handset svg { width: 100%; height: 100%; }
+.ct-phone.ringing .ct-handset { animation: ring .2s linear infinite; }
+.ct-face { width: 96px; height: 96px; display: grid; place-items: center; }
+.ct-dialing { width: 86px; height: 86px; border-radius: 50%; border: 3px dashed var(--edge); display: grid; place-items: center; font: 2rem var(--hand); color: var(--ink-soft); }
+.ct-dialing.vm { border-style: solid; font-size: 1.4rem; }
+.ct-who { font: 1.35rem var(--hand); color: var(--blue); }
+.ct-state { font-size: 0.9rem; color: var(--ink-soft); }
+.ct-bubble { position: relative; background: var(--parch); border: 2px solid var(--ink); border-radius: 14px; padding: 8px 12px; font: 1.35rem var(--script); line-height: 1.15; color: var(--ink); animation: rise .25s ease-out; }
+.ct-cal { background: #fffaf0; border: 2px solid var(--edge); border-radius: 10px; padding: 10px; display: grid; gap: 8px; align-content: start; }
+.ct-cal-head { font: 1.2rem var(--hand); color: var(--blue); }
+.ct-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ct-slot { position: relative; min-height: 38px; border: 1.5px dashed var(--edge); border-radius: 6px; padding: 2px 6px; font: 0.68rem var(--mono); color: var(--ink-soft); }
+.ct-note { position: absolute; inset: 4px; background: #fde68a; border: 1.5px solid var(--ink); border-radius: 3px; font: 1rem var(--hand); color: var(--ink); display: grid; place-items: center; transform: rotate(-2deg); animation: noteIn .35s cubic-bezier(.3, 1.6, .5, 1); }
+.ct-note.flying { position: relative; inset: auto; width: 110px; height: 34px; animation: none; }
+@keyframes noteIn { from { transform: scale(1.6) rotate(8deg); opacity: 0; } }
+.ct-answers { display: grid; gap: 6px; min-height: 120px; align-content: start; }
+.ct-answer { text-align: left; font: 1.25rem var(--script); line-height: 1.2; background: var(--paper); border: 2px solid var(--edge); border-radius: 14px 14px 14px 3px; padding: 6px 12px; cursor: pointer; color: var(--ink); }
+.ct-answer b { font: 0.8rem var(--mono); color: var(--blue); margin-right: 6px; }
+.ct-answer:hover:not(:disabled) { border-color: var(--ink); background: #fff3d6; }
+.ct-answer:disabled { opacity: .5; }
+
+/* ---------- Mixer ---------- */
+.mx-room { height: 380px; border: 2px solid var(--edge); border-radius: 10px; overflow: hidden; background: repeating-linear-gradient(90deg, #d9b98a 0 46px, #cfae7e 46px 92px); }
+.mx-banner { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); background: var(--blue); color: var(--parch); font: 1rem var(--hand); padding: 3px 16px; border-radius: 4px; white-space: nowrap; z-index: 2; }
+.mx-table { position: absolute; width: 74px; height: 74px; border-radius: 50%; background: #fffaf0; border: 2px solid var(--ink); box-shadow: inset 0 0 0 6px #f0e2c4; }
+.mx-guest { position: absolute; width: 74px; height: 120px; background: none; border: 0; padding: 0; cursor: pointer; animation: bob 2.4s ease-in-out infinite; z-index: 3; }
+.mx-guest .art-figure { height: 92px; }
+.mx-guest:hover:not(.met) .art-figure, .mx-guest:focus-visible .art-figure { filter: drop-shadow(0 0 6px var(--orange)); }
+.mx-guest.talking { z-index: 6; animation: none; transform: scale(1.12); }
+.mx-guest.met { opacity: .45; cursor: default; animation: none; }
+.mx-tag { display: grid; background: #fff; border: 1.5px solid var(--ink); border-radius: 4px; font-size: 0.66rem; line-height: 1.15; padding: 1px 3px; color: var(--ink-soft); text-align: center; }
+.mx-tag b { font: 0.95rem var(--hand); color: #c4321f; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+.mx-bubble { position: absolute; z-index: 10; width: min(330px, 70%); background: #fffaf0; border: 2px solid var(--ink); border-radius: 12px; padding: 10px; display: grid; gap: 8px; box-shadow: 0 8px 20px -10px #000; animation: rise .2s ease-out; font-size: 0.95rem; }
+.mx-holder { position: absolute; right: 10px; bottom: 10px; width: 70px; height: 52px; border: 2px solid var(--ink); border-radius: 6px; background: #2a2a2a; color: var(--parch); font: 0.85rem var(--hand); display: grid; place-items: start center; padding-top: 2px; z-index: 4; overflow: hidden; }
+.mx-card-stack { position: absolute; bottom: 4px; left: 10px; right: 10px; height: 14px; background: #fffaf0; border: 1px solid var(--ink); border-radius: 2px; }
+.mx-card-stack:nth-of-type(2) { bottom: 9px; } .mx-card-stack:nth-of-type(3) { bottom: 14px; } .mx-card-stack:nth-of-type(4) { bottom: 19px; }
+.mx-card { position: absolute; left: 10px; top: 0; width: 60px; height: 34px; background: #fffaf0; border: 1.5px solid var(--ink); border-radius: 3px; font: 0.8rem var(--hand); display: grid; place-items: center; }
+.mx-leave { position: absolute; left: 10px; bottom: 10px; z-index: 4; }
+
+/* ---------- Farmers market ---------- */
+.mk-lane { height: 300px; border: 2px solid var(--edge); border-radius: 10px; overflow: hidden; background: linear-gradient(#dcebc4 0 34%, #e4cf9c 34% 100%); }
+.mk-path { position: absolute; left: 0; right: 0; top: 52%; height: 38%; background: repeating-linear-gradient(90deg, rgba(122,90,58,.08) 0 30px, transparent 30px 60px); }
+.mk-tent { position: absolute; top: 0; height: 34%; display: grid; align-content: start; justify-items: center; font: 1rem var(--hand); color: #fff; border-bottom: 3px solid var(--ink); z-index: 1; }
+.mk-tent span { padding-top: 4px; }
+.mk-tent.mine { left: 6%; width: 34%; background: repeating-linear-gradient(90deg, var(--blue) 0 20px, #2a3a9a 20px 40px); }
+.mk-tent.rival { right: 0; width: 22%; background: repeating-linear-gradient(90deg, #c4321f 0 20px, #e05a3a 20px 40px); }
+.mk-tent .tube { position: absolute; bottom: -70px; left: 46%; width: 16px; height: 70px; background: #ff5aa0; border-radius: 8px; transform-origin: bottom; animation: tube .55s ease-in-out infinite alternate; border: 2px solid var(--ink); }
+.mk-table { position: absolute; bottom: -26px; width: 70%; height: 22px; background: #9c6a3a; border: 2px solid var(--ink); }
+.mk-bowl { position: absolute; left: 50%; bottom: 14px; width: 46px; height: 40px; transform: translateX(-50%); border: 2px solid var(--ink); border-radius: 40% 40% 50% 50%; background: rgba(207,227,242,.8); overflow: hidden; }
+.mk-slip-in { position: absolute; width: 12px; height: 7px; background: #fffaf0; border: 1px solid var(--ink); }
+.mk-slip { position: absolute; left: 20px; top: 0; width: 18px; height: 12px; background: #fffaf0; border: 1px solid var(--ink); }
+.mk-clip { position: absolute; right: 24%; top: 6px; width: 70px; height: 84px; background: #fffaf0; border: 2px solid var(--ink); border-radius: 4px; font: 0.85rem var(--hand); color: var(--ink); display: grid; place-items: start center; z-index: 2; box-shadow: inset 0 14px 0 #9c6a3a; padding-top: 14px; overflow: hidden; }
+.mk-clip .mx-card-stack { left: 8px; right: 8px; height: 8px; background: #d9ecc8; }
+.mk-clip .mx-card-stack.cold { background: #d4e4f4; }
+.mk-walker { position: absolute; width: 80px; height: 118px; background: none; border: 0; padding: 0; cursor: pointer; display: grid; justify-items: center; z-index: 3; animation: bob .5s ease-in-out infinite; }
+.mk-walker .art-figure { height: 86px; width: 60px; }
+.mk-label { font-size: 0.68rem; line-height: 1.1; background: rgba(255,250,240,.95); border: 1px solid var(--edge); border-radius: 4px; padding: 1px 4px; color: var(--ink); }
+.mk-walker:hover .art-figure { filter: drop-shadow(0 0 6px var(--orange)); }
+.mk-walker.stopped { animation: none; z-index: 6; }
+.mk-walker.chatting .art-figure { filter: drop-shadow(0 0 8px var(--green)); animation: bob .35s ease-in-out infinite; }
+.mk-walker.leaving { opacity: 0; transition: opacity .5s; }
+.mk-walker.to-rival { transition: transform .6s, opacity .6s; transform: translateY(-60px) scale(.7); opacity: 0; }
+.mk-bubble { position: absolute; top: 4%; z-index: 10; background: #fffaf0; border: 2px solid var(--ink); border-radius: 12px; padding: 8px 10px; display: grid; gap: 6px; box-shadow: 0 8px 20px -10px #000; animation: rise .2s ease-out; font-size: 0.95rem; }
+
+/* ---------- Document Dash ---------- */
+.dd-desk { height: 400px; border: 2px solid var(--edge); border-radius: 10px; background: #b98a5a; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.04) 0 3px, transparent 3px 22px); overflow: hidden; }
+.dd-inbox { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); font: 0.9rem var(--hand); color: #fff; background: rgba(0,0,0,.25); padding: 1px 12px; border-radius: 4px; }
+.dd-pile { position: absolute; left: 0; right: 0; top: 66%; border-top: 3px dashed rgba(122,40,20,.6); font: 0.8rem var(--mono); color: rgba(255,250,240,.9); padding: 2px 10px; text-align: right; }
+.dd-card { position: absolute; left: 50%; transform: translateX(-50%); width: min(380px, 86%); display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 2px solid var(--ink); border-radius: 6px; padding: 12px; cursor: grab; touch-action: none; z-index: 5; box-shadow: 0 10px 18px -10px rgba(0,0,0,.6); user-select: none; }
+.dd-card.dragging { cursor: grabbing; z-index: 8; box-shadow: 0 18px 30px -10px rgba(0,0,0,.6); }
+.dd-card.scanning::after { content: ""; position: absolute; left: 0; right: 0; height: 4px; top: 0; background: var(--insight); box-shadow: 0 0 12px var(--insight); animation: scan .6s linear infinite; }
+@keyframes scan { to { top: 100%; } }
+.dd-card.dropped { transition: transform .5s, opacity .5s; transform: translateX(-50%) translateY(60px) rotate(12deg); opacity: 0; }
+.dd-trays { position: absolute; left: 10px; right: 10px; bottom: 10px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.dd-tray { position: relative; height: 92px; border: 2.5px solid var(--ink); border-radius: 8px 8px 12px 12px; background: var(--paper); cursor: pointer; display: grid; justify-items: center; align-content: center; gap: 2px; font: 1.15rem var(--hand); color: var(--ink); box-shadow: inset 0 -12px 0 rgba(0,0,0,.08); }
+.dd-tray kbd { position: absolute; left: 6px; top: 4px; }
+.dd-tray .dd-count { position: absolute; right: 6px; top: 2px; font: 1rem var(--hand); color: var(--ink-soft); }
+.dd-tray.hover { transform: translateY(-4px); box-shadow: 0 0 0 4px var(--orange); }
+.dd-icon { display: inline-block; width: 28px; height: 28px; }
+.dd-icon svg { width: 100%; height: 100%; display: block; }
+.t-use { color: var(--green); } .t-verify { color: var(--insight); } .t-discard { color: var(--red); } .t-ask { color: #a35a00; }
+.dd-tray span:not(.dd-icon):not(.dd-count) { color: var(--ink); }
+
+/* ---------- Conversation ---------- */
+.cv-stage { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: start; min-height: 220px; }
+.cv-portrait { display: grid; justify-items: center; gap: 2px; text-align: center; }
+.cv-portrait strong { font: 1.35rem var(--hand); color: var(--blue); }
+.cv-face { width: 150px; height: 150px; }
+.cv-right { display: grid; gap: 8px; padding-right: 88px; }
+@media (max-width: 640px) { .cv-right { padding-right: 0; } .cv-notebook { top: auto; bottom: 0; } }
+.cv-speech { position: relative; min-height: 96px; background: #fff; border: 2.5px solid var(--ink); border-radius: 18px; padding: 14px 16px; font: 1.6rem var(--script); line-height: 1.2; color: var(--ink); }
+.cv-speech::before { content: ""; position: absolute; left: -14px; top: 30px; border: 12px solid transparent; border-right-color: var(--ink); border-left: 0; }
+.cv-speech.enter { animation: rise .25s ease-out; }
+.cv-tag { font-size: 0.88rem; color: var(--ink-soft); min-height: 1.3em; font-style: italic; }
+.cv-notebook { position: absolute; right: 0; top: -6px; width: 74px; height: 58px; background: var(--blue); color: var(--parch); border-radius: 4px 8px 8px 4px; border: 2px solid var(--ink); display: grid; place-items: center; font: 0.85rem var(--hand); box-shadow: inset 6px 0 0 #2a3a9a; }
+.cv-notebook b { font: 1.5rem var(--hand); }
+.cv-fact { position: absolute; left: 30%; top: 40%; z-index: 12; background: #fde68a; border: 2px solid var(--ink); border-radius: 4px; padding: 8px 12px; font: 1.2rem var(--hand); color: var(--ink); max-width: 60%; animation: noteIn .35s cubic-bezier(.3, 1.6, .5, 1); }
+.cv-acts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.cv-act { position: relative; display: grid; justify-items: center; gap: 4px; padding: 12px 6px 10px; border: 2.5px solid var(--ink); border-radius: 12px; background: var(--paper); cursor: pointer; font: 1.15rem var(--hand); color: var(--ink); box-shadow: 0 3px 0 var(--ink); transition: transform .06s; }
+.cv-act:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.cv-act:hover:not(:disabled) { background: #fff3d6; }
+.cv-act:disabled { opacity: .55; cursor: default; }
+.cv-act kbd { position: absolute; left: 6px; top: 4px; }
+.cv-act .dd-icon { width: 34px; height: 34px; }
+.a-ask .dd-icon, .a-verify .dd-icon { color: var(--insight); } .a-challenge .dd-icon, .a-reject .dd-icon { color: var(--red); } .a-explain .dd-icon, .a-escalate .dd-icon { color: #a35a00; } .a-listen .dd-icon, .a-proceed .dd-icon { color: var(--green); }
+
+/* ---------- Fraud or Friend ---------- */
+.ff-stage { display: grid; grid-template-columns: 90px minmax(0, 340px) 90px; justify-content: center; gap: 14px; align-items: center; min-height: 300px; }
+.ff-phone { position: relative; height: 300px; background: #1f2433; border-radius: 26px; padding: 26px 10px 12px; border: 3px solid var(--ink); display: grid; grid-template-rows: auto 1fr; gap: 6px; overflow: hidden; }
+.ff-notch { position: absolute; left: 50%; top: 8px; width: 70px; height: 10px; transform: translateX(-50%); border-radius: 6px; background: #000; }
+.ff-top { color: #cfd6e8; font: 0.75rem var(--mono); text-align: center; }
+.ff-thread { background: #f4f1ea; border-radius: 14px; padding: 8px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; overflow: hidden; }
+.ff-msg { background: #fff; border: 1.5px solid #c9c2b0; border-radius: 14px 14px 14px 4px; padding: 8px 10px; transition: transform .4s, opacity .4s; }
+.ff-msg.enter { animation: slidein .3s ease-out; }
+.ff-msg.sent { background: #dff0d4; border-color: var(--green); }
+.ff-msg.gone, .ff-msg.ignored { opacity: .25; }
+.ff-from { font-size: 0.8rem; font-weight: 700; color: var(--ink); word-break: break-word; }
+.ff-body { font-size: 0.98rem; color: var(--ink); }
+.ff-verify { margin-top: 6px; background: #e4eef7; border-left: 3px solid var(--insight); padding: 4px 8px; font-size: 0.85rem; }
+.ff-calling { position: absolute; inset: 26px 10px 12px; border-radius: 14px; background: rgba(16,25,107,.92); color: #fff; display: grid; place-items: center; font: 1.2rem var(--hand); animation: ring .3s linear infinite; z-index: 3; }
+.ff-bin { height: 86px; border: 2.5px dashed var(--edge); border-radius: 12px; display: grid; place-items: center; font: 1.1rem var(--hand); color: var(--ink-soft); background: var(--paper); }
+.ff-bin.ops { color: #a35a00; } .ff-bin.trash { color: var(--red); }
+
+@media (max-width: 640px) {
+  .ct-stage, .cv-stage { grid-template-columns: minmax(0, 1fr); }
+  .cv-portrait { grid-template-columns: 90px auto; justify-items: start; align-items: center; text-align: left; }
+  .cv-face { width: 90px; height: 90px; grid-row: span 2; }
+  .cv-speech::before { display: none; }
+  .cv-acts, .dd-trays { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dd-desk { height: 470px; }
+  .dd-pile { top: 52%; }
+  .ff-stage { grid-template-columns: 1fr; }
+  .ff-bin { display: none; }
+  .mx-room { height: 460px; }
+  .mx-guest { width: 60px; height: 104px; }
+  .mx-guest .art-figure { height: 72px; }
+}
+
 </style>
 <div class="app">
   <header class="topbar">
@@ -2318,14 +2512,15 @@ window.PP = window.PP || {};
     const status = h('div', { class: 'mg-status' });
     const body = h('div', { class: 'mg-body' });
     const feedback = h('div', { class: 'mg-feedback', 'aria-live': 'polite' });
+    const hud = h('div', { class: 'mg-hud' });
     const wrap = h('div', { class: 'mg' },
       h('div', { class: 'mg-head' },
         h('div', null, h('div', { class: 'eyebrow' }, 'Mini-game · ' + risk), h('h3', { class: 'mg-title' }, title)),
-        status),
+        h('div', { class: 'mg-head-right' }, status, PP.fx ? PP.fx.soundToggle() : null)),
       h('div', { class: 'mg-timer' }, bar),
-      body, feedback);
+      hud, body, feedback);
     root.appendChild(wrap);
-    return { wrap, bar, status, body, feedback };
+    return { wrap, bar, status, body, feedback, hud };
   };
 
   /* End screen: score, line-by-line review, effect chips, continue. */
@@ -2350,30 +2545,206 @@ window.PP = window.PP || {};
 
 </script>
 <script>
-/* Document Dash — the risk: using wrong, stale, duplicate or incomplete information.
- * Sort each document: Use / Verify / Discard / Ask. Speed helps, rushing creates risk debt.
- * In the journey, "Use" gives no feedback: a bad document looks exactly like a good one until later.
+/* Game feel for mini-games: instant visual and audio feedback.
+ *   PP.fx.pop(box, x, y, text, kind)       floating "+1" style text
+ *   PP.fx.popOn(box, el, text, kind)       same, centered on an element
+ *   PP.fx.burst(box, x, y, kind, n)        sparkle particles
+ *   PP.fx.shake(el) / PP.fx.glow(el, kind) element reactions
+ *   PP.fx.stamp(box, text, kind)           big stamp across the play area
+ *   PP.fx.fly(el, target, box, done)       a copy of el flies into target
+ *   PP.fx.meter(label, kind)               live meter {el, set(v, max)}
+ *   PP.fx.counter(label)                   live number {el, set(n)} with a bump
+ *   PP.fx.sfx(name)                        tiny synthesized sounds (mutable)
+ * And simple character art:
+ *   PP.art.face({ mood, hue, hair, surprised })   SVG string, mood -2..2
+ *   PP.art.figure(kind, opts)                    SVG string, a full person with props
  */
 (function (PP) {
   const h = PP.h;
+  const fx = (PP.fx = { sound: PP.store.get('sound', true) });
 
+  function rel(box, el) {
+    const b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height / 2, w: r.width, h: r.height };
+  }
+  fx.rel = rel;
+
+  fx.pop = (box, x, y, text, kind) => {
+    const el = h('div', { class: 'fx-pop k-' + (kind || 'good'), style: { left: x + 'px', top: y + 'px' } }, text);
+    box.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  };
+  fx.popOn = (box, target, text, kind) => { const p = rel(box, target); fx.pop(box, p.x, p.y - p.h / 3, text, kind); };
+
+  fx.burst = (box, x, y, kind, n = 12) => {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, d = 30 + Math.random() * 40;
+      const el = h('i', { class: 'fx-spark k-' + (kind || 'good'), style: { left: x + 'px', top: y + 'px', '--dx': Math.cos(a) * d + 'px', '--dy': Math.sin(a) * d + 'px' } });
+      box.appendChild(el);
+      setTimeout(() => el.remove(), 700);
+    }
+  };
+  fx.burstOn = (box, target, kind, n) => { const p = rel(box, target); fx.burst(box, p.x, p.y, kind, n); };
+
+  const retrigger = (el, cls, ms) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), ms); };
+  fx.shake = (el) => retrigger(el, 'fx-shake', 450);
+  fx.glow = (el, kind) => retrigger(el, 'fx-glow-' + (kind || 'good'), 600);
+  fx.bump = (el) => retrigger(el, 'fx-bump', 350);
+
+  fx.stamp = (box, text, kind) => {
+    const el = h('div', { class: 'fx-stamp k-' + (kind || 'good') }, text);
+    box.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  };
+
+  fx.fly = (el, target, box, done) => {
+    const a = rel(box, el), b = rel(box, target);
+    const ghost = el.cloneNode(true);
+    ghost.classList.add('fx-ghost');
+    Object.assign(ghost.style, { left: a.x - a.w / 2 + 'px', top: a.y - a.h / 2 + 'px', width: a.w + 'px', height: a.h + 'px' });
+    box.appendChild(ghost);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      ghost.style.transform = `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(0.25) rotate(${Math.random() * 30 - 15}deg)`;
+      ghost.style.opacity = '0.2';
+    }));
+    setTimeout(() => { ghost.remove(); done && done(); }, 480);
+  };
+
+  fx.meter = (label, kind) => {
+    const fill = h('div', { class: 'fx-meter-fill k-' + (kind || 'good') });
+    const num = h('span', { class: 'fx-meter-num' });
+    const el = h('div', { class: 'fx-meter' }, h('span', { class: 'fx-meter-label' }, label), h('div', { class: 'fx-meter-track' }, fill), num);
+    let last = null;
+    return {
+      el,
+      set(v, max = 10, text) {
+        fill.style.width = Math.max(0, Math.min(1, v / max)) * 100 + '%';
+        num.textContent = text != null ? text : Math.round(v) + '/' + max;
+        if (last != null && v !== last) fx.bump(num);
+        last = v;
+      }
+    };
+  };
+  fx.counter = (label) => {
+    const num = h('strong', null, '0');
+    const el = h('div', { class: 'fx-counter' }, h('span', null, label), num);
+    let last = 0;
+    return { el, set(n) { num.textContent = String(n); if (n !== last) fx.bump(num); last = n; } };
+  };
+
+  /* Sounds: tiny oscillator sequences. [freq, start, duration, type, volume] */
+  const SFX = {
+    click: [[520, 0, 0.04, 'square', 0.03]],
+    good: [[660, 0, 0.09, 'triangle', 0.12], [990, 0.08, 0.14, 'triangle', 0.12]],
+    great: [[660, 0, 0.08, 'triangle', 0.12], [880, 0.07, 0.08, 'triangle', 0.12], [1320, 0.14, 0.18, 'triangle', 0.12]],
+    bad: [[200, 0, 0.12, 'sawtooth', 0.07], [150, 0.1, 0.18, 'sawtooth', 0.07]],
+    meh: [[440, 0, 0.1, 'sine', 0.08], [392, 0.09, 0.12, 'sine', 0.08]],
+    coin: [[988, 0, 0.06, 'square', 0.05], [1319, 0.06, 0.2, 'square', 0.05]],
+    ring: [[1200, 0, 0.06, 'sine', 0.05], [950, 0.07, 0.06, 'sine', 0.05], [1200, 0.14, 0.06, 'sine', 0.05], [950, 0.21, 0.06, 'sine', 0.05]],
+    ding: [[1568, 0, 0.25, 'sine', 0.07]],
+    thump: [[110, 0, 0.12, 'sine', 0.25]],
+    whoosh: [[300, 0, 0.15, 'triangle', 0.05], [600, 0.04, 0.12, 'triangle', 0.04]]
+  };
+  fx.sfx = (name) => {
+    if (!fx.sound || !SFX[name]) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      fx.ac = fx.ac || new AC();
+      const ac = fx.ac, t0 = ac.currentTime + 0.01;
+      SFX[name].forEach(([f, st, d, type, vol]) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = type || 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0 + st);
+        g.gain.exponentialRampToValueAtTime(vol || 0.1, t0 + st + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + st + d);
+        o.connect(g).connect(ac.destination);
+        o.start(t0 + st); o.stop(t0 + st + d + 0.02);
+      });
+    } catch (e) { /* audio unavailable */ }
+  };
+  fx.soundToggle = () => {
+    const b = h('button', { class: 'fx-sound', 'aria-pressed': String(fx.sound), title: 'Sound effects', onclick: () => { fx.sound = !fx.sound; PP.store.set('sound', fx.sound); b.setAttribute('aria-pressed', String(fx.sound)); b.textContent = fx.sound ? 'Sound on' : 'Sound off'; if (fx.sound) fx.sfx('click'); } }, fx.sound ? 'Sound on' : 'Sound off');
+    return b;
+  };
+
+  /* ---------- Character art ---------- */
+  const SKIN = ['#f2c79a', '#e8b48a', '#c98d62', '#a86f48', '#7a4f33', '#f5d3b5'];
+  const HAIR = ['#4a2e14', '#1f1a17', '#b07a43', '#d9a441', '#7a3b1e', '#9a9a9a'];
+  const pickBy = (arr, n) => arr[Math.abs(Math.round(n)) % arr.length];
+  PP.art = {};
+  PP.art.face = function (o = {}) {
+    const mood = Math.max(-2, Math.min(2, o.mood || 0));
+    const skin = o.skin || pickBy(SKIN, (o.hue || 0) / 37);
+    const hair = o.hair || pickBy(HAIR, (o.hue || 0) / 53);
+    const brow = mood * -3;
+    const mouth = o.surprised ? '<ellipse cx="50" cy="70" rx="6" ry="8" fill="#4a2e14"/>'
+      : `<path d="M36,${68 - mood} Q50,${68 + mood * 6} 64,${68 - mood}" fill="none" stroke="#4a2e14" stroke-width="3.5" stroke-linecap="round"/>`;
+    const blush = mood >= 2 ? '<circle cx="31" cy="62" r="5" fill="#f28b82" opacity=".5"/><circle cx="69" cy="62" r="5" fill="#f28b82" opacity=".5"/>' : '';
+    const sweat = mood <= -2 ? '<path d="M76,36 q4,8 0,12 q-4,-4 0,-12z" fill="#7cc4ff" stroke="#4a2e14" stroke-width="1.5"/>' : '';
+    return `<svg viewBox="0 0 100 100" class="art-face" aria-hidden="true">
+      <circle cx="50" cy="54" r="34" fill="${skin}" stroke="#4a2e14" stroke-width="3"/>
+      <path d="M16,50 Q18,14 50,16 Q82,14 84,50 Q74,30 50,30 Q26,30 16,50z" fill="${hair}" stroke="#4a2e14" stroke-width="3"/>
+      <path d="M33,${42 - brow * 0.3} l12,${brow}" stroke="#4a2e14" stroke-width="3" stroke-linecap="round"/>
+      <path d="M67,${42 - brow * 0.3} l-12,${brow}" stroke="#4a2e14" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="39" cy="52" r="3.6" fill="#4a2e14"/><circle cx="61" cy="52" r="3.6" fill="#4a2e14"/>
+      ${blush}${mouth}${sweat}</svg>`;
+  };
+
+  /* Full figures for the market and the mixer. kind picks clothes and props. */
+  PP.art.figure = function (kind, o = {}) {
+    const skin = pickBy(SKIN, o.seed || 1), hair = pickBy(HAIR, (o.seed || 1) * 3);
+    const coat = o.coat || { family: '#6f9a54', retiree: '#c9a0dc', vendor: '#e8dcc0', couple: '#7cc4ff', jogger: '#ff7262', kid: '#f2b544', dog: '#9aa3b5', phone: '#5a6b8a', owner: '#c4532d', rival: '#2a2a2a', mlm: '#b46ad8', president: '#10196b', connector: '#3f8a4a', numbers: '#6b8f9e', guest: '#8a6a44' }[kind] || '#8a6a44';
+    let extra = '';
+    if (kind === 'family') extra = '<g transform="translate(40 58)"><rect x="0" y="0" width="22" height="14" rx="4" fill="#4a6fb0" stroke="#4a2e14" stroke-width="2"/><circle cx="4" cy="20" r="4" fill="#4a2e14"/><circle cx="18" cy="20" r="4" fill="#4a2e14"/><path d="M0,2 l-8,-10" stroke="#4a2e14" stroke-width="2"/></g>';
+    if (kind === 'retiree') extra = '<ellipse cx="30" cy="12" rx="20" ry="5" fill="#f2d28a" stroke="#4a2e14" stroke-width="2"/><rect x="21" y="2" width="18" height="10" rx="4" fill="#f2d28a" stroke="#4a2e14" stroke-width="2"/>';
+    if (kind === 'vendor') extra = '<rect x="20" y="40" width="20" height="26" fill="#fff" stroke="#4a2e14" stroke-width="2"/><circle cx="46" cy="52" r="6" fill="#d9a441" stroke="#4a2e14" stroke-width="2"/>';
+    if (kind === 'jogger') extra = '<path d="M18,22 q12,-8 24,0" fill="none" stroke="#1f1a17" stroke-width="3"/><circle cx="18" cy="24" r="3" fill="#1f1a17"/><circle cx="42" cy="24" r="3" fill="#1f1a17"/>';
+    if (kind === 'kid') extra = '<path d="M44,40 L52,6" stroke="#4a2e14" stroke-width="1.5"/><ellipse cx="53" cy="4" rx="7" ry="9" fill="#ff7262" stroke="#4a2e14" stroke-width="2"/>';
+    if (kind === 'dog') extra = '<g transform="translate(38 70)"><ellipse cx="10" cy="6" rx="14" ry="8" fill="#b07a43" stroke="#4a2e14" stroke-width="2"/><circle cx="24" cy="0" r="6" fill="#b07a43" stroke="#4a2e14" stroke-width="2"/></g><path d="M40,48 L60,70" stroke="#4a2e14" stroke-width="1.5"/>';
+    if (kind === 'phone') extra = '<rect x="38" y="16" width="7" height="13" rx="2" fill="#2a2a2a" stroke="#4a2e14" stroke-width="1.5"/><path d="M48,14 q6,4 0,10 M52,11 q9,7 0,16" fill="none" stroke="#4a2e14" stroke-width="1.5"/>';
+    if (kind === 'couple') extra = '<rect x="42" y="44" width="16" height="12" fill="#fff" stroke="#4a2e14" stroke-width="2"/><path d="M45,48 h10 M45,52 h7" stroke="#4a2e14" stroke-width="1.2"/>';
+    if (kind === 'rival') extra = '<path d="M22,14 Q30,2 42,12" fill="none" stroke="#1f1a17" stroke-width="5"/><path d="M28,38 l2,18 l2,-18z" fill="#d9a441"/>';
+    if (kind === 'mlm') extra = '<rect x="42" y="44" width="10" height="16" rx="3" fill="#b9a0e8" stroke="#4a2e14" stroke-width="2"/><rect x="44" y="40" width="6" height="5" fill="#4a2e14"/>';
+    if (kind === 'president') extra = '<path d="M30,36 l-4,22 l4,4 l4,-4z" fill="#c4321f"/>';
+    if (kind === 'numbers') extra = '<rect x="40" y="42" width="16" height="20" fill="#e4f0d4" stroke="#4a2e14" stroke-width="2"/><path d="M40,48 h16 M40,54 h16 M48,42 v20" stroke="#4a2e14" stroke-width="1"/>';
+    const legs = kind === 'jogger' ? '<path d="M26,72 l-8,20 M34,72 l10,18" stroke="#4a2e14" stroke-width="5" stroke-linecap="round"/>' : '<path d="M26,72 l-2,22 M34,72 l2,22" stroke="#4a2e14" stroke-width="5" stroke-linecap="round"/>';
+    const scale = kind === 'kid' ? 'transform="translate(8 26) scale(.7)"' : '';
+    return `<svg viewBox="0 0 70 100" class="art-figure" aria-hidden="true"><g ${scale}>
+      ${legs}
+      <path d="M16,36 Q30,28 44,36 L42,74 L18,74z" fill="${coat}" stroke="#4a2e14" stroke-width="2.5"/>
+      <circle cx="30" cy="22" r="12" fill="${skin}" stroke="#4a2e14" stroke-width="2.5"/>
+      <path d="M18,20 Q20,6 30,8 Q40,6 42,20 Q36,13 30,14 Q24,13 18,20z" fill="${hair}"/>
+      <circle cx="26" cy="23" r="1.6" fill="#4a2e14"/><circle cx="34" cy="23" r="1.6" fill="#4a2e14"/>
+      <path d="M26,28 q4,3 8,0" fill="none" stroke="#4a2e14" stroke-width="1.6" stroke-linecap="round"/>
+      ${extra}</g></svg>`;
+  };
+})(window.PP);
+
+</script>
+<script>
+/* Document Dash — the risk: using wrong, stale, duplicate or incomplete information.
+ * A sorting desk: each document slides down toward the "too late" pile.
+ * Drag it (or click a tray, or press 1-4) into Use, Verify, Shred or Ask.
+ * Every call gets an instant stamp; risky "Use" calls fill the Hidden risk meter. */
+(function (PP) {
+  const h = PP.h;
   const DOCS = [
     { name: 'Statement_2026_Q3.pdf', meta: 'Dated last month · all 6 pages · matches account on file', truth: 'good', reveal: 'Current and complete.' },
     { name: 'ID_scan_front_and_back.jpg', meta: 'Not expired · legible · both sides', truth: 'good', reveal: 'All good.' },
     { name: 'Paystub_current.pdf', meta: 'Most recent pay period · employer name matches', truth: 'good', reveal: 'Current.' },
-    { name: 'Statement_2023.pdf', meta: 'Dated three years ago', truth: 'stale', reveal: 'Three years old. A lot has changed since.' },
-    { name: 'Beneficiary_form_OLD.pdf', meta: 'Signed 2014 · names someone the client hasn\'t mentioned', truth: 'stale', reveal: 'Names an ex-spouse. Definitely needs updating.' },
-    { name: 'Address_confirmation.pdf', meta: '12 Old Mill Rd · client mentioned moving recently', truth: 'stale', reveal: 'Old address. The client moved last spring.' },
+    { name: 'Statement_2023.pdf', meta: 'Dated three years ago', truth: 'stale', reveal: 'Three years old. A lot has changed.' },
+    { name: 'Beneficiary_form_OLD.pdf', meta: 'Signed 2014 · names someone the client never mentioned', truth: 'stale', reveal: 'Names an ex-spouse. Needs updating.' },
+    { name: 'Address_confirmation.pdf', meta: '12 Old Mill Rd · client mentioned moving recently', truth: 'stale', reveal: 'Old address. They moved last spring.' },
     { name: 'Statement_2026_Q3 (1).pdf', meta: 'Same size and date as one already in the pile', truth: 'dup', reveal: 'Exact duplicate.' },
     { name: 'IMG_4471.jpg', meta: 'Photo of the Q3 statement, at an angle, with a thumb', truth: 'dup', reveal: 'Same statement, worse.' },
     { name: 'Fwd: Fwd: Fwd: RE: statement', meta: 'Attachment is the Q3 statement again', truth: 'dup', reveal: 'The same statement, forwarded through four people.' },
     { name: 'Application_page_1_of_4.pdf', meta: 'Pages 2 through 4: not attached', truth: 'incomplete', reveal: 'Missing three pages.' },
-    { name: 'Tax_return.pdf', meta: 'Cover page only', truth: 'incomplete', reveal: 'Only the cover page. The numbers are on pages you don\'t have.' },
+    { name: 'Tax_return.pdf', meta: 'Cover page only', truth: 'incomplete', reveal: 'Only the cover page.' },
     { name: 'Signature_page.pdf', meta: 'Signature line: blank', truth: 'incomplete', reveal: 'Unsigned.' },
-    { name: 'statement_FINAL_final_v3_REAL.xlsx', meta: 'Totals don\'t match v2 · nobody knows which is right', truth: 'odd', reveal: 'Two versions disagree. One of them is wrong.' },
+    { name: 'statement_FINAL_final_v3_REAL.xlsx', meta: 'Totals don\'t match v2 · nobody knows which is right', truth: 'odd', reveal: 'Two versions disagree. One is wrong.' },
     { name: 'Photo_of_screenshot_of_fax.png', meta: 'Mostly legible. Mostly.', truth: 'odd', reveal: 'Two digits are a smudge. They matter.' }
   ];
-
   const RULES = {
     good: { best: ['use'], ok: ['verify'] },
     stale: { best: ['verify', 'discard'], ok: [] },
@@ -2381,95 +2752,148 @@ window.PP = window.PP || {};
     incomplete: { best: ['ask'], ok: ['verify'] },
     odd: { best: ['verify'], ok: ['ask'] }
   };
-  const ACTIONS = [
-    { id: 'use', label: 'Use', key: '1', tip: 'Put it straight into the file' },
-    { id: 'verify', label: 'Verify', key: '2', tip: 'Check it first (costs 3 seconds)' },
-    { id: 'discard', label: 'Discard', key: '3', tip: 'Not needed' },
-    { id: 'ask', label: 'Ask', key: '4', tip: 'Request something from the client' }
+  const TRAYS = [
+    { id: 'use', label: 'Use', key: '1', icon: '<path d="M6,13 l5,5 l10,-12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { id: 'verify', label: 'Verify', key: '2', icon: '<circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="3"/><path d="M16,16 l6,6" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>' },
+    { id: 'discard', label: 'Shred', key: '3', icon: '<path d="M5,5 l16,16 M21,5 l-16,16" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>' },
+    { id: 'ask', label: 'Ask client', key: '4', icon: '<path d="M8,9 q0,-5 5,-5 q5,0 5,5 q0,3 -4,4.5 q-1,.5 -1,3" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="13" cy="21" r="1.8" fill="currentColor"/>' }
   ];
 
   PP.minigames.documentDash = {
     title: 'Document Dash',
     risk: 'stale or incomplete information',
-    blurb: 'Sort the incoming pile: Use, Verify, Discard, or Ask. Speed helps. Rushing creates risk you will not see until later.',
+    blurb: 'Documents slide down your desk. Drag each one into Use, Verify, Shred or Ask before it falls into the pile. Rushing creates hidden risk.',
     start(root, ctx, done) {
+      const F = PP.fx;
       const prep = ctx.prep || 0;
-      const practice = !!ctx.practice;
       const docs = PP.shuffle(DOCS).slice(0, 8);
       const ui = PP.mg.shell(root, this.title, this.risk);
-      let i = 0, finished = false;
+      const sortedC = F.counter('Sorted'), comboC = F.counter('Combo');
+      const risk = F.meter('Hidden risk', 'bad'); risk.set(0, 4, 'none');
+      ui.hud.append(sortedC.el, comboC.el, risk.el);
+
+      const desk = h('div', { class: 'mg-stage-area dd-desk' }, h('div', { class: 'dd-inbox' }, 'Incoming'), h('div', { class: 'dd-pile' }, 'Too late pile'));
+      const trays = h('div', { class: 'dd-trays' });
+      TRAYS.forEach((t) => {
+        t.count = h('span', { class: 'dd-count' }, '0');
+        t.el = h('button', { class: 'dd-tray t-' + t.id, onclick: () => choose(t.id) },
+          h('span', { class: 'dd-icon', html: `<svg viewBox="0 0 26 26" aria-hidden="true">${t.icon}</svg>` }), h('span', null, t.label), h('kbd', null, t.key), t.count);
+        trays.appendChild(t.el);
+      });
+      desk.appendChild(trays);
+      ui.body.append(h('p', { class: 'mg-instr' }, ctx.practice ? 'Practice round. Drag documents into a tray, click a tray, or use keys 1–4.' : 'Drag documents into a tray, click a tray, or use keys 1–4.'), desk);
+
+      let i = -1, card = null, y = 0, finished = false, raf = 0, last = performance.now(), combo = 0, riskN = 0, busy = false, drag = null;
       const log = [];
-      const card = h('div', { class: 'doc-card' });
-      const btns = h('div', { class: 'mg-actions four' });
-      ui.body.append(h('p', { class: 'mg-instr' }, practice ? 'Practice round: you will see how each call went.' : 'Sort the pile before time runs out.'), card, btns);
-
-      const timer = PP.mg.timer(ui.bar, 40 + prep * 8, () => finish());
-
-      ACTIONS.forEach((a) => btns.appendChild(h('button', { class: 'btn action', 'data-a': a.id, title: a.tip, onclick: () => choose(a.id) }, h('kbd', null, a.key), a.label)));
-      const onKey = (e) => { const a = ACTIONS.find((x) => x.key === e.key); if (a) { e.preventDefault(); choose(a.id); } };
+      const fall = 9 + prep * 2;
+      const timer = PP.mg.timer(ui.bar, 55 + prep * 8, () => finish());
+      const onKey = (e) => { const t = TRAYS.find((x) => x.key === e.key); if (t) { e.preventDefault(); choose(t.id); } };
       document.addEventListener('keydown', onKey);
 
-      function render() {
-        ui.status.textContent = `${Math.min(i + 1, docs.length)} of ${docs.length}`;
+      function next() {
+        i++;
+        if (i >= docs.length) return finish();
+        busy = false;
         const d = docs[i];
-        card.innerHTML = '';
-        card.append(h('div', { class: 'doc-icon', 'aria-hidden': 'true' }), h('div', null, h('div', { class: 'doc-name' }, d.name), h('div', { class: 'doc-meta' }, d.meta)));
-        card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter');
+        card = h('div', { class: 'dd-card', tabindex: '-1' }, h('div', { class: 'doc-icon', 'aria-hidden': 'true' }), h('div', null, h('div', { class: 'doc-name' }, d.name), h('div', { class: 'doc-meta' }, d.meta)));
+        y = 0; card.style.top = '8%';
+        desk.appendChild(card);
+        F.sfx('whoosh');
+        card.addEventListener('pointerdown', startDrag);
+        ui.status.textContent = `${i + 1} of ${docs.length}`;
       }
+      function frame(now) {
+        if (finished) return;
+        const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        if (card && !busy && !drag) {
+          y += dt / fall;
+          card.style.top = 8 + y * 46 + '%';
+          if (y >= 1) { busy = true; log.push({ d: docs[i], action: 'late', q: 'bad' }); F.stamp(desk, 'Too late!', 'bad'); F.sfx('bad'); combo = 0; comboC.set(0); card.classList.add('dropped'); const c = card; card = null; setTimeout(() => { c.remove(); next(); }, 500); }
+        }
+        raf = requestAnimationFrame(frame);
+      }
+      function startDrag(e) {
+        if (busy || !card) return;
+        const b = desk.getBoundingClientRect(), r = card.getBoundingClientRect();
+        drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, b };
+        card.setPointerCapture(e.pointerId);
+        card.classList.add('dragging');
+        card.addEventListener('pointermove', moveDrag);
+        card.addEventListener('pointerup', endDrag, { once: true });
+      }
+      function moveDrag(e) {
+        if (!drag) return;
+        card.style.left = e.clientX - drag.b.left - drag.dx + 'px';
+        card.style.top = e.clientY - drag.b.top - drag.dy + 'px';
+        card.style.transform = 'none';
+        TRAYS.forEach((t) => t.el.classList.toggle('hover', over(t.el, e)));
+      }
+      function endDrag(e) {
+        card.removeEventListener('pointermove', moveDrag);
+        card.classList.remove('dragging');
+        const hit = TRAYS.find((t) => over(t.el, e));
+        TRAYS.forEach((t) => t.el.classList.remove('hover'));
+        drag = null;
+        if (hit) choose(hit.id); else { card.style.left = ''; card.style.transform = ''; card.style.top = 8 + y * 46 + '%'; }
+      }
+      const over = (el, e) => { const r = el.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
 
       function choose(action) {
-        if (finished) return;
-        const d = docs[i];
-        const r = RULES[d.truth];
+        if (finished || busy || !card) return;
+        busy = true;
+        const d = docs[i], r = RULES[d.truth], tray = TRAYS.find((t) => t.id === action);
         const q = r.best.includes(action) ? 'good' : r.ok.includes(action) ? 'ok' : 'bad';
-        if (action === 'verify') timer.sub(3);
         log.push({ d, action, q });
-        let fb;
-        if (practice) fb = `${q === 'good' ? 'Good call.' : q === 'ok' ? 'Fine, but there was a better option.' : 'Risky.'} ${d.reveal}`;
-        else if (action === 'use') fb = 'Filed. Looks fine.';
-        else if (action === 'verify') fb = 'Checked: ' + d.reveal;
-        else if (action === 'discard') fb = 'Tossed.';
-        else fb = 'Request sent to the client.';
-        ui.feedback.textContent = fb;
-        ui.feedback.className = 'mg-feedback ' + (practice || action === 'verify' ? 'q-' + q : '');
-        i++;
-        if (i >= docs.length) finish(); else render();
+        const land = () => {
+          tray.count.textContent = String(+tray.count.textContent + 1);
+          F.fly(card, tray.el, desk, () => F.glow(tray.el, q === 'bad' ? 'bad' : 'good'));
+          const c = card; card = null; c.remove();
+          sortedC.set(log.filter((l) => l.action !== 'late').length);
+          if (q === 'good') { combo++; F.stamp(desk, combo >= 3 ? `Good call ×${combo}` : 'Good call', 'good'); F.sfx(combo >= 3 ? 'great' : 'good'); F.burstOn(desk, tray.el, 'good', 12); }
+          else if (q === 'ok') { combo = 0; F.stamp(desk, 'Fine, but slow', 'meh'); F.sfx('meh'); }
+          else {
+            combo = 0; F.stamp(desk, 'Risky!', 'bad'); F.sfx('bad'); F.shake(desk);
+            if (action === 'use') { riskN++; risk.set(riskN, 4, riskN >= 3 ? 'high' : riskN === 2 ? 'rising' : 'some'); }
+          }
+          ui.feedback.textContent = d.reveal; ui.feedback.className = 'mg-feedback q-' + q;
+          comboC.set(combo);
+          setTimeout(next, 450);
+        };
+        if (action === 'verify') {
+          timer.sub(2);
+          card.classList.add('scanning');
+          F.popOn(desk, card, 'Checking… (−2s)', 'meh');
+          setTimeout(() => { if (!finished) { card.classList.remove('scanning'); card.querySelector('.doc-meta').textContent = 'Checked: ' + d.reveal; setTimeout(land, 450); } }, 650);
+        } else land();
       }
 
       function finish() {
         if (finished) return;
         finished = true;
-        timer.stop();
-        document.removeEventListener('keydown', onKey);
-        const left = Math.round(timer.left());
+        cancelAnimationFrame(raf); timer.stop(); document.removeEventListener('keydown', onKey);
         const score = log.reduce((a, l) => a + (l.q === 'good' ? 1 : l.q === 'ok' ? 0.5 : 0), 0);
         const riskyUse = log.filter((l) => l.action === 'use' && l.d.truth !== 'good').length;
         const lostInfo = log.filter((l) => l.action === 'discard' && (l.d.truth === 'good' || l.d.truth === 'incomplete')).length;
         const nagging = log.filter((l) => l.action === 'ask' && (l.d.truth === 'good' || l.d.truth === 'dup')).length;
-        const unsorted = docs.length - log.length;
+        const unsorted = docs.length - log.filter((l) => l.action !== 'late').length;
         const eff = {
           energy: -1,
           insight: score >= 6 ? 2 : score >= 4 ? 1 : 0,
-          momentum: (left >= 10 ? 1 : 0) - (unsorted > 0 ? 1 : 0) - (nagging >= 2 ? 1 : 0),
+          momentum: (timer.left() >= 10 ? 1 : 0) - (unsorted > 1 ? 1 : 0) - (nagging >= 2 ? 1 : 0),
           trust: lostInfo >= 2 ? -1 : 0
         };
         if (riskyUse) eff.debt = { tag: 'stale_info', sev: Math.min(3, riskyUse) };
-        const actLabel = { use: 'Used', verify: 'Verified', discard: 'Discarded', ask: 'Asked about' };
-        const lines = log.map((l) => ({
-          q: practice || l.action !== 'use' ? l.q : 'ok',
-          text: `${actLabel[l.action]} ${l.d.name}` + (practice ? ` — ${l.d.reveal}` : '')
-        }));
-        if (unsorted) lines.push({ q: 'bad', text: `${unsorted} document${unsorted > 1 ? 's' : ''} still in the pile when time ran out.` });
-        const result = {
-          score: Math.round(score * 10) / 10, max: docs.length, eff, lines, showDebt: practice,
+        const actLabel = { use: 'Used', verify: 'Verified', discard: 'Shredded', ask: 'Asked about', late: 'Missed' };
+        PP.mg.summary(root, PP.minigames.documentDash.title, {
+          score: Math.round(score * 10) / 10, max: docs.length, eff, showDebt: true,
           passed: ctx.pass != null ? score >= ctx.pass : null,
-          headline: practice ? (riskyUse ? `You used ${riskyUse} document${riskyUse > 1 ? 's' : ''} that needed a second look. In a real journey, that becomes risk debt.` : 'Nothing risky went into the file.') : `Pile sorted with ${left}s to spare.`
-        };
-        PP.mg.summary(root, PP.minigames.documentDash.title, result, done);
+          headline: riskyUse ? `You used ${riskyUse} document${riskyUse > 1 ? 's' : ''} that needed a second look. That risk follows you.` : 'Nothing risky went into the file.',
+          lines: log.map((l) => ({ q: l.q, text: `${actLabel[l.action]} ${l.d.name} — ${l.d.reveal}` }))
+        }, done);
       }
-
-      render();
-      return { stop() { finished = true; timer.stop(); document.removeEventListener('keydown', onKey); } };
+      next();
+      raf = requestAnimationFrame(frame);
+      return { stop() { finished = true; cancelAnimationFrame(raf); timer.stop(); document.removeEventListener('keydown', onKey); } };
     }
   };
 })(window.PP);
@@ -2544,113 +2968,147 @@ window.PP = window.PP || {};
     bad: ["{c}'s smile tightens.", '{c} goes a bit quiet.', '{c} glances at the clock.', '"...Right," says {c}.']
   };
 
+  const ICON = {
+    ask: '<path d="M8,9 q0,-5 5,-5 q5,0 5,5 q0,3 -4,4.5 q-1,.5 -1,3" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="13" cy="21" r="1.8" fill="currentColor"/>',
+    challenge: '<path d="M13,4 v11" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="13" cy="21" r="2" fill="currentColor"/>',
+    explain: '<path d="M13,3 a7,7 0 0 1 4,12.7 v2.3 h-8 v-2.3 a7,7 0 0 1 4,-12.7z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M10,21 h6 M11,24 h4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+    listen: '<path d="M9,10 a6,6 0 1 1 10,4.5 c-2,1.5 -2,3 -3,5 a3,3 0 0 1 -5,-1" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M12,10 a2.5,2.5 0 1 1 4,2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'
+  };
+  const TAGNAME = { emotion: 'a feeling', question: 'a question', misconception: 'a misconception', tangent: 'a tangent', fact: 'something important' };
+
   PP.minigames.conversation = {
     title: 'The Conversation',
     risk: 'missing what actually matters',
-    blurb: 'Statements arrive one at a time. Ask, challenge, explain, or keep listening. Some of what matters is said quietly.',
+    blurb: 'Your client talks; you respond. Ask, challenge, explain, or keep listening. Watch their face, and catch what matters before it slips past.',
     start(root, ctx, done) {
+      const F = PP.fx;
       const client = ctx.client;
       const script = client.conversation;
       const practice = !!ctx.practice;
       const prep = ctx.prep || 0;
-      const per = 8 + prep * 2;
+      const per = 9 + prep * 2;
       const ui = PP.mg.shell(root, this.title, this.risk);
-      const transcript = h('div', { class: 'conv-log' });
-      const btns = h('div', { class: 'mg-actions four' });
-      const pitchBtn = h('button', { class: 'btn pitch', onclick: () => pitch(), hidden: true }, 'Pitch the Grand Plan!');
-      ui.body.append(
-        h('div', { class: 'conv-who' }, PP.ui.avatar ? PP.ui.avatar(client, 36) : null, h('div', null, h('strong', null, client.name), h('div', { class: 'muted small' }, client.title))),
-        transcript, h('div', { class: 'pitch-row' }, pitchBtn), btns);
-      ACTIONS.forEach((a) => btns.appendChild(h('button', { class: 'btn action', onclick: () => respond(a.id) }, h('kbd', null, a.key), a.label)));
+      let localTrust = ctx.state.res.trust;
+      const trustM = F.meter('Trust', 'good'); trustM.set(localTrust, 10);
+      const insightC = F.counter('Insights');
+      ui.hud.append(trustM.el, insightC.el);
+
+      const face = h('div', { class: 'cv-face' });
+      const notebook = h('div', { class: 'cv-notebook', title: 'What you have learned' }, h('span', null, 'Notebook'), h('b', null, '0'));
+      const speech = h('div', { class: 'cv-speech' });
+      const tagChip = h('div', { class: 'cv-tag' });
+      const stage = h('div', { class: 'mg-stage-area cv-stage' },
+        h('div', { class: 'cv-portrait' }, face, h('strong', null, client.name), h('span', { class: 'small' }, client.title)),
+        h('div', { class: 'cv-right' }, speech, tagChip), notebook);
+      const acts = h('div', { class: 'cv-acts' });
+      const pitchBtn = h('button', { class: 'btn pitch', hidden: true, onclick: () => pitch() }, 'Pitch the Grand Plan!');
+      ACTIONS.forEach((a) => acts.appendChild(h('button', { class: 'cv-act a-' + a.id, onclick: () => respond(a.id) },
+        h('span', { class: 'dd-icon', html: `<svg viewBox="0 0 26 26" aria-hidden="true">${ICON[a.id]}</svg>` }), h('span', null, a.label), h('kbd', null, a.key))));
+      ui.body.append(stage, h('div', { class: 'pitch-row' }, pitchBtn), acts);
       const onKey = (e) => { const a = ACTIONS.find((x) => x.key === e.key); if (a) { e.preventDefault(); respond(a.id); } };
       document.addEventListener('keydown', onKey);
 
-      let i = -1, timer = null, finished = false, localTrust = ctx.state.res.trust, locked = false;
+      let i = -1, timer = null, finished = false, locked = false, typeT = null, pitched = false;
       const acc = { trust: 0, momentum: 0, insight: 0 };
       const facts = [], missed = [], debts = [], lines = [];
-      let pitched = false;
+      const baseMood = () => Math.max(-2, Math.min(2, Math.round((localTrust - 5) / 2)));
+      const setFace = (m, surprised) => { face.innerHTML = PP.art.face({ mood: m, hue: client.hue, surprised }); };
+      setFace(baseMood());
 
+      function type(text) {
+        clearInterval(typeT);
+        speech.textContent = '';
+        let k = 0;
+        typeT = setInterval(() => { k += 2; speech.textContent = text.slice(0, k); if (k >= text.length) clearInterval(typeT); }, 18);
+      }
       function next() {
         i++;
         if (i >= script.length) return finish();
         ui.status.textContent = `${i + 1} of ${script.length}`;
         const st = script[i];
-        transcript.appendChild(h('div', { class: 'bubble client enter' }, PP.mg.fill(st.text, client)));
-        transcript.scrollTop = transcript.scrollHeight;
+        tagChip.textContent = '';
+        speech.className = 'cv-speech enter';
+        type(PP.mg.fill(st.text, client));
+        setFace(baseMood());
         pitchBtn.hidden = !st.pitch || pitched;
         locked = false;
+        acts.querySelectorAll('button').forEach((b) => (b.disabled = false));
         if (timer) timer.stop();
         timer = PP.mg.timer(ui.bar, per, () => respond('listen', true));
       }
-
       function respond(action, timedOut) {
         if (finished || locked || i < 0 || i >= script.length) return;
         locked = true;
+        clearInterval(typeT);
         timer && timer.stop();
+        acts.querySelectorAll('button').forEach((b) => (b.disabled = true));
         const st = script[i];
         const r = judge(st, action, ctx, localTrust);
         for (const k in r.d) acc[k] += r.d[k];
-        localTrust = PP.clamp(localTrust + (r.d.trust || 0), 0, 10);
+        const dT = r.d.trust || 0;
+        localTrust = PP.clamp(localTrust + dT, 0, 10);
+        trustM.set(localTrust, 10);
         if (r.debt) debts.push(r.debt);
-        const label = ACTIONS.find((a) => a.id === action).label;
-        transcript.appendChild(h('div', { class: 'bubble you' }, timedOut ? '(you keep listening)' : label));
-        let fb = PP.mg.fill(PP.pick(REACT[r.q]), client);
-        if (r.note) fb = r.note;
+        const btn = acts.querySelector('.a-' + action);
+        if (btn) F.glow(btn, r.q === 'bad' ? 'bad' : 'good');
+        // The face reacts right away
+        setFace(r.q === 'good' ? 2 : r.q === 'bad' ? -2 : 0);
+        if (dT) F.popOn(stage, face, (dT > 0 ? '+' : '') + dT + ' Trust', dT > 0 ? 'good' : 'bad');
+        else F.popOn(stage, face, r.q === 'good' ? 'Nice' : r.q === 'bad' ? 'Hmm.' : timedOut ? '(you listen)' : 'Okay', r.q === 'good' ? 'good' : r.q === 'bad' ? 'bad' : 'meh');
+        F.sfx(r.q === 'good' ? 'good' : r.q === 'bad' ? 'bad' : 'meh');
+        if (r.q === 'bad') F.shake(face);
+        tagChip.textContent = 'That was ' + TAGNAME[st.tag] + '.' + (practice ? ' ' + WHY[st.tag][action] : '');
+        let fb = r.note || PP.mg.fill(PP.pick(REACT[r.q]), client);
         if (st.tag === 'fact') {
           const f = client.facts[st.fact];
-          if (r.reveal) { if (!facts.includes(st.fact)) facts.push(st.fact); fb = 'You learned: ' + f.label + '.'; }
-          else if (!facts.includes(st.fact) && !missed.includes(st.fact)) missed.push(st.fact);
+          if (r.reveal && !facts.includes(st.fact)) {
+            facts.push(st.fact);
+            insightC.set(facts.length);
+            notebook.querySelector('b').textContent = String(facts.length);
+            const card = h('div', { class: 'cv-fact' }, f.label);
+            stage.appendChild(card);
+            setTimeout(() => { F.fly(card, notebook, stage, () => { F.bump(notebook); F.burstOn(stage, notebook, 'great', 12); }); card.remove(); F.sfx('coin'); }, 550);
+            fb = 'You learned: ' + f.label + '.';
+          } else if (!r.reveal && !facts.includes(st.fact) && !missed.includes(st.fact)) { missed.push(st.fact); F.popOn(stage, speech, 'Something slipped past…', 'bad'); }
         }
-        if (practice) fb += ' ' + WHY[st.tag][action];
         ui.feedback.textContent = fb;
-        ui.feedback.className = 'mg-feedback q-' + (practice || r.reveal ? r.q : 'neutral');
-        lines.push({ q: r.q, text: `"${PP.mg.fill(st.text, client).replace(/^"|"$/g, '').slice(0, 70)}${st.text.length > 72 ? '…' : ''}" → ${label}${practice ? ' — ' + WHY[st.tag][action] : ''}` });
-        setTimeout(next, timedOut ? 400 : 650);
+        ui.feedback.className = 'mg-feedback q-' + r.q;
+        const label = ACTIONS.find((a) => a.id === action).label;
+        lines.push({ q: r.q, text: `"${PP.mg.fill(st.text, client).replace(/^"|"$/g, '').slice(0, 70)}${st.text.length > 72 ? '…' : ''}" → ${timedOut ? 'kept listening' : label} (${TAGNAME[st.tag]})` });
+        setTimeout(next, 1300);
       }
-
       function pitch() {
         if (finished || locked) return;
         pitched = true;
         pitchBtn.hidden = true;
         acc.momentum += 1; acc.trust -= 2;
-        localTrust = PP.clamp(localTrust - 2, 0, 10);
+        localTrust = PP.clamp(localTrust - 2, 0, 10); trustM.set(localTrust, 10);
         debts.push({ tag: 'premature_pitch', sev: 2 });
-        transcript.appendChild(h('div', { class: 'bubble you pitchy' }, '"Have you considered... the Grand Plan?"'));
+        setFace(-1, true); F.popOn(stage, face, '−2 Trust', 'bad'); F.sfx('bad'); F.shake(face);
         ui.feedback.textContent = PP.mg.fill('{c} blinks. "Oh. Um. Maybe?"', client);
         ui.feedback.className = 'mg-feedback q-bad';
         lines.push({ q: 'bad', text: 'Pitched the Grand Plan mid-conversation.' });
       }
-
       function finish() {
         if (finished) return;
         finished = true;
-        timer && timer.stop();
+        timer && timer.stop(); clearInterval(typeT);
         document.removeEventListener('keydown', onKey);
         const remaining = missed.filter((f) => !facts.includes(f));
         const score = lines.reduce((a, l) => a + (l.q === 'good' ? 1 : l.q === 'ok' ? 0.5 : 0), 0);
-        const eff = {
-          energy: -1,
-          // Capped so one bad conversation hurts without ending the run on its own.
-          trust: PP.clamp(Math.round(acc.trust), -3, 3),
-          momentum: PP.clamp(Math.round(acc.momentum), -2, 2),
-          insight: Math.round(acc.insight),
-          fact: facts
-        };
+        const eff = { energy: -1, trust: PP.clamp(Math.round(acc.trust), -3, 3), momentum: PP.clamp(Math.round(acc.momentum), -2, 2), insight: Math.round(acc.insight), fact: facts };
         if (remaining.length) eff.missed = remaining[0];
         if (debts.length) eff.debt = debts;
         const result = {
           score: Math.round(score * 10) / 10, max: script.length, eff, lines, showDebt: practice,
           passed: ctx.pass != null ? score >= ctx.pass : null,
-          headline: facts.length
-            ? 'You picked up on: ' + facts.map((f) => client.facts[f].label.toLowerCase()).join('; ') + '.'
-            : 'You came away with the facts, but not much underneath them.'
+          headline: facts.length ? 'You picked up on: ' + facts.map((f) => client.facts[f].label.toLowerCase()).join('; ') + '.' : 'You came away with the facts, but not much underneath them.'
         };
-        if (practice && remaining.length) result.lines.push({ q: 'bad', text: 'Slipped past you: ' + remaining.map((f) => client.facts[f].label.toLowerCase()).join('; ') + '.' });
+        if (remaining.length) result.lines.push({ q: 'bad', text: 'Slipped past you: ' + remaining.map((f) => client.facts[f].label.toLowerCase()).join('; ') + '.' });
         PP.mg.summary(root, PP.minigames.conversation.title, result, done);
       }
-
       next();
-      return { stop() { finished = true; timer && timer.stop(); document.removeEventListener('keydown', onKey); } };
+      return { stop() { finished = true; timer && timer.stop(); clearInterval(typeT); document.removeEventListener('keydown', onKey); } };
     }
   };
 })(window.PP);
@@ -2658,77 +3116,78 @@ window.PP = window.PP || {};
 </script>
 <script>
 /* Fraud or Friend? — the risk: social engineering, odd requests, pressure to act fast.
- * Proceed / Verify / Escalate / Reject. Verifying protects you but costs momentum,
- * so caution is not free. In the journey, proceeding on a fake gives no warning.
- */
+ * Messages land on your phone. Proceed, verify (a quick call), escalate to Ops, or reject.
+ * Each verdict is shown right away: scams blocked, real requests handled, or oops. */
 (function (PP) {
   const h = PP.h;
-
   const MSGS = [
-    { ch: 'Text', from: '{c}', body: 'Running 10 min late, sorry!! traffic', truth: 'friend', verify: 'It\'s their number on file. It really is just traffic.' },
-    { ch: 'Email', from: '{c} <{lc}.newemail@secure-docs-mail.co>', body: 'New email address! Please send all my documents here today. Can\'t talk, in meetings all week.', truth: 'fraud', verify: 'You call {c} on the number on file. "What? I didn\'t send that."' },
+    { ch: 'Text', from: '{c}', body: 'Running 10 min late, sorry!! traffic', truth: 'friend', verify: 'It\'s their number on file. Really just traffic.' },
+    { ch: 'Email', from: '{c} <{lc}.newemail@secure-docs-mail.co>', body: 'New email address! Please send all my documents here today. Can\'t talk, in meetings all week.', truth: 'fraud', verify: 'You call {c} on the number on file: "What? I didn\'t send that."' },
     { ch: 'Email', from: '{s} (cc: {c})', body: 'Hi! {c} asked me to join the next meeting. What time works for you?', truth: 'friend', verify: '{c} confirms: "Yes! Please include them."' },
-    { ch: 'Call', from: '"Home Office IT Desk"', body: 'We need your login to fix a sync issue on {c}\'s file. Quickly, please, before it corrupts.', truth: 'fraud', verify: 'The real IT desk has never heard of this call.' },
-    { ch: 'Text', from: '{c}', body: 'Can you push everything through TODAY? I leave for a trip tomorrow.', truth: 'odd', verify: 'It\'s really {c}, and they really are leaving. Some of it can\'t safely be done today.' },
-    { ch: 'Text', from: 'Unknown number', body: 'hi its {c} new phone!! can u change my bank details on file? urgent', truth: 'fraud', verify: '{c}, on the number on file: "I\'ve had the same phone for six years."' },
+    { ch: 'Call', from: '"Home Office IT Desk"', body: 'We need your login to fix a sync issue on {c}\'s file. Quickly, before it corrupts.', truth: 'fraud', verify: 'The real IT desk has never heard of this call.' },
+    { ch: 'Text', from: '{c}', body: 'Can you push everything through TODAY? I leave for a trip tomorrow.', truth: 'odd', verify: 'It\'s really {c}. Some of it can\'t safely be done today.' },
+    { ch: 'Text', from: 'Unknown number', body: 'hi its {c} new phone!! can u change my bank details on file? urgent', truth: 'fraud', verify: '{c}, on the number on file: "Same phone for six years."' },
     { ch: 'Chat', from: 'Your manager', body: 'Team huddle at 4. There will be donuts.', truth: 'friend', verify: 'There will indeed be donuts.' },
-    { ch: 'Email', from: '{c} (their usual address)', body: 'Here are my docs → statement.pdf.exe', truth: 'fraud', verify: '{c}: "I didn\'t send anything today." Their email has been compromised.' },
+    { ch: 'Email', from: '{c} (their usual address)', body: 'Here are my docs → statement.pdf.exe', truth: 'fraud', verify: '{c}: "I didn\'t send anything today." Their email was hacked.' },
     { ch: 'Email', from: 'Olu, Operations', body: 'Your form came back. One signature missing on page 4.', truth: 'friend', verify: 'Olu is, as always, correct.' },
-    { ch: 'Text', from: '{c}', body: 'My accountant says just do what she says, can you take instructions from her directly?', truth: 'odd', verify: '{c} meant it, but you would need that in writing first.' }
+    { ch: 'Text', from: '{c}', body: 'My accountant says just do what she says. Can you take instructions from her directly?', truth: 'odd', verify: '{c} meant it, but you\'d need that in writing first.' }
   ];
-
   const GRADE = {
     friend: { proceed: 'good', escalate: 'ok', reject: 'bad', ignore: 'bad' },
     fraud: { reject: 'good', escalate: 'good', proceed: 'bad', ignore: 'ok' },
     odd: { escalate: 'good', reject: 'bad', proceed: 'bad', ignore: 'ok' }
   };
   const ACTIONS = [
-    { id: 'proceed', label: 'Proceed', key: '1' },
-    { id: 'verify', label: 'Verify', key: '2' },
-    { id: 'escalate', label: 'Escalate', key: '3' },
-    { id: 'reject', label: 'Reject', key: '4' }
+    { id: 'proceed', label: 'Proceed', key: '1', icon: '<path d="M6,13 l5,5 l10,-12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { id: 'verify', label: 'Verify', key: '2', icon: '<path d="M7,4 l4,0 l2,5 l-3,2 a12,12 0 0 0 5,5 l2,-3 l5,2 l0,4 a3,3 0 0 1 -3,3 a17,17 0 0 1 -15,-15 a3,3 0 0 1 3,-3z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>' },
+    { id: 'escalate', label: 'Escalate to Ops', key: '3', icon: '<path d="M13,22 v-17 M6,12 l7,-7 l7,7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { id: 'reject', label: 'Reject', key: '4', icon: '<path d="M6,8 h14 M9,8 v13 h8 v-13 M11,5 h4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' }
   ];
 
   PP.minigames.fraudOrFriend = {
     title: 'Fraud or Friend?',
     risk: 'social engineering and pressure',
-    blurb: 'Messages arrive under time pressure. Proceed, verify, escalate, or reject. Verifying costs momentum; skipping it costs more, later.',
+    blurb: 'Messages land on your phone under time pressure. Proceed, verify with a quick call, escalate, or reject. Caution costs time; carelessness costs more.',
     start(root, ctx, done) {
+      const F = PP.fx;
       const client = ctx.client;
-      const practice = !!ctx.practice;
       const prep = ctx.prep || 0;
       const per = 12 + prep * 3;
-      let pool = PP.shuffle(MSGS);
-      const frauds = pool.filter((m) => m.truth === 'fraud').slice(0, 2);
-      const rest = pool.filter((m) => !frauds.includes(m)).slice(0, 4);
-      const msgs = PP.shuffle(frauds.concat(rest));
+      const frauds = PP.shuffle(MSGS.filter((m) => m.truth === 'fraud')).slice(0, 2);
+      const msgs = PP.shuffle(frauds.concat(PP.shuffle(MSGS.filter((m) => !frauds.includes(m))).slice(0, 4)));
       const ui = PP.mg.shell(root, this.title, this.risk);
-      const card = h('div', { class: 'msg-card' });
-      const btns = h('div', { class: 'mg-actions four' });
-      ui.body.append(card, btns);
-      ACTIONS.forEach((a) => btns.appendChild(h('button', { class: 'btn action', 'data-a': a.id, onclick: () => act(a.id) }, h('kbd', null, a.key), a.label)));
+      const sec = F.meter('Security', 'good'); sec.set(10, 10, 'solid');
+      const blockedC = F.counter('Scams blocked'), streakC = F.counter('Streak');
+      ui.hud.append(sec.el, blockedC.el, streakC.el);
+
+      const thread = h('div', { class: 'ff-thread' });
+      const phone = h('div', { class: 'ff-phone' }, h('div', { class: 'ff-notch' }), h('div', { class: 'ff-top' }, 'Messages'), thread);
+      const ops = h('div', { class: 'ff-bin ops' }, 'Ops');
+      const trash = h('div', { class: 'ff-bin trash' }, 'Trash');
+      const stage = h('div', { class: 'mg-stage-area ff-stage' }, ops, phone, trash);
+      const acts = h('div', { class: 'cv-acts' });
+      ACTIONS.forEach((a) => acts.appendChild(h('button', { class: 'cv-act a-' + a.id, 'data-a': a.id, onclick: () => act(a.id) },
+        h('span', { class: 'dd-icon', html: `<svg viewBox="0 0 26 26" aria-hidden="true">${a.icon}</svg>` }), h('span', null, a.label), h('kbd', null, a.key))));
+      ui.body.append(stage, acts);
       const onKey = (e) => { const a = ACTIONS.find((x) => x.key === e.key); if (a) { e.preventDefault(); act(a.id); } };
       document.addEventListener('keydown', onKey);
 
-      let i = -1, timer = null, verified = false, finished = false, locked = false;
+      let i = -1, timer = null, verified = false, finished = false, locked = false, bubble = null, secV = 10, streak = 0;
       const log = [];
       let verifies = 0;
-
-      function setVerifyEnabled(on) { btns.querySelector('[data-a="verify"]').disabled = !on; }
 
       function next() {
         i++;
         if (i >= msgs.length) return finish();
         verified = false; locked = false;
-        setVerifyEnabled(true);
+        acts.querySelectorAll('button').forEach((b) => (b.disabled = false));
         ui.status.textContent = `${i + 1} of ${msgs.length}`;
         const m = msgs[i];
-        card.innerHTML = '';
-        card.append(
-          h('div', { class: 'msg-meta' }, h('span', { class: 'msg-ch' }, m.ch), h('span', { class: 'msg-from' }, PP.mg.fill(m.from, client))),
-          h('div', { class: 'msg-body' }, PP.mg.fill(m.body, client)),
-          h('div', { class: 'msg-verify', hidden: true }));
-        card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter');
+        bubble = h('div', { class: 'ff-msg enter' }, h('div', { class: 'ff-from' }, h('span', { class: 'msg-ch' }, m.ch), ' ', PP.mg.fill(m.from, client)), h('div', { class: 'ff-body' }, PP.mg.fill(m.body, client)));
+        thread.appendChild(bubble);
+        thread.scrollTop = thread.scrollHeight;
+        while (thread.children.length > 3) thread.firstChild.remove();
+        F.sfx('ding');
         timer && timer.stop();
         timer = PP.mg.timer(ui.bar, per, () => act('ignore'));
       }
@@ -2738,28 +3197,50 @@ window.PP = window.PP || {};
         const m = msgs[i];
         if (action === 'verify') {
           if (verified) return;
-          verified = true; verifies++;
-          setVerifyEnabled(false);
-          const v = card.querySelector('.msg-verify');
-          v.hidden = false; v.textContent = PP.mg.fill(m.verify, client);
-          timer.add(per);
-          ui.feedback.textContent = 'Verified. That took a little time.';
-          ui.feedback.className = 'mg-feedback';
+          verified = true; verifies++; locked = true;
+          acts.querySelector('[data-a="verify"]').disabled = true;
+          const calling = h('div', { class: 'ff-calling' }, 'Calling the number on file…');
+          phone.appendChild(calling);
+          F.sfx('ring');
+          setTimeout(() => {
+            calling.remove(); locked = false;
+            if (finished) return;
+            bubble.appendChild(h('div', { class: 'ff-verify' }, PP.mg.fill(m.verify, client)));
+            thread.scrollTop = thread.scrollHeight;
+            timer.add(per);
+            F.popOn(stage, phone, 'Verified', 'meh');
+          }, 900);
           return;
         }
         locked = true;
         timer.stop();
+        acts.querySelectorAll('button').forEach((b) => (b.disabled = true));
         let q = GRADE[m.truth][action];
-        // Once verified, the right move is obvious; proceeding on a verified "odd" request is fine.
         if (verified && m.truth === 'odd' && action === 'proceed') q = 'ok';
         log.push({ m, action, q, verified });
-        const labels = { proceed: 'Done!', escalate: 'Sent to the operations team.', reject: 'Rejected.', ignore: 'You let it sit.' };
-        let fb = labels[action];
-        if (practice) fb = (q === 'good' ? 'Good call. ' : q === 'ok' ? 'Acceptable. ' : 'Risky. ') + `It was ${m.truth === 'friend' ? 'legitimate' : m.truth === 'fraud' ? 'fake' : 'real, but needed checking'}.`;
-        else if (action !== 'proceed' && !verified && m.truth === 'friend') fb += ' Hmm, that one may have been real.';
-        ui.feedback.textContent = fb;
-        ui.feedback.className = 'mg-feedback ' + (practice ? 'q-' + q : '');
-        setTimeout(next, 650);
+        // Where the message goes
+        if (action === 'reject') { F.fly(bubble, trash, stage, () => F.bump(trash)); bubble.classList.add('gone'); }
+        else if (action === 'escalate') { F.fly(bubble, ops, stage, () => F.bump(ops)); bubble.classList.add('gone'); }
+        else if (action === 'proceed') bubble.classList.add('sent');
+        else bubble.classList.add('ignored');
+        // Instant verdict
+        const isFraud = m.truth === 'fraud';
+        let stampText, kind;
+        if (isFraud && (action === 'reject' || action === 'escalate')) { stampText = 'Scam blocked!'; kind = 'good'; }
+        else if (isFraud && action === 'proceed') { stampText = 'That was a scam!'; kind = 'bad'; }
+        else if (m.truth === 'friend' && action === 'proceed') { stampText = 'Handled'; kind = 'good'; }
+        else if (m.truth === 'friend') { stampText = action === 'ignore' ? 'Left a real person waiting' : 'That one was real'; kind = action === 'escalate' ? 'meh' : 'bad'; }
+        else if (m.truth === 'odd' && action === 'escalate') { stampText = 'Good instinct'; kind = 'good'; }
+        else { stampText = q === 'ok' ? 'Okay, carefully' : 'Too hasty'; kind = q === 'ok' ? 'meh' : 'bad'; }
+        F.stamp(stage, stampText, kind);
+        F.sfx(kind === 'good' ? 'good' : kind === 'bad' ? 'bad' : 'meh');
+        if (kind === 'bad') { F.shake(phone); secV = Math.max(0, secV - (isFraud ? 4 : 1)); sec.set(secV, 10, secV >= 8 ? 'solid' : secV >= 5 ? 'shaky' : 'leaky'); streak = 0; }
+        else if (kind === 'good') { streak++; if (isFraud) { blockedC.set(log.filter((l) => l.m.truth === 'fraud' && (l.action === 'reject' || l.action === 'escalate')).length); F.burstOn(stage, phone, 'good', 14); } }
+        else streak = 0;
+        streakC.set(streak);
+        ui.feedback.textContent = `It was ${m.truth === 'friend' ? 'legitimate' : isFraud ? 'a scam' : 'real, but needed care'}.`;
+        ui.feedback.className = 'mg-feedback q-' + q;
+        setTimeout(next, 1100);
       }
 
       function finish() {
@@ -2773,28 +3254,17 @@ window.PP = window.PP || {};
         const snubbed = log.filter((l) => (l.action === 'reject' || l.action === 'ignore') && l.m.truth === 'friend').length;
         const escalatedFriends = log.filter((l) => l.action === 'escalate' && l.m.truth === 'friend').length;
         const caught = log.filter((l) => l.m.truth === 'fraud' && (l.action === 'reject' || l.action === 'escalate')).length;
-        const eff = {
-          energy: -1,
-          momentum: -Math.floor(verifies / 2) - escalatedFriends + (verifies === 0 ? 1 : 0),
-          trust: -snubbed,
-          insight: caught >= 2 ? 1 : 0
-        };
+        const eff = { energy: -1, momentum: -Math.floor(verifies / 2) - escalatedFriends + (verifies === 0 ? 1 : 0), trust: -snubbed, insight: caught >= 2 ? 1 : 0 };
         const debts = [];
         if (fooled) debts.push({ tag: 'fraud', sev: Math.min(3, 1 + fooled) });
         if (rushedOdd) debts.push({ tag: 'timeline', sev: 1 });
         if (debts.length) eff.debt = debts;
-        const lines = log.map((l) => ({
-          q: practice || l.action !== 'proceed' ? l.q : 'ok',
-          text: `${l.m.ch} from ${PP.mg.fill(l.m.from, client)}: ${l.verified ? 'verified, then ' : ''}${l.action === 'ignore' ? 'ran out of time' : l.action}` + (practice ? ` (${l.m.truth === 'friend' ? 'legit' : l.m.truth === 'fraud' ? 'fake' : 'real but risky'})` : '')
-        }));
-        const result = {
-          score: Math.round(score * 10) / 10, max: msgs.length, eff, lines, showDebt: practice,
-          passed: ctx.pass != null ? score >= ctx.pass : null,
-          headline: practice ? (fooled ? `You acted on ${fooled} fake request${fooled > 1 ? 's' : ''}. In a journey, you would not find out until later.` : 'No fakes got through.') : `Verified ${verifies} message${verifies === 1 ? '' : 's'}.`
-        };
-        PP.mg.summary(root, PP.minigames.fraudOrFriend.title, result, done);
+        PP.mg.summary(root, PP.minigames.fraudOrFriend.title, {
+          score: Math.round(score * 10) / 10, max: msgs.length, eff, showDebt: true, passed: ctx.pass != null ? score >= ctx.pass : null,
+          headline: fooled ? `You acted on ${fooled} scam${fooled > 1 ? 's' : ''}. That will come back.` : `No scams got through. You verified ${verifies} message${verifies === 1 ? '' : 's'}.`,
+          lines: log.map((l) => ({ q: l.q, text: `${l.m.ch} from ${PP.mg.fill(l.m.from, client)}: ${l.verified ? 'verified, then ' : ''}${l.action === 'ignore' ? 'ran out of time' : l.action} (${l.m.truth === 'friend' ? 'legit' : l.m.truth === 'fraud' ? 'scam' : 'real but risky'})` }))
+        }, done);
       }
-
       next();
       return { stop() { finished = true; timer && timer.stop(); document.removeEventListener('keydown', onKey); } };
     }
@@ -2848,6 +3318,12 @@ window.PP = window.PP || {};
       document.addEventListener('keydown', onKey);
       cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(); move(e.clientX - r.left < r.width / 2 ? -1 : 1); });
       const timer = PP.mg.timer(ui.bar, dur, () => finish());
+      const F = PP.fx, floats = [], parts = [];
+      let combo = 0, shakeT = 0;
+      const caughtC = F.counter('Caught'), comboC = F.counter('Combo'), junkC = F.counter('Junk hit');
+      ui.hud.append(caughtC.el, comboC.el, junkC.el);
+      const float = (x, y, text, color) => floats.push({ x, y, text, color, t: 0 });
+      const spray = (x, y, color, n) => { for (let k = 0; k < n; k++) { const a = Math.random() * Math.PI * 2, v = 60 + Math.random() * 120; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0, color }); } };
 
       function frame(now) {
         if (finished) return;
@@ -2868,15 +3344,16 @@ window.PP = window.PP || {};
           const ix = laneX(it.lane);
           if (it.y > H - 92 && it.y < H - 40 && Math.abs(ix - x) < 40) {
             const k = KINDS[it.kind];
-            if (k.good) { stats.gold++; flash('Caught: ' + k.label(client), 'good'); }
-            else if (k.scam) { stats.scam++; flash('Oops. You opened the URGENT one.', 'bad'); }
-            else { stats.junk++; flash('Splash. Junk.', 'ok'); }
+            if (k.good) { stats.gold++; combo++; caughtC.set(stats.gold); comboC.set(combo); float(ix, it.y - 20, combo >= 3 ? `+1  x${combo}!` : '+1 ' + k.label(client), '#2f7a3a'); spray(ix, it.y, '#f2b544', 14); F.sfx(combo >= 3 ? 'great' : 'coin'); flash('Caught: ' + k.label(client), 'good'); }
+            else if (k.scam) { stats.scam++; combo = 0; comboC.set(0); junkC.set(stats.junk + stats.scam); float(ix, it.y - 20, 'SCAM!', '#b4321f'); spray(ix, it.y, '#ff7262', 18); shakeT = 0.35; F.sfx('bad'); flash('Oops. You opened the URGENT one.', 'bad'); }
+            else { stats.junk++; combo = 0; comboC.set(0); junkC.set(stats.junk + stats.scam); float(ix, it.y - 20, 'Splash. Junk.', '#7a5a3a'); spray(ix, it.y, '#cfe3f2', 10); F.sfx('meh'); flash('Splash. Junk.', 'ok'); }
             return false;
           }
-          if (it.y > H + 20) { if (KINDS[it.kind].good) { stats.goldMissed++; if (practice) flash('Missed a real one!', 'bad'); } return false; }
+          if (it.y > H + 20) { if (KINDS[it.kind].good) { stats.goldMissed++; combo = 0; comboC.set(0); float(laneX(it.lane), H - 30, 'Missed!', '#b4321f'); F.sfx('meh'); flash('A real message floated past!', 'bad'); } return false; }
           return true;
         });
         draw();
+        drawFx(dt);
         ui.status.textContent = `Caught ${stats.gold} · Junk ${stats.junk + stats.scam}`;
         raf = requestAnimationFrame(frame);
       }
@@ -2911,6 +3388,17 @@ window.PP = window.PP || {};
         c.fillStyle = '#10196b'; c.fillRect(10, -26, 13, 4);
         c.beginPath(); c.moveTo(30, -20); c.lineTo(44, 10); c.stroke();
         c.restore();
+      }
+
+      function drawFx(dt) {
+        parts.forEach((p) => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; });
+        for (let k = parts.length - 1; k >= 0; k--) if (parts[k].t > 0.7) parts.splice(k, 1);
+        parts.forEach((p) => { c.globalAlpha = 1 - p.t / 0.7; c.fillStyle = p.color; c.fillRect(p.x - 3, p.y - 3, 6, 6); });
+        floats.forEach((f) => { f.t += dt; f.y -= 40 * dt; });
+        for (let k = floats.length - 1; k >= 0; k--) if (floats[k].t > 1) floats.splice(k, 1);
+        floats.forEach((f) => { c.globalAlpha = 1 - f.t; c.fillStyle = f.color; c.font = `22px ${FONT}`; c.textAlign = 'center'; c.strokeStyle = '#fffaf0'; c.lineWidth = 4; c.strokeText(f.text, f.x, f.y); c.fillText(f.text, f.x, f.y); });
+        c.globalAlpha = 1;
+        if (shakeT > 0) { shakeT -= dt; cv.style.transform = `translate(${(Math.random() - 0.5) * 8}px, ${(Math.random() - 0.5) * 6}px)`; } else cv.style.transform = '';
       }
 
       function finish() {
@@ -2987,6 +3475,11 @@ window.PP = window.PP || {};
       const onKey = (e) => { const n = parseInt(e.key, 10); if (n >= 1 && n <= 9) { e.preventDefault(); hit(n - 1); } };
       document.addEventListener('keydown', onKey);
       const timer = PP.mg.timer(ui.bar, 25 + prep * 4, () => finish());
+      const F = PP.fx;
+      const ansC = F.counter('Answered'), missC = F.counter('Voicemail'), comboC = F.counter('Combo');
+      ui.hud.append(ansC.el, missC.el, comboC.el);
+      let combo = 0;
+      const pitBox = grid;
 
       function spawn() {
         if (finished) return;
@@ -3001,6 +3494,7 @@ window.PP = window.PP || {};
           const pop = holes[i].el.querySelector('.phone-pop');
           pop.textContent = caller.who;
           holes[i].el.classList.add('up', caller.good ? 'good' : 'junk');
+          if (caller.good) F.sfx('ring');
         }
         spawnT = setTimeout(spawn, Math.max(380, 820 - stats.total * 18));
       }
@@ -3013,7 +3507,7 @@ window.PP = window.PP || {};
       function expire(i) {
         const call = holes[i].call;
         if (!call) return;
-        if (call.caller.good) { stats.missed++; say(`Voicemail. ${call.caller.who} sighs.`, 'bad'); }
+        if (call.caller.good) { stats.missed++; missC.set(stats.missed); combo = 0; comboC.set(0); F.popOn(pitBox, holes[i].el, 'Voicemail…', 'bad'); F.sfx('meh'); say(`Voicemail. ${call.caller.who} sighs.`, 'bad'); }
         clear(i);
         status();
       }
@@ -3021,8 +3515,8 @@ window.PP = window.PP || {};
         if (finished) return;
         const call = holes[i].call;
         if (!call) return;
-        if (call.caller.good) { stats.answered++; say(`"Oh! Thanks for picking up." (${call.caller.who})`, 'good'); }
-        else { stats.robo++; timer.sub(1); say(`${call.caller.who}. You lose a second of your life.`, 'ok'); }
+        if (call.caller.good) { stats.answered++; combo++; ansC.set(stats.answered); comboC.set(combo); F.popOn(pitBox, holes[i].el, combo >= 3 ? `Answered! x${combo}` : 'Answered!', 'good'); F.burstOn(pitBox, holes[i].el, 'good', 10); F.sfx(combo >= 3 ? 'great' : 'good'); say(`"Oh! Thanks for picking up." (${call.caller.who})`, 'good'); }
+        else { stats.robo++; combo = 0; comboC.set(0); timer.sub(1); F.popOn(pitBox, holes[i].el, 'Robocall! −1s', 'bad'); F.shake(holes[i].el); F.sfx('bad'); say(`${call.caller.who}. You lose a second of your life.`, 'ok'); }
         clear(i);
         status();
       }
@@ -3064,12 +3558,12 @@ window.PP = window.PP || {};
 
 </script>
 <script>
-/* Call-a-thon (prospecting). Dial through a list of strangers.
- * Some don't answer, some go to voicemail, and the rest hit you with an objection.
- * Pick the best response before they hang up. Good responses book appointments. */
+/* Call-a-thon (prospecting). A phone on the left, your week on the right.
+ * Dial through strangers. Pick the best answer to each objection before they hang up.
+ * Every booked appointment flies onto your calendar as a sticky note. */
 (function (PP) {
-  const h = PP.h;
-  const NAMES = ['Mrs. Alvarez', 'Ted Brooks', 'Priyanka S.', 'Gary (no last name)', 'The Nguyens', 'Doug at Doug\'s Tires', 'Marisa K.', 'Stan Wright', 'Ola B.', 'Frank, age 71', 'Kim from accounting', 'Leo Marsh', 'Ruth G.', 'Omar F.'];
+  const h = PP.h, fx = () => PP.fx;
+  const NAMES = ['Mrs. Alvarez', 'Ted Brooks', 'Priyanka S.', 'Gary', 'The Nguyens', 'Doug (Doug\'s Tires)', 'Marisa K.', 'Stan Wright', 'Ola B.', 'Frank, 71', 'Kim from accounting', 'Leo Marsh', 'Ruth G.', 'Omar F.', 'Bev Tanaka', 'Hal P.'];
   const OBJ = [
     { line: '"I\'m in the middle of dinner."', r: [['So sorry! When would be a better time to call?', 'good'], ['This will only take a minute!', 'bad'], ['No problem, bye!', 'ok']] },
     { line: '"Just send me some information."', r: [['Happy to. What would be most useful to you?', 'good'], ['Sure, what\'s your email?', 'ok'], ['Information won\'t help. Let\'s meet.', 'bad']] },
@@ -3080,180 +3574,249 @@ window.PP = window.PP || {};
     { line: '"I\'m not interested."', r: [['Totally fair. Mind if I ask what you\'d want if you ever were?', 'good'], ['But you haven\'t heard the offer!', 'bad'], ['Okay, have a good one.', 'ok']] },
     { line: '"We don\'t have any money to invest."', r: [['A lot of people I help feel that way. It\'s more about getting organized.', 'good'], ['Everyone has money somewhere!', 'bad'], ['Ah, okay.', 'ok']] }
   ];
+  const SLOTS = ['Mon 9', 'Mon 2', 'Tue 10', 'Tue 3', 'Wed 9', 'Wed 1', 'Thu 11', 'Thu 4', 'Fri 10', 'Fri 2'];
 
   PP.minigames.callathon = {
     title: 'Call-a-thon',
     risk: 'prospecting by phone',
     prospecting: true,
-    blurb: 'Dial through a list of strangers. Pick the best response to each objection before they hang up. Good answers book appointments.',
+    blurb: 'Dial through a list of strangers. Pick the best answer to each objection before they hang up. Fill your calendar with appointments.',
     start(root, ctx, done) {
       const prep = ctx.prep || 0;
       const ui = PP.mg.shell(root, this.title, this.risk);
-      const phone = h('div', { class: 'phone-card' });
-      const btns = h('div', { class: 'stack' });
-      ui.body.append(h('p', { class: 'mg-instr' }, 'Pick a response with the mouse or keys 1–3. No answer? It dials the next number on its own.'), phone, btns);
-      const stats = { dialed: 0, picked: 0, appts: [], bad: 0, vm: 0 };
-      let finished = false, t1 = null, t2 = null, respondTimer = null, current = null;
+      const F = fx();
+      const dials = F.counter('Dials'), booked = F.counter('Booked'), streak = F.counter('Streak');
+      const rep = F.meter('Reputation', 'good'); rep.set(10, 10);
+      ui.hud.append(dials.el, booked.el, streak.el, rep.el);
+
+      const face = h('div', { class: 'ct-face' });
+      const who = h('div', { class: 'ct-who' });
+      const state = h('div', { class: 'ct-state' });
+      const bubble = h('div', { class: 'ct-bubble', hidden: true });
+      const phone = h('div', { class: 'ct-phone' }, h('div', { class: 'ct-handset', 'aria-hidden': 'true', html: '<svg viewBox="0 0 26 26"><path d="M7,4 l4,0 l2,5 l-3,2 a12,12 0 0 0 5,5 l2,-3 l5,2 l0,4 a3,3 0 0 1 -3,3 a17,17 0 0 1 -15,-15 a3,3 0 0 1 3,-3z" fill="currentColor" stroke="#4a2e14" stroke-width="1.5"/></svg>' }), face, who, state, bubble);
+      const cal = h('div', { class: 'ct-cal' }, h('div', { class: 'ct-cal-head' }, 'Your week'), h('div', { class: 'ct-slots' }, SLOTS.map((s) => h('div', { class: 'ct-slot' }, h('span', null, s)))));
+      const stage = h('div', { class: 'mg-stage-area ct-stage' }, phone, cal);
+      const answers = h('div', { class: 'ct-answers' });
+      ui.body.append(stage, answers);
+
+      const stats = { dialed: 0, picked: 0, appts: [], bad: 0, vm: 0, streak: 0 };
+      let finished = false, t1 = null, t2 = null, respondT = null, current = null, repV = 10;
       const timer = PP.mg.timer(ui.bar, 45 + prep * 6, () => finish());
       const names = PP.shuffle(NAMES);
-      const onKey = (e) => { const n = parseInt(e.key, 10); const b = btns.querySelectorAll('button')[n - 1]; if (b) { e.preventDefault(); b.click(); } };
+      const onKey = (e) => { const n = parseInt(e.key, 10); const b = answers.querySelectorAll('button')[n - 1]; if (b) { e.preventDefault(); b.click(); } };
       document.addEventListener('keydown', onKey);
 
-      function status() { ui.status.textContent = `Dialed ${stats.dialed} · Appointments ${stats.appts.length}`; }
+      function setFace(mood, extra) { face.innerHTML = PP.art.face({ mood, hue: stats.dialed * 47, surprised: extra === 'surprised' }); }
       function dial() {
         if (finished) return;
-        btns.innerHTML = '';
-        const who = names[stats.dialed % names.length];
-        stats.dialed++; status();
-        phone.innerHTML = '';
-        phone.append(h('div', { class: 'phone-who' }, who), h('div', { class: 'phone-state ringing' }, 'Ringing…'));
+        answers.innerHTML = '';
+        bubble.hidden = true;
+        const name = names[stats.dialed % names.length];
+        stats.dialed++; dials.set(stats.dialed);
+        who.textContent = name;
+        face.innerHTML = '<div class="ct-dialing">…</div>';
+        state.textContent = 'Ringing…';
+        phone.classList.add('ringing');
+        F.sfx('ring');
         t1 = setTimeout(() => {
+          phone.classList.remove('ringing');
           if (finished) return;
           const r = Math.random();
-          if (r < 0.28) { phone.querySelector('.phone-state').textContent = 'No answer.'; phone.querySelector('.phone-state').className = 'phone-state'; t2 = setTimeout(dial, 700); }
-          else if (r < 0.42) voicemail(who);
-          else pickup(who);
-        }, 600 + Math.random() * 700);
+          if (r < 0.25) { state.textContent = 'No answer.'; face.innerHTML = '<div class="ct-dialing">✕</div>'; F.popOn(stage, phone, 'No answer', 'meh'); t2 = setTimeout(dial, 650); }
+          else if (r < 0.4) voicemail(name);
+          else pickup(name);
+        }, 700 + Math.random() * 600);
       }
-      function voicemail(who) {
+      function voicemail(name) {
         stats.vm++;
-        phone.querySelector('.phone-state').textContent = `"Hi, you've reached ${who}. Leave a message…" BEEP.`;
-        phone.querySelector('.phone-state').className = 'phone-state';
-        btns.append(
-          h('button', { class: 'btn', onclick: () => { if (PP.chance(0.25)) stats.appts.push({ temp: 'cold', source: 'a call-back from your voicemail' }); say('You leave a short, friendly message.', 'ok'); next(); } }, '1. Leave a short, friendly message'),
-          h('button', { class: 'btn', onclick: () => { say('Click.', 'ok'); next(); } }, '2. Hang up and keep dialing'));
+        face.innerHTML = '<div class="ct-dialing vm">VM</div>';
+        state.textContent = `"You've reached ${name}. Leave a message…" BEEP`;
+        answers.append(
+          h('button', { class: 'ct-answer', onclick: () => { if (PP.chance(0.25)) book({ temp: 'cold', source: 'a call-back from your voicemail' }, name + ' (call-back)'); else F.popOn(stage, phone, 'Message left', 'meh'); next(); } }, h('b', null, '1'), ' Leave a short, friendly message'),
+          h('button', { class: 'ct-answer', onclick: () => { F.sfx('click'); next(); } }, h('b', null, '2'), ' Hang up and keep dialing'));
       }
-      function pickup(who) {
+      function pickup(name) {
         stats.picked++;
         current = PP.pick(OBJ);
-        phone.querySelector('.phone-state').className = 'phone-state live';
-        phone.querySelector('.phone-state').textContent = current.line;
-        PP.shuffle(current.r).forEach(([text, q], i) => btns.appendChild(h('button', { class: 'btn', onclick: () => answer(q) }, `${i + 1}. "${text}"`)));
-        respondTimer = setTimeout(() => { say('Too slow. Dial tone.', 'bad'); next(); }, (5.5 + prep) * 1000);
+        setFace(0, 'surprised');
+        state.textContent = 'Picked up!';
+        bubble.hidden = false;
+        bubble.textContent = current.line;
+        F.sfx('ding');
+        PP.shuffle(current.r).forEach(([text, q], i) => answers.appendChild(h('button', { class: 'ct-answer', onclick: () => answer(q, name) }, h('b', null, String(i + 1)), ' "' + text + '"')));
+        respondT = setTimeout(() => { setFace(-1); F.popOn(stage, phone, 'Too slow. Click.', 'bad'); F.sfx('bad'); stats.streak = 0; streak.set(0); next(); }, (5.5 + prep) * 1000);
       }
-      function answer(q) {
-        clearTimeout(respondTimer);
-        const booked = q === 'good' ? PP.chance(0.7) : q === 'ok' ? PP.chance(0.2) : false;
-        if (q === 'bad') stats.bad++;
-        if (booked) { stats.appts.push({ temp: current.warm ? 'warm' : 'cold', source: 'your call-a-thon' }); say('"...Okay, sure. Thursday works." Appointment booked!', 'good'); }
-        else say(q === 'bad' ? 'Click. That did not land.' : q === 'ok' ? '"Okay. Bye." Polite, but no.' : '"Thanks, but not right now." Kind, at least.', q === 'bad' ? 'bad' : 'ok');
-        next();
+      function answer(q, name) {
+        clearTimeout(respondT);
+        answers.querySelectorAll('button').forEach((b) => (b.disabled = true));
+        const ok = q === 'good' ? PP.chance(0.75) : q === 'ok' ? PP.chance(0.2) : false;
+        if (q === 'bad') { stats.bad++; repV = Math.max(0, repV - 2); rep.set(repV, 10); }
+        if (ok) { setFace(2); book({ temp: current.warm ? 'warm' : 'cold', source: 'your call-a-thon' }, name); stats.streak++; }
+        else if (q === 'bad') { setFace(-2); F.shake(phone); F.popOn(stage, phone, 'CLICK!', 'bad'); F.sfx('bad'); stats.streak = 0; }
+        else { setFace(q === 'good' ? 1 : 0); F.popOn(stage, phone, q === 'good' ? '"Thanks, not now"' : '"Okay. Bye."', 'meh'); F.sfx('meh'); stats.streak = 0; }
+        streak.set(stats.streak);
+        if (stats.streak >= 3) F.popOn(stage, cal, `${stats.streak} in a row!`, 'great');
+        next(900);
       }
-      function next() { btns.innerHTML = ''; status(); clearTimeout(t2); t2 = setTimeout(dial, 600); }
-      function say(t, q) { ui.feedback.textContent = t; ui.feedback.className = 'mg-feedback q-' + q; }
+      function book(p, name) {
+        stats.appts.push(p);
+        booked.set(stats.appts.length);
+        const slot = cal.querySelectorAll('.ct-slot')[(stats.appts.length - 1) % SLOTS.length];
+        const note = h('div', { class: 'ct-note' }, name);
+        F.popOn(stage, phone, 'Booked!', 'good');
+        F.sfx('coin');
+        const flyer = h('div', { class: 'ct-note flying' }, name);
+        phone.appendChild(flyer);
+        F.fly(flyer, slot, stage, () => { slot.appendChild(note); F.burstOn(stage, slot, 'good', 10); });
+        flyer.remove();
+      }
+      function next(delay) { clearTimeout(t2); t2 = setTimeout(dial, delay || 600); }
 
       function finish() {
         if (finished) return;
         finished = true;
-        [t1, t2, respondTimer].forEach(clearTimeout); timer.stop(); document.removeEventListener('keydown', onKey);
+        [t1, t2, respondT].forEach(clearTimeout); timer.stop(); document.removeEventListener('keydown', onKey);
         const n = stats.appts.length;
-        const result = {
+        PP.mg.summary(root, PP.minigames.callathon.title, {
           score: n, max: Math.max(n, 6), eff: { energy: -2 }, prospects: stats.appts, passed: ctx.pass != null ? n >= ctx.pass : null,
-          headline: `${stats.dialed} dials, ${stats.picked} people picked up, ${n} appointment${n === 1 ? '' : 's'} booked.`,
+          headline: `${stats.dialed} dials, ${stats.picked} people picked up, ${n} appointment${n === 1 ? '' : 's'} on your calendar.`,
           lines: [
             { q: n >= 3 ? 'good' : n ? 'ok' : 'bad', text: `Appointments booked: ${n}` },
             { q: stats.bad ? 'bad' : 'good', text: stats.bad ? `Pushy or dishonest answers: ${stats.bad}. People remember those.` : 'You stayed honest and polite the whole time.' },
             { q: 'ok', text: `Voicemails: ${stats.vm}` }
           ]
-        };
-        PP.mg.summary(root, PP.minigames.callathon.title, result, done);
+        }, done);
       }
       dial();
-      return { stop() { finished = true; [t1, t2, respondTimer].forEach(clearTimeout); timer.stop(); document.removeEventListener('keydown', onKey); } };
+      return { stop() { finished = true; [t1, t2, respondT].forEach(clearTimeout); timer.stop(); document.removeEventListener('keydown', onKey); } };
     }
   };
 })(window.PP);
 
 </script>
 <script>
-/* Chamber of Commerce mixer (prospecting). A room of name tags and limited time.
- * Talk to people: ask about them, talk about yourself, or swap cards and move on.
- * Business owners become prospects. Some guests are time sinks. */
+/* Chamber of Commerce mixer (prospecting). A room full of people and a clock.
+ * Click a guest to walk over. Ask about them, talk about yourself, or swap cards.
+ * Leads fly into your card holder; time sinks eat your clock. */
 (function (PP) {
   const h = PP.h;
   const GUESTS = [
-    { type: 'owner', name: 'Dana', tag: 'Owns Dana\'s Bakery', open: '"Business is booming, but I never have a minute to think about my own money."', bias: { rosa: 3 } },
-    { type: 'owner', name: 'Hector', tag: 'Hector\'s Hardware', open: '"Thirty years running the store. My kids don\'t want it. Not sure what happens next."', bias: { rosa: 3 } },
-    { type: 'owner', name: 'Wen', tag: '???', realTag: 'Runs a dental practice', open: '"I just opened a second location. Everyone says I should \'have a plan.\'"', bias: { rosa: 2, morgan: 1 } },
-    { type: 'family', name: 'Chris', tag: '???', realTag: 'New dad, works at the bank', open: '"We just had our first kid. I have no idea what we\'re supposed to be doing."', bias: { taylor: 3 } },
-    { type: 'numbers', name: 'Pat', tag: 'Civil engineer', open: '"I made a spreadsheet of the buffet. The cheese-to-cracker ratio is off by 14%."', bias: { morgan: 3 } },
-    { type: 'rival', name: 'Vance', tag: 'Velocity Wealth', open: '"Ha! Another advisor. I closed forty deals last quarter. Want to know how?"' },
-    { type: 'mlm', name: 'Brenda', tag: '???', realTag: 'Essential oils "entrepreneur"', open: '"Have you heard about the opportunity of a lifetime? It involves lavender."' },
-    { type: 'president', name: 'Marcus', tag: 'Chamber president', open: '"Glad you came! We\'re always looking for speakers for our monthly breakfast."' },
-    { type: 'connector', name: 'Gail', tag: 'Knows everyone', open: '"New face! Let me tell you who\'s who in this room."' }
+    { type: 'owner', fig: 'owner', name: 'Dana', tag: 'Owns Dana\'s Bakery', open: '"Business is booming, but I never have a minute to think about my own money."', bias: { rosa: 3 } },
+    { type: 'owner', fig: 'vendor', name: 'Hector', tag: 'Hector\'s Hardware', open: '"Thirty years running the store. My kids don\'t want it. Not sure what happens next."', bias: { rosa: 3 } },
+    { type: 'owner', fig: 'guest', name: 'Wen', tag: '???', realTag: 'Runs a dental practice', open: '"I just opened a second location. Everyone says I should \'have a plan.\'"', bias: { rosa: 2, morgan: 1 } },
+    { type: 'family', fig: 'family', name: 'Chris', tag: '???', realTag: 'New dad, works at the bank', open: '"We just had our first kid. I have no idea what we\'re supposed to be doing."', bias: { taylor: 3 } },
+    { type: 'numbers', fig: 'numbers', name: 'Pat', tag: 'Civil engineer', open: '"I made a spreadsheet of the buffet. The cheese-to-cracker ratio is off by 14%."', bias: { morgan: 3 } },
+    { type: 'rival', fig: 'rival', name: 'Vance', tag: 'Velocity Wealth', open: '"Ha! Another advisor. I closed forty deals last quarter. Want to know how?"' },
+    { type: 'mlm', fig: 'mlm', name: 'Brenda', tag: '???', realTag: 'Essential oils "entrepreneur"', open: '"Have you heard about the opportunity of a lifetime? It involves lavender."' },
+    { type: 'president', fig: 'president', name: 'Marcus', tag: 'Chamber president', open: '"Glad you came! We\'re always looking for speakers for our monthly breakfast."' },
+    { type: 'connector', fig: 'connector', name: 'Gail', tag: 'Knows everyone', open: '"New face! Let me tell you who\'s who in this room."' }
   ];
+  const SPOTS = [[8, 18], [30, 10], [55, 16], [78, 12], [14, 56], [38, 52], [62, 58], [84, 54]];
 
   PP.minigames.mixer = {
     title: 'Chamber of Commerce Mixer',
     risk: 'prospecting at events',
     prospecting: true,
-    blurb: 'Work the room before the event ends. Ask people about themselves, and find the ones who need help. Some guests are time sinks.',
+    blurb: 'Walk the room before the event ends. Ask people about themselves and find the ones who need help. Some guests are time sinks.',
     start(root, ctx, done) {
+      const F = PP.fx;
       const comm = PP.skill(ctx.state, 'communication');
-      let minutes = 6 + comm + (ctx.prep || 0) * 0.5;
+      const total = 6 + comm + (ctx.prep || 0) * 0.5;
+      let minutes = total;
       const ui = PP.mg.shell(root, this.title, this.risk);
       ui.wrap.querySelector('.mg-timer').hidden = true;
-      const room = h('div', { class: 'mixer-room' });
-      const talk = h('div', { class: 'mixer-talk' });
-      ui.body.append(h('p', { class: 'mg-instr' }, 'Each conversation takes time. Asking about someone takes a minute, swapping cards takes half. When the clock runs out, the mixer is over.'), room, talk,
-        h('button', { class: 'btn ghost', onclick: () => finish() }, 'Head home early'));
-      const guests = PP.shuffle(GUESTS).slice(0, 8).map((g) => Object.assign({ met: false }, g));
-      const leads = [], lines = [];
-      let finished = false, bonus = 0;
+      const clock = F.meter('Time left', 'warn'); clock.set(minutes, total, `${minutes} min`);
+      const leadsC = F.counter('Leads');
+      ui.hud.append(clock.el, leadsC.el);
 
-      function status() { ui.status.textContent = `${Math.max(0, minutes)} minute${minutes === 1 ? '' : 's'} left · ${leads.length} lead${leads.length === 1 ? '' : 's'}`; }
-      function renderRoom() {
-        room.innerHTML = '';
-        guests.forEach((g) => room.appendChild(h('button', { class: 'nametag' + (g.met ? ' met' : ''), disabled: g.met || finished, onclick: () => approach(g) },
-          h('span', { class: 'hello' }, 'HELLO my name is'), h('strong', null, g.name), h('span', { class: 'tagline' }, g.revealed ? g.realTag || g.tag : g.tag))));
-        status();
-      }
+      const holder = h('div', { class: 'mx-holder', title: 'Your card holder' }, h('span', null, 'Cards'));
+      const room = h('div', { class: 'mg-stage-area mx-room' },
+        h('div', { class: 'mx-banner' }, 'Harbor Chamber of Commerce · Monthly Mixer'),
+        h('div', { class: 'mx-table', style: { left: '22%', top: '40%' } }), h('div', { class: 'mx-table', style: { left: '66%', top: '38%' } }),
+        holder,
+        h('button', { class: 'btn small mx-leave', onclick: () => finish() }, 'Head home'));
+      ui.body.append(h('p', { class: 'mg-instr' }, 'Click someone to walk over. Asking about them takes a minute, swapping cards takes half.'), room);
+
+      const guests = PP.shuffle(GUESTS).slice(0, 8).map((g, i) => Object.assign({ met: false, spot: SPOTS[i] }, g));
+      const leads = [], lines = [];
+      let finished = false, bonus = 0, busy = false;
+
+      guests.forEach((g, i) => {
+        g.el = h('button', { class: 'mx-guest', style: { left: g.spot[0] + '%', top: g.spot[1] + '%', animationDelay: (i * 0.37) + 's' }, onclick: () => approach(g), 'aria-label': `Talk to ${g.name}` });
+        g.el.innerHTML = PP.art.figure(g.fig, { seed: i + 2 });
+        g.tagEl = h('span', { class: 'mx-tag' }, h('b', null, g.name), h('span', null, g.tag));
+        g.el.appendChild(g.tagEl);
+        room.appendChild(g.el);
+      });
+
       function approach(g) {
-        talk.innerHTML = '';
-        talk.append(h('p', { class: 'mixer-open' }, h('strong', null, g.name + ': '), g.open),
-          h('div', { class: 'stack' },
-            h('button', { class: 'btn', onclick: () => act(g, 'listen') }, `Ask about them (${g.type === 'mlm' ? '2 minutes' : '1 minute'})`),
-            h('button', { class: 'btn', onclick: () => act(g, 'pitch') }, 'Talk about yourself (1 minute)'),
-            h('button', { class: 'btn', onclick: () => act(g, 'card') }, 'Swap cards and move on (½ minute)')));
+        if (busy || g.met || finished) return;
+        busy = true;
+        F.sfx('click');
+        g.el.classList.add('talking');
+        const bub = h('div', { class: 'mx-bubble', style: { left: Math.min(70, Math.max(2, g.spot[0] - 8)) + '%', top: (g.spot[1] > 40 ? g.spot[1] - 34 : g.spot[1] + 30) + '%' } },
+          h('p', null, h('strong', null, g.name + ': '), g.open),
+          h('div', { class: 'mx-choices' },
+            h('button', { class: 'chip-btn', onclick: () => act(g, 'listen', bub) }, `Ask about them (${g.type === 'mlm' ? '2' : '1'} min)`),
+            h('button', { class: 'chip-btn', onclick: () => act(g, 'pitch', bub) }, 'Talk about yourself (1 min)'),
+            h('button', { class: 'chip-btn', onclick: () => act(g, 'card', bub) }, 'Swap cards (½ min)')));
+        room.appendChild(bub);
       }
-      function act(g, how) {
+
+      function act(g, how, bub) {
         g.met = true;
-        minutes -= how === 'card' ? 0.5 : g.type === 'mlm' && how === 'listen' ? 2 : 1;
-        let msg = '', q = 'ok';
-        const lead = (temp) => leads.push({ temp, bias: g.bias, source: `the Chamber mixer (${g.name})`, event: true });
+        const cost = how === 'card' ? 0.5 : g.type === 'mlm' && how === 'listen' ? 2 : 1;
+        minutes = Math.max(0, minutes - cost);
+        clock.set(minutes, total, `${minutes} min`);
+        let msg = '', q = 'meh', lead = null;
+        const mk = (temp) => (lead = { temp, bias: g.bias, source: `the Chamber mixer (${g.name})`, event: true });
         if (g.type === 'owner' || g.type === 'family' || g.type === 'numbers') {
-          if (how === 'listen') { lead('warm'); msg = `${g.name} talks for a while, then asks for your card. "Can we keep talking next week?"`; q = 'good'; }
-          else if (how === 'pitch') { if (PP.chance(0.4)) { lead('cold'); msg = `${g.name} nods politely and takes your card.`; } else msg = `${g.name}'s eyes glaze over. They excuse themselves to find the cheese.`; q = 'ok'; }
-          else { if (PP.chance(0.35)) { lead('cold'); msg = `You swap cards with ${g.name}. They might call.`; } else msg = `You swap cards with ${g.name}. It goes straight into a pocket full of other cards.`; }
+          if (how === 'listen') { mk('warm'); msg = `${g.name} talks for a while, then asks for your card.`; q = 'good'; }
+          else if (how === 'pitch') { if (PP.chance(0.4)) { mk('cold'); msg = `${g.name} politely takes your card.`; } else msg = `${g.name}'s eyes glaze over. They go find the cheese.`; }
+          else { if (PP.chance(0.35)) { mk('cold'); msg = 'Cards swapped. They might call.'; } else msg = 'Cards swapped. Yours vanishes into a pocket full of cards.'; }
         } else if (g.type === 'rival') {
-          msg = how === 'listen' ? 'Vance talks about himself for a full minute. You learn that he drives a boat to work.' : how === 'pitch' ? '"Cute," says Vance.' : 'Vance hands you a card. It is metal. It is heavy.'; q = how === 'card' ? 'ok' : 'bad';
+          msg = how === 'listen' ? 'Vance talks about himself. He drives a boat to work.' : how === 'pitch' ? '"Cute," says Vance.' : 'His card is metal. It is heavy.'; q = how === 'card' ? 'meh' : 'bad';
         } else if (g.type === 'mlm') {
-          msg = how === 'listen' ? 'Two minutes on lavender. You now own a sample.' : how === 'pitch' ? 'You talk about yourself. Brenda talks about lavender. Neither of you listens.' : 'You escape with a card that smells faintly of eucalyptus.'; q = how === 'card' ? 'good' : 'bad';
+          msg = how === 'listen' ? 'Two whole minutes on lavender. You now own a sample.' : how === 'pitch' ? 'You pitch. She pitches back. Nobody listens.' : 'Escaped! Your hand smells of eucalyptus.'; q = how === 'card' ? 'good' : 'bad';
         } else if (g.type === 'president') {
-          if (how === 'listen') { bonus++; msg = 'Marcus invites you to speak at next month\'s breakfast. That will bring someone your way.'; q = 'good'; }
-          else msg = 'Marcus smiles and moves on to greet someone else.';
+          if (how === 'listen') { bonus++; msg = 'He invites you to speak at next month\'s breakfast!'; q = 'great'; } else msg = 'Marcus smiles and moves on.';
         } else if (g.type === 'connector') {
-          if (how === 'listen') { guests.forEach((x) => (x.revealed = true)); msg = 'Gail points out everyone in the room, including the person you should avoid.'; q = 'good'; }
-          else msg = '"Lovely to meet you!" Gail drifts off.';
+          if (how === 'listen') { msg = 'Gail points out everyone in the room.'; q = 'great'; reveal(); } else msg = '"Lovely to meet you!" Gail drifts off.';
         }
-        lines.push({ q, text: `${g.name} (${g.realTag || g.tag}): ${how === 'listen' ? 'asked about them' : how === 'pitch' ? 'talked about yourself' : 'swapped cards'}` });
-        talk.innerHTML = '';
-        talk.append(h('p', { class: 'mg-feedback q-' + q }, msg));
-        renderRoom();
-        if (minutes <= 0 || guests.every((x) => x.met)) setTimeout(finish, 700);
+        bub.innerHTML = '';
+        bub.appendChild(h('p', null, msg));
+        lines.push({ q: q === 'great' ? 'good' : q === 'meh' ? 'ok' : q, text: `${g.name} (${g.realTag || g.tag}): ${how === 'listen' ? 'asked about them' : how === 'pitch' ? 'talked about yourself' : 'swapped cards'}` });
+        if (lead) {
+          leads.push(lead);
+          leadsC.set(leads.length);
+          F.popOn(room, g.el, '+ Lead!', 'good'); F.sfx('coin');
+          const card = h('div', { class: 'mx-card' }, g.name);
+          g.el.appendChild(card);
+          F.fly(card, holder, room, () => { holder.appendChild(h('i', { class: 'mx-card-stack' })); F.bump(holder); });
+          card.remove();
+        } else if (q === 'bad') { F.popOn(room, g.el, cost >= 2 ? '−2 min!' : 'Ugh.', 'bad'); F.sfx('bad'); F.shake(g.el); }
+        else if (q === 'great') { F.popOn(room, g.el, g.type === 'president' ? 'Speaking invite!' : 'Room revealed!', 'great'); F.sfx('great'); F.burstOn(room, g.el, 'great', 14); }
+        else { F.popOn(room, g.el, how === 'card' ? 'Card swapped' : 'Meh', 'meh'); F.sfx('meh'); }
+        setTimeout(() => {
+          bub.remove(); g.el.classList.remove('talking'); g.el.classList.add('met'); busy = false;
+          if (minutes <= 0 || guests.every((x) => x.met)) finish();
+        }, 1300);
       }
+      function reveal() {
+        guests.forEach((x) => { if (x.realTag) { x.tagEl.lastChild.textContent = x.realTag; F.glow(x.tagEl, 'great'); } });
+      }
+
       function finish() {
         if (finished) return;
         finished = true;
         for (let i = 0; i < bonus; i++) leads.push({ temp: 'warm', source: 'your talk at the Chamber breakfast', event: true });
         const n = leads.length;
-        PP.mg.summary(root, PP.minigames.mixer.title, {
+        setTimeout(() => PP.mg.summary(root, PP.minigames.mixer.title, {
           score: n, max: Math.max(n, 4), eff: { energy: -1 }, prospects: leads, passed: ctx.pass != null ? n >= ctx.pass : null,
           headline: `You leave with ${n} real lead${n === 1 ? '' : 's'}${bonus ? ', including a speaking invite' : ''}.`,
           lines: lines.length ? lines : [{ q: 'bad', text: 'You stood by the snack table the whole time.' }]
-        }, done);
+        }, done), 300);
       }
-      renderRoom();
       return { stop() { finished = true; } };
     }
   };
@@ -3262,48 +3825,59 @@ window.PP = window.PP || {};
 </script>
 <script>
 /* Farmers market tent (prospecting). People stroll past your tent.
- * Click the ones who look interested to wave them over, then offer a quick raffle slip
- * or a real chat. Waving at joggers is just awkward. Anyone interested who walks past
- * gets pulled in by the rival tent's inflatable tube man. */
+ * Click the ones who look interested to wave them over, then hand them a raffle slip
+ * (into the fishbowl) or have a real chat. Waving at joggers is awkward. Anyone
+ * interested who walks past gets pulled in by the rival tent's inflatable tube man. */
 (function (PP) {
   const h = PP.h;
   const TYPES = [
-    { id: 'family', label: 'Pushing a stroller', interested: true, bias: { taylor: 3 }, w: 3 },
-    { id: 'retiree', label: 'Sun hat, reading glasses', interested: true, bias: { morgan: 2, taylor: 1 }, w: 2 },
-    { id: 'vendor', label: 'Apron from the bakery stall', interested: true, bias: { rosa: 3 }, w: 2 },
-    { id: 'couple', label: 'Arguing about a mortgage', interested: true, bias: { taylor: 2, morgan: 1 }, w: 1.5 },
-    { id: 'jogger', label: 'Jogging, earbuds in', interested: false, w: 2 },
-    { id: 'kid', label: 'Kid chasing a balloon', interested: false, w: 1 },
-    { id: 'dog', label: 'Being walked by a large dog', interested: false, w: 1.5 },
-    { id: 'phone', label: 'On a very loud phone call', interested: false, w: 1.5 }
+    { id: 'family', fig: 'family', label: 'Pushing a stroller', interested: true, bias: { taylor: 3 }, w: 3 },
+    { id: 'retiree', fig: 'retiree', label: 'Sun hat, reading glasses', interested: true, bias: { morgan: 2, taylor: 1 }, w: 2 },
+    { id: 'vendor', fig: 'vendor', label: 'Apron from the bakery stall', interested: true, bias: { rosa: 3 }, w: 2 },
+    { id: 'couple', fig: 'couple', label: 'Clutching a mortgage letter', interested: true, bias: { taylor: 2, morgan: 1 }, w: 1.5 },
+    { id: 'jogger', fig: 'jogger', label: 'Jogging, earbuds in', interested: false, w: 2 },
+    { id: 'kid', fig: 'kid', label: 'Chasing a balloon', interested: false, w: 1 },
+    { id: 'dog', fig: 'dog', label: 'Walked by a large dog', interested: false, w: 1.5 },
+    { id: 'phone', fig: 'phone', label: 'On a very loud call', interested: false, w: 1.5 }
   ];
 
   PP.minigames.market = {
     title: 'Farmers Market Tent',
     risk: 'prospecting in your community',
     prospecting: true,
-    blurb: 'Wave over people who look interested, then offer a quick raffle slip or a real chat. Anyone interested who walks past ends up at the rival tent.',
+    blurb: 'Wave over people who look interested, then hand them a raffle slip or have a real chat. Anyone interested who walks past ends up at the rival tent.',
     start(root, ctx, done) {
+      const F = PP.fx;
       const prep = ctx.prep || 0;
       const ui = PP.mg.shell(root, this.title, this.risk);
-      const lane = h('div', { class: 'market-lane', 'aria-label': 'Market lane' }, h('div', { class: 'tent mine' }, 'Your tent'), h('div', { class: 'tent rival' }, 'Velocity Wealth', h('span', { class: 'tube' })));
-      const prompt = h('div', { class: 'market-prompt' });
-      ui.body.append(h('p', { class: 'mg-instr' }, 'Click people as they pass. Raffle slips are quick but cold. A chat takes a few seconds but makes a warm lead.'), lane, prompt);
+      const leadsC = F.counter('Leads'), bowlC = F.counter('Fishbowl'), lostC = F.counter('Lost to rival');
+      ui.hud.append(leadsC.el, bowlC.el, lostC.el);
+
+      const bowl = h('div', { class: 'mk-bowl', title: 'Raffle fishbowl' });
+      const clip = h('div', { class: 'mk-clip' }, h('span', null, 'Leads'));
+      const rival = h('div', { class: 'mk-tent rival' }, h('span', null, 'Velocity Wealth'), h('i', { class: 'tube' }));
+      const lane = h('div', { class: 'mg-stage-area mk-lane' },
+        h('div', { class: 'mk-tent mine' }, h('span', null, 'Your tent'), h('div', { class: 'mk-table' }, bowl)),
+        rival, clip, h('div', { class: 'mk-path' }));
+      ui.body.append(h('p', { class: 'mg-instr' }, 'Click people who look interested. Raffle slips are quick but cold. A chat takes three seconds and usually makes a warm lead.'), lane);
+
       const leads = [], walkers = [];
       const stats = { stolen: 0, awkward: 0, raffle: 0, chat: 0 };
-      let finished = false, busy = false, spawnT = null, raf = 0, last = performance.now();
+      let finished = false, busy = false, spawnT = null, raf = 0, last = performance.now(), seed = 1;
       const timer = PP.mg.timer(ui.bar, 30 + prep * 5, () => finish());
       const pickType = () => { const tot = TYPES.reduce((a, t) => a + t.w, 0); let r = Math.random() * tot; for (const t of TYPES) { r -= t.w; if (r <= 0) return t; } return TYPES[0]; };
 
       function spawn() {
         if (finished) return;
         const t = pickType();
-        const el = h('button', { class: 'walker' + (t.interested ? ' maybe' : ''), onclick: () => wave(w) }, h('span', { class: 'walker-fig', 'aria-hidden': 'true' }), h('span', { class: 'walker-label' }, t.label));
-        const w = { t, el, x: -12, speed: 11 + Math.random() * 7, lane: Math.floor(Math.random() * 2), gone: false };
-        el.style.top = (w.lane ? 64 : 36) + '%';
-        lane.appendChild(el);
+        const w = { t, x: -10, speed: 9 + Math.random() * 6, row: Math.floor(Math.random() * 2) };
+        w.el = h('button', { class: 'mk-walker', onclick: () => wave(w), 'aria-label': t.label });
+        w.el.innerHTML = PP.art.figure(t.fig, { seed: seed++ });
+        w.el.appendChild(h('span', { class: 'mk-label' }, t.label));
+        w.el.style.top = (w.row ? 58 : 40) + '%';
+        lane.appendChild(w.el);
         walkers.push(w);
-        spawnT = setTimeout(spawn, 1100 + Math.random() * 1000);
+        spawnT = setTimeout(spawn, 1000 + Math.random() * 1000);
       }
       function frame(now) {
         if (finished) return;
@@ -3312,33 +3886,65 @@ window.PP = window.PP || {};
           if (w.gone || w.stopped) return;
           w.x += w.speed * dt;
           w.el.style.left = w.x + '%';
-          if (w.x > 86) { w.gone = true; w.el.remove(); if (w.t.interested) { stats.stolen++; say('The tube man got one. They wander into the Velocity Wealth tent.', 'bad'); } }
+          if (w.t.interested && w.x > 74 && !w.lost) {
+            w.lost = true; w.gone = true; stats.stolen++; lostC.set(stats.stolen);
+            w.el.classList.add('to-rival');
+            F.popOn(lane, rival, 'Lost to the tube man!', 'bad'); F.sfx('meh');
+            setTimeout(() => w.el.remove(), 600);
+          } else if (w.x > 100) { w.gone = true; w.el.remove(); }
         });
-        status();
         raf = requestAnimationFrame(frame);
       }
       function wave(w) {
         if (busy || w.gone || finished) return;
-        if (!w.t.interested) { stats.awkward++; timer.sub(1.5); w.el.classList.add('nope'); say('They speed up. Awkward.', 'ok'); return; }
-        busy = true; w.stopped = true; w.el.classList.add('stopped');
-        prompt.innerHTML = '';
-        prompt.append(h('p', null, h('strong', null, w.t.label + ': '), '"Hi! What\'s this about?"'),
-          h('div', { class: 'row' },
-            h('button', { class: 'btn', onclick: () => resolve(w, 'raffle') }, 'Hand them a raffle slip'),
-            h('button', { class: 'btn primary', onclick: () => resolve(w, 'chat') }, 'Have a real chat (3 seconds)')));
+        if (!w.t.interested) {
+          stats.awkward++; timer.sub(1.5); w.speed *= 1.8;
+          F.popOn(lane, w.el, '?!  (−1.5s)', 'bad'); F.sfx('bad'); F.shake(w.el);
+          return;
+        }
+        busy = true; w.stopped = true; w.el.classList.add('stopped'); F.sfx('click');
+        const bub = h('div', { class: 'mk-bubble', style: { left: Math.min(70, w.x) + '%' } },
+          h('p', null, '"Hi! What\'s this about?"'),
+          h('div', { class: 'mx-choices' },
+            h('button', { class: 'chip-btn', onclick: () => resolve(w, 'raffle', bub) }, 'Raffle slip'),
+            h('button', { class: 'chip-btn primary', onclick: () => resolve(w, 'chat', bub) }, 'Have a real chat')));
+        lane.appendChild(bub);
       }
-      function resolve(w, how) {
-        prompt.innerHTML = '';
-        const finishIt = () => {
-          if (how === 'chat') { stats.chat++; const r = Math.random(); if (r < 0.5) { leads.push({ temp: 'warm', bias: w.t.bias, source: 'your farmers market tent', event: true }); say('A real conversation. They want to meet properly.', 'good'); } else if (r < 0.75) { leads.push({ temp: 'cold', bias: w.t.bias, source: 'your farmers market tent', event: true }); say('Nice chat. They take a card. Maybe.', 'ok'); } else say('Lovely chat about heirloom tomatoes. Not a prospect.', 'ok'); }
-          else { stats.raffle++; if (PP.chance(0.3)) leads.push({ temp: 'cold', bias: w.t.bias, source: 'your raffle fishbowl', event: true }); say('Into the fishbowl it goes.', 'ok'); }
-          w.gone = true; w.el.remove(); busy = false;
-        };
-        if (how === 'chat') { prompt.append(h('p', { class: 'muted' }, 'Chatting…')); setTimeout(() => { prompt.innerHTML = ''; if (!finished) finishIt(); }, 3000); }
-        else finishIt();
+      function addLead(w, temp, label) {
+        leads.push({ temp, bias: w.t.bias, source: temp === 'warm' ? 'your farmers market tent' : 'your raffle fishbowl', event: true });
+        leadsC.set(leads.length);
+        F.popOn(lane, w.el, label, temp === 'warm' ? 'good' : 'meh'); F.sfx('coin');
+        const card = h('div', { class: 'mx-card' }, temp);
+        w.el.appendChild(card);
+        F.fly(card, clip, lane, () => { clip.appendChild(h('i', { class: 'mx-card-stack ' + temp })); F.bump(clip); });
+        card.remove();
       }
-      function say(t, q) { ui.feedback.textContent = t; ui.feedback.className = 'mg-feedback q-' + q; }
-      function status() { ui.status.textContent = `${leads.length} lead${leads.length === 1 ? '' : 's'} · ${stats.stolen} lost to the tube man`; }
+      function resolve(w, how, bub) {
+        bub.remove();
+        const leave = () => { w.el.classList.add('leaving'); w.gone = true; setTimeout(() => w.el.remove(), 500); busy = false; };
+        if (how === 'raffle') {
+          stats.raffle++; bowlC.set(stats.raffle);
+          const slip = h('div', { class: 'mk-slip' });
+          w.el.appendChild(slip);
+          F.fly(slip, bowl, lane, () => { bowl.appendChild(h('i', { class: 'mk-slip-in', style: { left: 10 + Math.random() * 60 + '%', bottom: 6 + Math.random() * 30 + '%', transform: `rotate(${Math.random() * 60 - 30}deg)` } })); F.bump(bowl); });
+          slip.remove();
+          F.sfx('whoosh');
+          if (PP.chance(0.3)) setTimeout(() => addLead(w, 'cold', '+ Cold lead'), 350); else F.popOn(lane, w.el, 'Into the bowl', 'meh');
+          setTimeout(leave, 500);
+        } else {
+          stats.chat++;
+          w.el.classList.add('chatting');
+          setTimeout(() => {
+            w.el.classList.remove('chatting');
+            if (finished) return;
+            const r = Math.random();
+            if (r < 0.55) { addLead(w, 'warm', '+ Warm lead!'); F.burstOn(lane, w.el, 'good', 12); }
+            else if (r < 0.8) addLead(w, 'cold', '+ Cold lead');
+            else { F.popOn(lane, w.el, 'Lovely chat about tomatoes', 'meh'); F.sfx('meh'); }
+            leave();
+          }, 3000);
+        }
+      }
       function finish() {
         if (finished) return;
         finished = true;
@@ -3349,7 +3955,7 @@ window.PP = window.PP || {};
           headline: `${n} lead${n === 1 ? '' : 's'} from the market.`,
           lines: [
             { q: stats.chat ? 'good' : 'ok', text: `Real chats: ${stats.chat}` },
-            { q: 'ok', text: `Raffle slips: ${stats.raffle}` },
+            { q: 'ok', text: `Raffle slips in the fishbowl: ${stats.raffle}` },
             { q: stats.stolen > 3 ? 'bad' : 'ok', text: `Lost to the rival tent: ${stats.stolen}` },
             { q: stats.awkward ? 'bad' : 'good', text: `Awkward waves at people who weren't interested: ${stats.awkward}` }
           ]

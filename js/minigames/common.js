@@ -40,14 +40,15 @@
     const status = h('div', { class: 'mg-status' });
     const body = h('div', { class: 'mg-body' });
     const feedback = h('div', { class: 'mg-feedback', 'aria-live': 'polite' });
+    const hud = h('div', { class: 'mg-hud' });
     const wrap = h('div', { class: 'mg' },
       h('div', { class: 'mg-head' },
         h('div', null, h('div', { class: 'eyebrow' }, 'Mini-game · ' + risk), h('h3', { class: 'mg-title' }, title)),
-        status),
+        h('div', { class: 'mg-head-right' }, status, PP.fx ? PP.fx.soundToggle() : null)),
       h('div', { class: 'mg-timer' }, bar),
-      body, feedback);
+      hud, body, feedback);
     root.appendChild(wrap);
-    return { wrap, bar, status, body, feedback };
+    return { wrap, bar, status, body, feedback, hud };
   };
 
   /* End screen: score, line-by-line review, effect chips, continue. */

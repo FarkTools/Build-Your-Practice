@@ -1,46 +1,57 @@
 /* Farmers market tent (prospecting). People stroll past your tent.
- * Click the ones who look interested to wave them over, then offer a quick raffle slip
- * or a real chat. Waving at joggers is just awkward. Anyone interested who walks past
- * gets pulled in by the rival tent's inflatable tube man. */
+ * Click the ones who look interested to wave them over, then hand them a raffle slip
+ * (into the fishbowl) or have a real chat. Waving at joggers is awkward. Anyone
+ * interested who walks past gets pulled in by the rival tent's inflatable tube man. */
 (function (PP) {
   const h = PP.h;
   const TYPES = [
-    { id: 'family', label: 'Pushing a stroller', interested: true, bias: { taylor: 3 }, w: 3 },
-    { id: 'retiree', label: 'Sun hat, reading glasses', interested: true, bias: { morgan: 2, taylor: 1 }, w: 2 },
-    { id: 'vendor', label: 'Apron from the bakery stall', interested: true, bias: { rosa: 3 }, w: 2 },
-    { id: 'couple', label: 'Arguing about a mortgage', interested: true, bias: { taylor: 2, morgan: 1 }, w: 1.5 },
-    { id: 'jogger', label: 'Jogging, earbuds in', interested: false, w: 2 },
-    { id: 'kid', label: 'Kid chasing a balloon', interested: false, w: 1 },
-    { id: 'dog', label: 'Being walked by a large dog', interested: false, w: 1.5 },
-    { id: 'phone', label: 'On a very loud phone call', interested: false, w: 1.5 }
+    { id: 'family', fig: 'family', label: 'Pushing a stroller', interested: true, bias: { taylor: 3 }, w: 3 },
+    { id: 'retiree', fig: 'retiree', label: 'Sun hat, reading glasses', interested: true, bias: { morgan: 2, taylor: 1 }, w: 2 },
+    { id: 'vendor', fig: 'vendor', label: 'Apron from the bakery stall', interested: true, bias: { rosa: 3 }, w: 2 },
+    { id: 'couple', fig: 'couple', label: 'Clutching a mortgage letter', interested: true, bias: { taylor: 2, morgan: 1 }, w: 1.5 },
+    { id: 'jogger', fig: 'jogger', label: 'Jogging, earbuds in', interested: false, w: 2 },
+    { id: 'kid', fig: 'kid', label: 'Chasing a balloon', interested: false, w: 1 },
+    { id: 'dog', fig: 'dog', label: 'Walked by a large dog', interested: false, w: 1.5 },
+    { id: 'phone', fig: 'phone', label: 'On a very loud call', interested: false, w: 1.5 }
   ];
 
   PP.minigames.market = {
     title: 'Farmers Market Tent',
     risk: 'prospecting in your community',
     prospecting: true,
-    blurb: 'Wave over people who look interested, then offer a quick raffle slip or a real chat. Anyone interested who walks past ends up at the rival tent.',
+    blurb: 'Wave over people who look interested, then hand them a raffle slip or have a real chat. Anyone interested who walks past ends up at the rival tent.',
     start(root, ctx, done) {
+      const F = PP.fx;
       const prep = ctx.prep || 0;
       const ui = PP.mg.shell(root, this.title, this.risk);
-      const lane = h('div', { class: 'market-lane', 'aria-label': 'Market lane' }, h('div', { class: 'tent mine' }, 'Your tent'), h('div', { class: 'tent rival' }, 'Velocity Wealth', h('span', { class: 'tube' })));
-      const prompt = h('div', { class: 'market-prompt' });
-      ui.body.append(h('p', { class: 'mg-instr' }, 'Click people as they pass. Raffle slips are quick but cold. A chat takes a few seconds but makes a warm lead.'), lane, prompt);
+      const leadsC = F.counter('Leads'), bowlC = F.counter('Fishbowl'), lostC = F.counter('Lost to rival');
+      ui.hud.append(leadsC.el, bowlC.el, lostC.el);
+
+      const bowl = h('div', { class: 'mk-bowl', title: 'Raffle fishbowl' });
+      const clip = h('div', { class: 'mk-clip' }, h('span', null, 'Leads'));
+      const rival = h('div', { class: 'mk-tent rival' }, h('span', null, 'Velocity Wealth'), h('i', { class: 'tube' }));
+      const lane = h('div', { class: 'mg-stage-area mk-lane' },
+        h('div', { class: 'mk-tent mine' }, h('span', null, 'Your tent'), h('div', { class: 'mk-table' }, bowl)),
+        rival, clip, h('div', { class: 'mk-path' }));
+      ui.body.append(h('p', { class: 'mg-instr' }, 'Click people who look interested. Raffle slips are quick but cold. A chat takes three seconds and usually makes a warm lead.'), lane);
+
       const leads = [], walkers = [];
       const stats = { stolen: 0, awkward: 0, raffle: 0, chat: 0 };
-      let finished = false, busy = false, spawnT = null, raf = 0, last = performance.now();
+      let finished = false, busy = false, spawnT = null, raf = 0, last = performance.now(), seed = 1;
       const timer = PP.mg.timer(ui.bar, 30 + prep * 5, () => finish());
       const pickType = () => { const tot = TYPES.reduce((a, t) => a + t.w, 0); let r = Math.random() * tot; for (const t of TYPES) { r -= t.w; if (r <= 0) return t; } return TYPES[0]; };
 
       function spawn() {
         if (finished) return;
         const t = pickType();
-        const el = h('button', { class: 'walker' + (t.interested ? ' maybe' : ''), onclick: () => wave(w) }, h('span', { class: 'walker-fig', 'aria-hidden': 'true' }), h('span', { class: 'walker-label' }, t.label));
-        const w = { t, el, x: -12, speed: 11 + Math.random() * 7, lane: Math.floor(Math.random() * 2), gone: false };
-        el.style.top = (w.lane ? 64 : 36) + '%';
-        lane.appendChild(el);
+        const w = { t, x: -10, speed: 9 + Math.random() * 6, row: Math.floor(Math.random() * 2) };
+        w.el = h('button', { class: 'mk-walker', onclick: () => wave(w), 'aria-label': t.label });
+        w.el.innerHTML = PP.art.figure(t.fig, { seed: seed++ });
+        w.el.appendChild(h('span', { class: 'mk-label' }, t.label));
+        w.el.style.top = (w.row ? 58 : 40) + '%';
+        lane.appendChild(w.el);
         walkers.push(w);
-        spawnT = setTimeout(spawn, 1100 + Math.random() * 1000);
+        spawnT = setTimeout(spawn, 1000 + Math.random() * 1000);
       }
       function frame(now) {
         if (finished) return;
@@ -49,33 +60,65 @@
           if (w.gone || w.stopped) return;
           w.x += w.speed * dt;
           w.el.style.left = w.x + '%';
-          if (w.x > 86) { w.gone = true; w.el.remove(); if (w.t.interested) { stats.stolen++; say('The tube man got one. They wander into the Velocity Wealth tent.', 'bad'); } }
+          if (w.t.interested && w.x > 74 && !w.lost) {
+            w.lost = true; w.gone = true; stats.stolen++; lostC.set(stats.stolen);
+            w.el.classList.add('to-rival');
+            F.popOn(lane, rival, 'Lost to the tube man!', 'bad'); F.sfx('meh');
+            setTimeout(() => w.el.remove(), 600);
+          } else if (w.x > 100) { w.gone = true; w.el.remove(); }
         });
-        status();
         raf = requestAnimationFrame(frame);
       }
       function wave(w) {
         if (busy || w.gone || finished) return;
-        if (!w.t.interested) { stats.awkward++; timer.sub(1.5); w.el.classList.add('nope'); say('They speed up. Awkward.', 'ok'); return; }
-        busy = true; w.stopped = true; w.el.classList.add('stopped');
-        prompt.innerHTML = '';
-        prompt.append(h('p', null, h('strong', null, w.t.label + ': '), '"Hi! What\'s this about?"'),
-          h('div', { class: 'row' },
-            h('button', { class: 'btn', onclick: () => resolve(w, 'raffle') }, 'Hand them a raffle slip'),
-            h('button', { class: 'btn primary', onclick: () => resolve(w, 'chat') }, 'Have a real chat (3 seconds)')));
+        if (!w.t.interested) {
+          stats.awkward++; timer.sub(1.5); w.speed *= 1.8;
+          F.popOn(lane, w.el, '?!  (−1.5s)', 'bad'); F.sfx('bad'); F.shake(w.el);
+          return;
+        }
+        busy = true; w.stopped = true; w.el.classList.add('stopped'); F.sfx('click');
+        const bub = h('div', { class: 'mk-bubble', style: { left: Math.min(70, w.x) + '%' } },
+          h('p', null, '"Hi! What\'s this about?"'),
+          h('div', { class: 'mx-choices' },
+            h('button', { class: 'chip-btn', onclick: () => resolve(w, 'raffle', bub) }, 'Raffle slip'),
+            h('button', { class: 'chip-btn primary', onclick: () => resolve(w, 'chat', bub) }, 'Have a real chat')));
+        lane.appendChild(bub);
       }
-      function resolve(w, how) {
-        prompt.innerHTML = '';
-        const finishIt = () => {
-          if (how === 'chat') { stats.chat++; const r = Math.random(); if (r < 0.5) { leads.push({ temp: 'warm', bias: w.t.bias, source: 'your farmers market tent', event: true }); say('A real conversation. They want to meet properly.', 'good'); } else if (r < 0.75) { leads.push({ temp: 'cold', bias: w.t.bias, source: 'your farmers market tent', event: true }); say('Nice chat. They take a card. Maybe.', 'ok'); } else say('Lovely chat about heirloom tomatoes. Not a prospect.', 'ok'); }
-          else { stats.raffle++; if (PP.chance(0.3)) leads.push({ temp: 'cold', bias: w.t.bias, source: 'your raffle fishbowl', event: true }); say('Into the fishbowl it goes.', 'ok'); }
-          w.gone = true; w.el.remove(); busy = false;
-        };
-        if (how === 'chat') { prompt.append(h('p', { class: 'muted' }, 'Chatting…')); setTimeout(() => { prompt.innerHTML = ''; if (!finished) finishIt(); }, 3000); }
-        else finishIt();
+      function addLead(w, temp, label) {
+        leads.push({ temp, bias: w.t.bias, source: temp === 'warm' ? 'your farmers market tent' : 'your raffle fishbowl', event: true });
+        leadsC.set(leads.length);
+        F.popOn(lane, w.el, label, temp === 'warm' ? 'good' : 'meh'); F.sfx('coin');
+        const card = h('div', { class: 'mx-card' }, temp);
+        w.el.appendChild(card);
+        F.fly(card, clip, lane, () => { clip.appendChild(h('i', { class: 'mx-card-stack ' + temp })); F.bump(clip); });
+        card.remove();
       }
-      function say(t, q) { ui.feedback.textContent = t; ui.feedback.className = 'mg-feedback q-' + q; }
-      function status() { ui.status.textContent = `${leads.length} lead${leads.length === 1 ? '' : 's'} · ${stats.stolen} lost to the tube man`; }
+      function resolve(w, how, bub) {
+        bub.remove();
+        const leave = () => { w.el.classList.add('leaving'); w.gone = true; setTimeout(() => w.el.remove(), 500); busy = false; };
+        if (how === 'raffle') {
+          stats.raffle++; bowlC.set(stats.raffle);
+          const slip = h('div', { class: 'mk-slip' });
+          w.el.appendChild(slip);
+          F.fly(slip, bowl, lane, () => { bowl.appendChild(h('i', { class: 'mk-slip-in', style: { left: 10 + Math.random() * 60 + '%', bottom: 6 + Math.random() * 30 + '%', transform: `rotate(${Math.random() * 60 - 30}deg)` } })); F.bump(bowl); });
+          slip.remove();
+          F.sfx('whoosh');
+          if (PP.chance(0.3)) setTimeout(() => addLead(w, 'cold', '+ Cold lead'), 350); else F.popOn(lane, w.el, 'Into the bowl', 'meh');
+          setTimeout(leave, 500);
+        } else {
+          stats.chat++;
+          w.el.classList.add('chatting');
+          setTimeout(() => {
+            w.el.classList.remove('chatting');
+            if (finished) return;
+            const r = Math.random();
+            if (r < 0.55) { addLead(w, 'warm', '+ Warm lead!'); F.burstOn(lane, w.el, 'good', 12); }
+            else if (r < 0.8) addLead(w, 'cold', '+ Cold lead');
+            else { F.popOn(lane, w.el, 'Lovely chat about tomatoes', 'meh'); F.sfx('meh'); }
+            leave();
+          }, 3000);
+        }
+      }
       function finish() {
         if (finished) return;
         finished = true;
@@ -86,7 +129,7 @@
           headline: `${n} lead${n === 1 ? '' : 's'} from the market.`,
           lines: [
             { q: stats.chat ? 'good' : 'ok', text: `Real chats: ${stats.chat}` },
-            { q: 'ok', text: `Raffle slips: ${stats.raffle}` },
+            { q: 'ok', text: `Raffle slips in the fishbowl: ${stats.raffle}` },
             { q: stats.stolen > 3 ? 'bad' : 'ok', text: `Lost to the rival tent: ${stats.stolen}` },
             { q: stats.awkward ? 'bad' : 'good', text: `Awkward waves at people who weren't interested: ${stats.awkward}` }
           ]
