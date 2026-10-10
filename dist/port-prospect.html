@@ -942,6 +942,8 @@ input, select, textarea { font-size: 16px; }
   .town-wrap .pick-prompt { margin-top: 0; }
 }
 .boats-art svg { max-height: 90px; }
+.topbar .fx-sound { margin-left: auto; background: transparent; color: var(--parch); border-color: rgba(245, 221, 187, .6); }
+.topbar .fx-sound[aria-pressed="false"] { opacity: .7; }
 
 </style>
 <style>
@@ -5669,26 +5671,55 @@ window.PP = window.PP || {};
     thump: [[110, 0, 0.12, 'sine', 0.25]],
     whoosh: [[300, 0, 0.15, 'triangle', 0.05], [600, 0.04, 0.12, 'triangle', 0.04]]
   };
+  /* Audio on phones needs three things the old code never did:
+   *  1. The audio context must be created and resumed inside a real tap, not a timer.
+   *  2. iPhone treats Web Audio as "ambient", so the ring/silent switch mutes it.
+   *     Asking for the 'playback' audio session (Safari 17+) makes it behave like a game.
+   *  3. A context that the browser suspends later (backgrounding, calls) has to be resumed. */
+  function ctx() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!fx.ac) {
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
+      fx.ac = new AC();
+      fx.master = fx.ac.createGain();
+      fx.master.gain.value = 1.8; // phone speakers are small; the raw levels were very quiet
+      fx.master.connect(fx.ac.destination);
+    }
+    if (fx.ac.state === 'suspended' || fx.ac.state === 'interrupted') fx.ac.resume().catch(() => {});
+    return fx.ac;
+  }
+  function unlock() {
+    const ac = ctx();
+    if (!ac) return;
+    try { // a silent one-sample buffer, played inside the tap, unlocks output on iOS
+      const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();
+      src.buffer = b; src.connect(ac.destination); src.start(0);
+    } catch (e) { /* ignore */ }
+    if (ac.state === 'running') ['pointerdown', 'touchend', 'keydown', 'click'].forEach((t) => document.removeEventListener(t, unlock, true));
+  }
+  ['pointerdown', 'touchend', 'keydown', 'click'].forEach((t) => document.addEventListener(t, unlock, true));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && fx.ac) fx.ac.resume().catch(() => {}); });
+
   fx.sfx = (name) => {
     if (!fx.sound || !SFX[name]) return;
     try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      fx.ac = fx.ac || new AC();
-      const ac = fx.ac, t0 = ac.currentTime + 0.01;
+      const ac = ctx();
+      if (!ac) return;
+      const t0 = ac.currentTime + 0.01;
       SFX[name].forEach(([f, st, d, type, vol]) => {
         const o = ac.createOscillator(), g = ac.createGain();
         o.type = type || 'sine'; o.frequency.value = f;
         g.gain.setValueAtTime(0.0001, t0 + st);
         g.gain.exponentialRampToValueAtTime(vol || 0.1, t0 + st + 0.01);
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + st + d);
-        o.connect(g).connect(ac.destination);
+        o.connect(g).connect(fx.master);
         o.start(t0 + st); o.stop(t0 + st + d + 0.02);
       });
     } catch (e) { /* audio unavailable */ }
   };
   fx.soundToggle = () => {
-    const b = h('button', { class: 'fx-sound', 'aria-pressed': String(fx.sound), title: 'Sound effects', onclick: () => { fx.sound = !fx.sound; PP.store.set('sound', fx.sound); b.setAttribute('aria-pressed', String(fx.sound)); b.textContent = fx.sound ? 'Sound on' : 'Sound off'; if (fx.sound) fx.sfx('click'); } }, fx.sound ? 'Sound on' : 'Sound off');
+    const b = h('button', { class: 'fx-sound', 'aria-pressed': String(fx.sound), title: 'Sound effects', onclick: () => { fx.sound = !fx.sound; PP.store.set('sound', fx.sound); document.querySelectorAll('.fx-sound').forEach((x) => { x.setAttribute('aria-pressed', String(fx.sound)); x.textContent = fx.sound ? 'Sound on' : 'Sound off'; }); if (fx.sound) fx.sfx('ding'); } }, fx.sound ? 'Sound on' : 'Sound off');
     return b;
   };
 
@@ -5827,6 +5858,17 @@ window.PP = window.PP || {};
     const t = kind === 'kid' ? 'transform="translate(10 30) scale(.7)"' : '';
     return `<svg viewBox="0 0 70 100" class="art-figure" aria-hidden="true"><g ${t}>${g}</g></svg>`;
   };
+})(window.PP);
+/* Small tap sounds outside the mini-games too, and a sound switch in the top bar. */
+(function (PP) {
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest && e.target.closest('.choice, .menu-item, .btn, .tp, .arrival-card, .pack-item');
+    if (t && !t.closest('.mg') && !t.classList.contains('fx-sound') && !t.disabled) PP.fx.sfx('click');
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    const bar = document.querySelector('.topbar');
+    if (bar && PP.fx.soundToggle) bar.appendChild(PP.fx.soundToggle());
+  });
 })(window.PP);
 
 </script>

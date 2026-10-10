@@ -930,3 +930,5 @@ input, select, textarea { font-size: 16px; }
   .town-wrap .pick-prompt { margin-top: 0; }
 }
 .boats-art svg { max-height: 90px; }
+.topbar .fx-sound { margin-left: auto; background: transparent; color: var(--parch); border-color: rgba(245, 221, 187, .6); }
+.topbar .fx-sound[aria-pressed="false"] { opacity: .7; }
