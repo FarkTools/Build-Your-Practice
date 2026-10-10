@@ -171,6 +171,23 @@
           note(`${b.name}, who said "not yet," is ready now and wants to work with you. +${C.money(1000)}, and they join your book.`, 'good', 'return');
         }
       });
+      // Life changes: existing clients call you back, which starts a follow-up journey.
+      c.followUps = (c.followUps || []).filter((f) => {
+        const b = c.book.find((x) => x.id === f.bookId);
+        if (!b || b.status === 'cancelled') return false;
+        if (c.days > f.expires) { b.sat = Math.max(0, b.sat - 2); note(`${b.name} waited for you to follow up about "${f.title.toLowerCase()}" and stopped waiting.`, 'bad', 'followup'); return false; }
+        return true;
+      });
+      c.book.forEach((b) => {
+        if (!['life', 'steady'].includes(b.status) || c.followUps.some((f) => f.bookId === b.id)) return;
+        if (c.days - (b.lastLap != null ? b.lastLap : (b.day || 0)) < 10 || !PP.chance(0.045)) return;
+        const seg = (PP.content.clients[b.archetype] || {}).segment;
+        const pool = (PP.content.lifeChanges || []).filter((lc) => (!lc.segs || lc.segs.includes(seg)) && !(b.changes || []).includes(lc.id));
+        if (!pool.length) return;
+        const lc = PP.pick(pool);
+        c.followUps.push({ id: PP.uid('f'), bookId: b.id, change: lc.id, title: lc.title, expires: c.days + 20 });
+        note(`${b.name} called: ${lc.title.toLowerCase()}. They'd like to meet. (A follow-up journey is waiting at the Docks.)`, 'good', 'followup');
+      });
       // Pipeline
       c.pipeline = c.pipeline.filter((p) => {
         if (c.days > p.expires) { note(`${p.name} lost interest while waiting. They are off your pipeline.`, 'bad'); return false; }

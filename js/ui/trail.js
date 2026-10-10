@@ -50,7 +50,8 @@
     if (T.keys) document.removeEventListener('keydown', T.keys);
     T.keys = onKey; document.addEventListener('keydown', T.keys);
     renderLedger(); renderSide();
-    say(`Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
+    if (s.followUp) say(s.client.followCall || `${s.client.name} called. Life has changed.`);
+    say(s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
     showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
   };
@@ -61,7 +62,7 @@
   function goalLine() {
     const s = T.s;
     return h('div', { class: 'goal' },
-      h('div', null, h('span', { class: 'eyebrow' }, 'This journey'), ` Find out where ${s.client.name} actually needs to go, and get them to Clients for Life with their trust intact.`),
+      h('div', null, h('span', { class: 'eyebrow' }, 'This journey'), s.followUp ? ` ${s.client.name}'s life changed: ${s.followUp.title.toLowerCase()}. Find out what it really means for them, and see the relationship through to the next plan.` : ` Build rapport, find the facts, understand the risks, and guide ${s.client.name} to the plan that truly fits, with their trust intact.`),
       s.career ? h('div', null, h('span', { class: 'eyebrow' }, 'Your career'), ` Build a Profitable practice before your savings run out. Every day away costs ${PP.career.money(PP.career.costs(s.career))}, and your clients and prospects back at the port are waiting.`) : null);
   }
   function narration(n = 3) {

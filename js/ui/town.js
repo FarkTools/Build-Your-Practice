@@ -51,8 +51,8 @@
     svg.appendChild(el('g', { transform: 'translate(330 30)', class: 't-compass' }, el('circle', { r: 13, class: 'fill-fog' }), el('path', { d: 'M0,-16 L3,-3 L0,0 L-3,-3z', class: 'fill-orange' }), el('path', { d: 'M0,16 L3,3 L0,0 L-3,3z', class: 'fill-navy' }), el('text', { y: -19, class: 't-n' }, 'N')));
 
     const badges = {
-      docks: c.pipeline.length ? { n: c.pipeline.length, cls: 'b-go', title: 'ready to set out' } : null,
-      homes: (() => { const act = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)); const un = act.filter((b) => b.sat < 5).length; return un ? { n: '!', cls: 'b-warn', title: 'clients need you' } : act.length ? { n: act.length, cls: 'b-ok', title: 'clients' } : null; })()
+      docks: c.pipeline.length + (c.followUps || []).length ? { n: c.pipeline.length + (c.followUps || []).length, cls: 'b-go', title: 'ready to set out' } : null,
+      homes: (() => { const act = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)); const un = act.filter((b) => b.sat < 5).length + (c.followUps || []).length; return un ? { n: '!', cls: 'b-warn', title: 'clients need you' } : act.length ? { n: act.length, cls: 'b-ok', title: 'clients' } : null; })()
     };
     Object.entries(T.places).forEach(([id, pl]) => {
       if (!badges[id] && pl.npcs.some((n) => !c.met[n])) badges[id] = { n: '•', cls: 'b-new', title: 'someone new to meet' };

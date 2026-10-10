@@ -242,12 +242,16 @@
   }
 
   /* ---- Pipeline ---- */
+  function followUpBox() {
+    const fus = (G.career.followUps || []).map(followUpCard).filter(Boolean);
+    return fus.length ? h('div', { class: 'stack' }, h('h4', { class: 'place-sub' }, 'Clients who called you back'), h('div', { class: 'pipeline-grid' }, fus)) : null;
+  }
   function tabPipeline() {
     const c = G.career;
-    if (!c.pipeline.length) return h('div', { class: 'panel' }, h('p', null, 'Nobody in your pipeline yet. Prospects you meet show up here, ready to be guided along the trail.'), h('button', { class: 'btn primary', onclick: () => port('prospect') }, 'Go prospecting'));
+    if (!c.pipeline.length) return h('div', { class: 'stack' }, followUpBox(), h('div', { class: 'panel' }, h('p', null, 'No new prospects waiting. Prospects you meet show up here, ready to be guided along the trail.'), h('button', { class: 'btn primary', onclick: () => port('prospect') }, 'Go prospecting')));
     const nurture = h('div', { class: 'panel row between' }, h('div', null, h('h3', null, 'Keep your pipeline warm'), h('p', { class: 'small muted' }, 'Prospects go cold if you leave them waiting. A day of follow-up notes and calls buys everyone another week.')),
       h('button', { class: 'btn', onclick: () => spendDay(() => { c.pipeline.forEach((p) => (p.expires += 7)); return `You spend the day following up with ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''}. Everyone gets another week.`; }, 'pipeline') }, 'Nurture your pipeline (1 day)'));
-    return h('div', { class: 'stack' }, nurture, h('div', { class: 'pipeline-grid' }, c.pipeline.slice().sort((a, b) => a.expires - b.expires).map((p) => {
+    return h('div', { class: 'stack' }, followUpBox(), h('h4', { class: 'place-sub' }, 'New prospects'), nurture, h('div', { class: 'pipeline-grid' }, c.pipeline.slice().sort((a, b) => a.expires - b.expires).map((p) => {
       const cl = PP.content.clients[p.archetype];
       const left = p.expires - c.days;
       return h('article', { class: 'panel prospect-card t-' + p.temp },
@@ -286,7 +290,7 @@
     const c = G.career;
     const list = c.book.filter((b) => b.status !== 'lost');
     const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
-    return h('div', { class: 'stack' },
+    return h('div', { class: 'stack' }, followUpBox(),
       h('div', { class: 'panel' },
         h('h3', null, 'Look after your clients'),
         h('p', { class: 'small muted' }, 'Satisfaction slips a little every day. Below 4, clients start to cancel. Spend a day on service to keep them close.' + (c.partner ? ' Your partner looks after them while you are on the trail.' : '')),
@@ -387,7 +391,7 @@
     const done = (co) => co.skill ? (c.skills[co.skill] || 0) >= 2 : co.grants.system ? !!c.systems[co.grants.system] : co.grants.password ? PP.store.get('password', false) : !!c.perks[co.grants.perk];
     const card = (co) => {
       const has = done(co), ok = meets(co.needs), afford = c.savings >= co.cost;
-      const what = co.skill ? `+1 ${PP.SKILLS.find((x) => x.id === co.skill).label} (now ${c.skills[co.skill] || 0}/2)` : co.grants.system ? `Builds: ${P().systems[co.grants.system].name}` : co.grants.password ? 'Unlocks the Secret Shortcut' : PP.content.town.perks[co.grants.perk].blurb;
+      const what = co.skill ? `+1 ${PP.SKILLS.find((x) => x.id === co.skill).label} (now ${c.skills[co.skill] || 0}/2)` : co.grants.system ? `Builds: ${P().systems[co.grants.system].name}` : co.grants.password ? 'Opens Steve\'s back channels: hidden passages at several obstacles' : PP.content.town.perks[co.grants.perk].blurb;
       return h('article', { class: 'panel activity course' + (co.skill ? '' : ' cert') },
         h('div', { class: 'eyebrow' }, co.skill ? 'Course' : 'Certificate'),
         h('h3', null, co.name), h('p', { class: 'small' }, co.blurb), h('p', { class: 'small good' }, what),
@@ -406,7 +410,7 @@
       c.courses[co.id] = true;
       if (co.skill) { c.skills[co.skill] = Math.min(2, (c.skills[co.skill] || 0) + 1); return `${co.name}: ${co.days} evening${co.days > 1 ? 's' : ''} of class. +1 ${PP.SKILLS.find((x) => x.id === co.skill).label}.`; }
       if (co.grants.system) { c.systems[co.grants.system] = true; return `${co.name} complete. ${P().systems[co.grants.system].name} is now part of your practice.`; }
-      if (co.grants.password) { PP.store.set('password', true); return `${co.name}: two hours on bait, then, almost as an afterthought, "the shortcut password is password1." The Secret Shortcut is open to you.`; }
+      if (co.grants.password) { PP.store.set('password', true); return `${co.name}: two hours on bait, then, almost as an afterthought, a list of people who owe Steve favors all along the trail. His back channels are open to you.`; }
       c.perks[co.grants.perk] = true; return `${co.name} complete. ${PP.content.town.perks[co.grants.perk].blurb}`;
     });
   }
@@ -511,16 +515,63 @@
       list, h('div', { class: 'row' }, go, h('button', { class: 'btn ghost', onclick: () => port('pipeline') }, 'Back to the port'))));
   }
 
+  /* ---- Follow-up journeys: an existing client's life changed ---- */
+  function setupFollowUp(s, c, f) {
+    const b = c.book.find((x) => x.id === f.bookId), lc = PP.content.lifeChanges.find((x) => x.id === f.change), cl = s.client;
+    const fill = (t) => String(t || '').replace(/\{c\}/g, cl.name);
+    s.followUp = { id: f.id, bookId: b.id, change: lc.id, lap: (b.laps || 1) + 1, title: lc.title };
+    (b.facts || []).forEach((k) => { if (cl.facts[k]) s.facts[k] = 0; });
+    cl.facts.change_need = { label: fill(lc.need), key: true };
+    cl.keyFact = 'change_need';
+    cl.fit = {}; Object.keys(PP.content.destinations).forEach((d) => (cl.fit[d] = 'poor'));
+    cl.fit[lc.right] = 'appropriate'; (lc.ok || []).forEach((d) => (cl.fit[d] = 'acceptable'));
+    cl.unlocks = { [lc.right]: ['change_need'] };
+    cl.surface = fill(lc.title) + '. ' + cl.surface;
+    cl.checkin = Object.assign({}, cl.checkin, { worry: { curious: true, minTrust: 6, text: fill(lc.reveal), fact: 'change_need', guarded: fill(lc.guarded) }, goal: { text: fill(lc.goal) } });
+    cl.conversation = (cl.conversation || []).concat([{ text: fill(lc.line), tag: 'fact', fact: 'change_need', subtle: true }]);
+    cl.followCall = fill(lc.call); cl.followHelp = fill(lc.help);
+    PP.apply(s, { trust: 1 + Math.min(2, b.laps || 1) });
+  }
+  function followUpEnd(s, c, pay, fit) {
+    const b = c.book.find((x) => x.id === s.followUp.bookId);
+    if (!b) return;
+    pay.now = Math.round(pay.now * 0.6);
+    b.laps = s.followUp.lap; b.lastLap = c.days;
+    b.changes = (b.changes || []).concat(s.followUp.change);
+    b.facts = [...new Set((b.facts || []).concat(Object.keys(s.facts).filter((k) => k !== 'change_need')))];
+    if (pay.status === 'lost') { b.sat = Math.max(0, b.sat - 3); pay.note = `${b.name} felt you weren't really there for this change.`; return; }
+    b.sat = Math.min(10, Math.max(b.sat, pay.sat) + 1);
+    b.perDay += Math.round((pay.perDay || 10) * 0.6);
+    if (fit === 'poor') b.status = 'at-risk';
+    else if (b.laps >= 3) b.status = 'life';
+    else if (b.status === 'at-risk') b.status = 'steady';
+    pay.note = (fit === 'poor' ? `The change was handled, but not well. ${b.name} is less sure about you now.` : b.status === 'life' ? `${b.laps} laps together. ${b.name} is a client for life.` : `You were there when life changed. ${b.name}'s relationship with you deepens (lap ${b.laps}).`) + (fit !== 'poor' && s.client.followHelp ? ' ' + s.client.followHelp : '');
+    if (fit === 'appropriate' && s.res.trust >= 7) pay.referral = true;
+  }
+  function followUpCard(f) {
+    const c = G.career, b = c.book.find((x) => x.id === f.bookId);
+    if (!b) return null;
+    const cl = PP.content.clients[b.archetype];
+    const left = f.expires - c.days;
+    return h('article', { class: 'panel prospect-card followup' },
+      h('div', { class: 'row tight' }, PP.ui.avatar({ name: b.name, hue: cl.hue }, 44), h('div', null, h('div', { class: 'eyebrow' }, `Follow-up · lap ${(b.laps || 1) + 1}`), h('h3', null, b.name), h('div', { class: 'small muted' }, f.title))),
+      h('p', { class: 'small' }, `${b.name} trusts you already, so the trail is shorter. Find out what this change really means for them.`),
+      h('p', { class: 'small ' + (left <= 5 ? 'warn' : 'muted') }, `They'll wait about ${left} more day${left === 1 ? '' : 's'}.`),
+      h('button', { class: 'btn primary', onclick: () => packScreen({ id: f.id, name: b.name, archetype: b.archetype, temp: 'warm', source: 'a follow-up call', followUp: f }) }, `Meet ${b.name} again`));
+  }
+
   function startJourney(p, pack) {
     const c = G.career;
     const s = PP.newState();
     s.career = c;
     s.skills = c.skills; s.contacts = c.contacts; s.met = c.met; s.quests = c.quests;
     s.client = PP.career.makeClient(p);
+    if (p.followUp) setupFollowUp(s, c, p.followUp);
     s.map.known = c.known;
     s.pack = pack;
     s.phase = 'journey';
     c.pipeline = c.pipeline.filter((x) => x.id !== p.id);
+    if (p.followUp) c.followUps = c.followUps.filter((f) => f.id !== p.followUp.id);
     const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
     PP.apply(s, { trust: trustMod });
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
@@ -551,9 +602,15 @@
       pay = P().payout(s, s.destination, fit);
       cut = c.partner ? Math.round(pay.now * 0.25) : 0;
       c.savings += pay.now - cut;
-      if (pay.status !== 'lost') c.book.push({ id: PP.uid('b'), archetype: cl.id, name: cl.name, status: pay.status, perDay: pay.perDay, sat: pay.sat, journey: c.journeys + 1 });
+      if (s.followUp) followUpEnd(s, c, pay, fit);
+      else if (pay.status !== 'lost') c.book.push({ id: PP.uid('b'), archetype: cl.id, name: cl.name, status: pay.status, perDay: pay.perDay, sat: pay.sat, journey: c.journeys + 1, day: c.days, lastLap: c.days, laps: 1, facts: Object.keys(s.facts), changes: [] });
       if (pay.referral) PP.career.addProspect(c, { temp: 'hot', source: `referral from ${cl.name}` });
     }
+    if (s.followUp) {
+      c.followUps = (c.followUps || []).filter((f) => f.id !== s.followUp.id);
+      if (kind !== 'landed') { const b = c.book.find((x) => x.id === s.followUp.bookId); if (b) { b.sat = Math.max(0, b.sat - 3); b.lastLap = c.days; } }
+    }
+    c.visits = c.visits || {}; Object.keys(s.map.visited).forEach((k) => (c.visits[k] = (c.visits[k] || 0) + 1));
     if (kind !== 'broke') {
       c.journeys++;
       c.history.push({ journey: c.journeys, client: cl.name, outcome: kind === 'landed' ? PP.content.destinations[s.destination].name : kind, fit, cash: pay ? pay.now - cut : 0 });
@@ -577,7 +634,7 @@
 
     screen(h('section', { class: 'ending' },
       h('header', { class: 'ending-head' },
-        h('div', { class: 'eyebrow' }, `Journey ${c.journeys} · ${cl.name} · ${s.day} days on the trail`),
+        h('div', { class: 'eyebrow' }, `${s.followUp ? 'Follow-up · ' : ''}Journey ${c.journeys} · ${cl.name} · ${s.day} days on the trail`),
         h('h2', { class: 'display' }, firstProfitable ? 'Profitable!' : rating),
         kind === 'landed' ? h('div', { class: 'stars', 'aria-label': `${pts} of 7` }, Array.from({ length: 7 }, (_, i) => h('span', { class: i < pts ? 'on' : '' }))) : null,
         h('p', { class: 'lede' }, firstProfitable ? `Your income now covers twice your costs. ${why}` : why),
@@ -597,6 +654,8 @@
         newMarks.length ? h('p', { class: 'small good-text' }, `Marks earned: ${newMarks.map((m) => PP.content.nodes[m].name).join(', ')}. New systems are available under Build your practice.`) : null,
         ladder(levelAfter)),
       h('div', { class: 'ending-grid' },
+        h('div', { class: 'panel' }, h('h3', null, s.followUp ? `The relationship · lap ${s.followUp.lap}` : 'The relationship'),
+          h('ul', { class: 'score-list stages-end' }, PP.stageStatus(s).map((st) => h('li', { class: st.done ? 'done' : 'missed' }, h('span', null, st.label), h('strong', null, st.done ? '✓ ' + st.blurb : 'not yet'))))),
         h('div', { class: 'panel' }, h('h3', null, 'Where the journey ended'), PP.ui.gauges(s),
           kind === 'landed' ? h('ul', { class: 'score-list' },
             h('li', null, h('span', null, 'Destination fit'), h('strong', null, fit)),
