@@ -103,12 +103,12 @@
         else {
           overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': mg.title }, h('div', { class: 'overlay-card' }, stage));
           overlay.addEventListener('gesturestart', (e) => e.preventDefault());
-          document.body.appendChild(overlay); document.body.classList.add('modal-open');
+          document.body.appendChild(overlay); document.body.classList.add('modal-open'); PP.audio && PP.audio.hold(true);
           host.appendChild(h('p', { class: 'scene-text muted' }, `Playing ${mg.title}…`));
         }
         ctx.onMinigame && ctx.onMinigame(true);
         mg.start(stage, { state: s, client: s.client, prep: PP.skill(s, 'preparation'), practice: !!ctx.lab }, (res) => {
-          if (overlay) { overlay.remove(); document.body.classList.remove('modal-open'); host.innerHTML = ''; }
+          if (overlay) { overlay.remove(); document.body.classList.remove('modal-open'); host.innerHTML = ''; PP.audio && PP.audio.hold(false); }
           ctx.onMinigame && ctx.onMinigame(false);
           const notes = PP.apply(s, res.eff, mg.title);
           PP.apply(s, c.eff, ev.title);

@@ -310,5 +310,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     const bar = document.querySelector('.topbar');
     if (bar && PP.fx.soundToggle) bar.appendChild(PP.fx.soundToggle());
+    if (bar && PP.audio) bar.appendChild(PP.audio.button());
   });
 })(window.PP);

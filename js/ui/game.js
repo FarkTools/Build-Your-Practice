@@ -18,6 +18,7 @@
 
   /* ---------------- Title ---------------- */
   function intro() {
+    PP.audio && PP.audio.bed('music:title');
     const saved = PP.career.load();
     screen(h('section', { class: 'intro' },
       h('div', { class: 'intro-copy' },
@@ -120,9 +121,11 @@
     const want = T.places[where] ? where : T.tabPlace[where];
     if (want) G.place = want;
     if (!G.place) G.place = c.pipeline.length ? 'docks' : 'office';
+    PP.audio && PP.audio.bed('town:' + G.place);
     const panel = h('div', { class: 'place-panel', id: 'place-panel' }, placePanel(G.place));
     const map = PP.ui.townMap(c, G.place, (id) => {
       G.place = id;
+      PP.audio && PP.audio.bed('town:' + id);
       map.querySelectorAll('.tp').forEach((g) => g.classList.toggle('on', g.dataset.id === id));
       panel.innerHTML = ''; panel.appendChild(placePanel(id));
       panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -225,11 +228,12 @@
       h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: go }, 'Start'), h('button', { class: 'btn ghost', onclick: () => close() }, 'Not now'))));
     document.body.appendChild(overlay);
     document.body.classList.add('modal-open');
-    const close = () => { overlay.remove(); document.body.classList.remove('modal-open'); };
+    const close = () => { overlay.remove(); document.body.classList.remove('modal-open'); PP.audio && PP.audio.hold(false); };
     // iOS: a pinch inside a game should never zoom the page out from under you.
     overlay.addEventListener('gesturestart', (e) => e.preventDefault());
     overlay.querySelector('.btn').focus({ preventScroll: true });
     function go() {
+      PP.audio && PP.audio.hold(true);
       stage.innerHTML = '';
       const inner = h('div', { class: 'scene mg-stage' });
       stage.appendChild(inner);
@@ -560,6 +564,7 @@
     if (levelAfter === 'profitable' || (levelAfter === 'sustainable' && c.bestLevel === 'survivable')) c.bestLevel = levelAfter;
     PP.career.save(c);
 
+    PP.audio && PP.audio.bed(kind === 'landed' && pts >= 4 ? 'music:bright' : kind === 'landed' ? 'music:calm' : 'music:tense');
     const rating = kind === 'poached' ? 'A rival took your client' : kind !== 'landed' ? (kind === 'walked' ? 'The client found another guide' : 'The trail went cold')
       : pts >= 6 ? 'Trusted Guide' : pts >= 4 ? 'Steady Navigator' : pts >= 2 ? 'Got There, Eventually' : 'Lost in the Wilds';
     const why = kind === 'poached' ? `${cl.name} went with ${typeof s.poached === 'string' ? s.poached : 'a rival agent'}. The relationship was not strong enough to hold.`
@@ -613,6 +618,7 @@
 
   function unemployed() {
     const c = G.career;
+    PP.audio && PP.audio.bed('music:night');
     screen(h('section', { class: 'ending' },
       h('header', { class: 'ending-head' },
         h('div', { class: 'eyebrow' }, `Career over after ${c.days} days and ${c.journeys} journey${c.journeys === 1 ? '' : 's'}`),

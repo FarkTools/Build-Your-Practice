@@ -938,3 +938,12 @@ input, select, textarea { font-size: 16px; }
 .about-card { width: min(460px, 100%); }
 .about-card .scene { display: grid; gap: 8px; }
 .about-changes { margin: 0; padding-left: 18px; font-size: 0.88rem; display: grid; gap: 3px; }
+.topbar { flex-wrap: nowrap; }
+.topbar .fx-sound { margin-left: 0; white-space: nowrap; flex: none; }
+.topbar .fx-sound:not(.fx-music) { margin-left: auto; }
+@media (max-width: 420px) {
+  .topbar { gap: 6px; }
+  .brand { font-size: 1rem; gap: 8px; min-width: 0; }
+  .brand-mark { width: 28px; height: 28px; }
+  .topbar .fx-sound { font-size: 0.64rem; padding: 3px 7px; }
+}

@@ -160,6 +160,7 @@
     const s = T.s;
     T.mode = 'menu';
     T.scene.setMoving(false);
+    PP.audio && PP.audio.bed('amb:' + (s.seg ? T.scene.terrain : PP.content.nodes[s.map.current].kind));
     if (!s.seg) { T.scene.setTerrain(PP.content.nodes[s.map.current].kind); T.scene.setLandmark(PP.content.nodes[s.map.current].kind); }
     else T.scene.setLandmark(null);
     refresh();
@@ -234,6 +235,7 @@
     const s = T.s;
     if (!s.seg) return menu();
     T.mode = 'traveling';
+    PP.audio && PP.audio.bed('music:' + PP.audio.trailMood(T.s));
     T.scene.setPace(s.pace);
     T.scene.setMoving(true);
     T.scene.setLandmark(null);
@@ -277,6 +279,7 @@
       tick('You are exhausted. You stop for two days to recover. (−1 Momentum)', 'bad');
     }
     renderLedger(prev);
+    PP.audio && PP.audio.bed('music:' + PP.audio.trailMood(s));
     if (checkEnd()) return;
     if (s.seg.left <= 0) { T.timer = setTimeout(() => arrive(s.seg.to), 700); return; }
     // Mail from your book?
@@ -310,6 +313,7 @@
   async function stopFor(ev, after) {
     T.mode = 'event';
     T.scene.setMoving(false);
+    PP.audio && PP.audio.bed(ev.debt ? 'music:tense' : 'amb:' + T.scene.terrain);
     if (ev.cut) await T.scene.cut(ev.cut, { title: ev.title });
     runEvent(ev, after || (() => (T.s.seg ? travel() : menu())));
   }
@@ -371,6 +375,7 @@
     T.mode = 'event';
     T.scene.setMoving(false);
     T.scene.setTerrain(node.kind);
+    PP.audio && PP.audio.bed('amb:' + node.kind);
     const prev = Object.assign({}, s.res);
     if (first && !node.side && id !== 'port') PP.apply(s, { momentum: 1 });
     say(`Day ${s.day}. You arrive at ${node.name}.` + (first && !node.side && id !== 'port' ? ' Progress! (+1 Momentum)' : ''), 'arrive');
@@ -533,6 +538,7 @@
   function finale() {
     const s = T.s, c = s.client;
     T.mode = 'finale';
+    PP.audio && PP.audio.bed('music:triumph');
     const revealed = PP.destinationRevealed(s);
     const options = Object.keys(c.fit).filter((d) => d === 'grand_plan' || d === 'not_now' || (revealed && (c.unlocks[d] || []).every((f) => PP.knows(s, f))));
     const hidden = Object.keys(c.fit).length - options.length;
