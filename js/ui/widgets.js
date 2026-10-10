@@ -66,6 +66,7 @@
       h('p', { class: 'scene-text' }, text),
       ev.sub ? h('p', { class: 'scene-sub' }, ev.sub) : null,
       skeptic ? h('p', { class: 'skeptic-note' }, 'Gus leans over your shoulder: "Here\'s what each of these really costs."') : null,
+      h('p', { class: 'pick-prompt' }, choices.length > 1 ? 'What do you do? Tap one.' : 'Tap to continue.'),
       h('div', { class: 'choices' }, choices.map((c) => {
         let preview = null;
         if (skeptic || ctx.lab) {
@@ -77,7 +78,7 @@
           h('span', { class: 'kind' }, KIND[c.kind] || c.kind),
           h('span', { class: 'choice-label' }, c.label, c.contact ? h('span', { class: 'tag' }, 'uses ' + PP.content.contacts[c.contact].who) : null, c.item ? h('span', { class: 'tag' }, 'uses item') : null),
           judgment && c.hint && !preview ? h('span', { class: 'hint' }, c.hint) : null,
-          preview);
+          preview, h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
       })));
     host.appendChild(card);
     const first = card.querySelector('.choice');
@@ -96,9 +97,18 @@
         const mg = PP.minigames[c.minigame];
         host.innerHTML = '';
         const stage = h('div', { class: 'scene mg-stage' });
-        host.appendChild(stage);
+        // On the trail, games take over the screen so taps never scroll or zoom the page underneath.
+        let overlay = null;
+        if (ctx.lab) host.appendChild(stage);
+        else {
+          overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': mg.title }, h('div', { class: 'overlay-card' }, stage));
+          overlay.addEventListener('gesturestart', (e) => e.preventDefault());
+          document.body.appendChild(overlay); document.body.classList.add('modal-open');
+          host.appendChild(h('p', { class: 'scene-text muted' }, `Playing ${mg.title}…`));
+        }
         ctx.onMinigame && ctx.onMinigame(true);
         mg.start(stage, { state: s, client: s.client, prep: PP.skill(s, 'preparation'), practice: !!ctx.lab }, (res) => {
+          if (overlay) { overlay.remove(); document.body.classList.remove('modal-open'); host.innerHTML = ''; }
           ctx.onMinigame && ctx.onMinigame(false);
           const notes = PP.apply(s, res.eff, mg.title);
           PP.apply(s, c.eff, ev.title);

@@ -232,14 +232,23 @@ kbd { font-family: var(--mono); font-size: 0.68rem; border: 1px solid currentCol
 .narr p.arrive { font-weight: 600; color: var(--green); }
 .learned { background: var(--meadow); border-radius: 6px; padding: 7px 12px; font-weight: 600; color: var(--green); }
 .you-may { font-weight: 600; color: var(--navy); font-size: 1.05rem; }
-.menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.menu-item { width: 100%; text-align: left; background: transparent; border: 0; border-radius: 6px; padding: 6px 8px; cursor: pointer; display: grid; grid-template-columns: 1.7em minmax(0, 1fr); gap: 0 6px; color: var(--ink); }
-.menu-item .num { font-weight: 700; color: var(--navy); grid-row: span 2; }
+.menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+/* Choices look like what they are: big tappable cards with a number badge and a chevron. */
+.menu-item, .choice { width: 100%; text-align: left; background: var(--fog); border: 1.5px solid var(--ink); border-radius: 12px; padding: 11px 38px 11px 12px; min-height: 52px; cursor: pointer; display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 2px 10px; color: var(--ink); position: relative; box-shadow: 0 3px 0 rgba(74, 44, 18, .25); transition: transform .08s, box-shadow .08s, background .12s; -webkit-tap-highlight-color: transparent; }
+.menu-item .num { width: 26px; height: 26px; border-radius: 50%; background: var(--navy); color: var(--parch); font-weight: 700; font-size: 0.85rem; display: grid; place-items: center; grid-row: span 2; align-self: center; }
 .menu-item .mi-label { font-weight: 600; font-size: 1.02rem; }
 .menu-item .mi-note { grid-column: 2; font-size: 0.85rem; color: var(--ink-2); }
-.menu-item:hover:not(:disabled), .menu-item:focus-visible { background: rgba(255, 255, 255, .45); outline: none; }
-.menu-item.primary .mi-label { color: var(--navy); border-bottom: 3px dotted var(--route); }
-.menu-item:disabled { opacity: 0.45; cursor: not-allowed; }
+.chev { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 1.6rem; line-height: 1; color: var(--navy); font-weight: 600; }
+.menu-item:hover:not(:disabled), .menu-item:focus-visible, .choice:hover, .choice:focus-visible { background: #fff; outline: none; box-shadow: 0 3px 0 var(--orange); }
+.menu-item:active:not(:disabled), .choice:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(74, 44, 18, .25); }
+.menu-item.primary { background: var(--navy); border-color: var(--navy); color: var(--parch); }
+.menu-item.primary .num { background: var(--orange); color: var(--ink); }
+.menu-item.primary .mi-note { color: #c9cff2; }
+.menu-item.primary .chev { color: var(--orange); }
+.menu-item.primary:hover:not(:disabled), .menu-item.primary:focus-visible { background: #0b1a8a; }
+.menu-item:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.pick-prompt, .you-may { font-weight: 700; color: var(--navy); font-size: 1rem; margin: 6px 0 2px; }
+.pick-prompt::before, .you-may::before { content: "→ "; color: var(--orange); }
 .travel-log { display: grid; gap: 4px; font-size: 0.9rem; min-height: 6em; color: var(--ink-2); }
 .travel-log p:last-child { color: var(--ink); }
 .checkin-head { display: flex; gap: 12px; align-items: center; }
@@ -297,10 +306,10 @@ kbd { font-family: var(--mono); font-size: 0.68rem; border: 1px solid currentCol
 .scene-sub { font-size: 0.86rem; color: var(--red); font-style: italic; }
 .scene-debt .scene-title { color: var(--red); }
 .skeptic-note { background: var(--ink); color: var(--parch); padding: 8px 12px; border-radius: 6px; font-size: 0.92rem; }
-.choices { display: grid; gap: 6px; counter-reset: ch; }
-.choice { text-align: left; background: rgba(255, 255, 255, .4); border: 0; border-radius: 8px; padding: 9px 12px 9px 40px; cursor: pointer; display: grid; gap: 2px; color: var(--ink); position: relative; counter-increment: ch; }
-.choice::before { content: counter(ch) "."; position: absolute; left: 14px; top: 9px; font-weight: 700; color: var(--navy); }
-.choice:hover, .choice:focus-visible { background: rgba(255, 255, 255, .75); outline: none; box-shadow: inset 3px 0 0 var(--orange); }
+.choices { display: grid; gap: 8px; counter-reset: ch; }
+.choice { counter-increment: ch; grid-template-columns: 28px minmax(0, 1fr); }
+.choice::before { content: counter(ch); width: 26px; height: 26px; border-radius: 50%; background: var(--navy); color: var(--parch); font-weight: 700; font-size: 0.85rem; display: grid; place-items: center; grid-row: span 4; align-self: center; }
+.choice > * { grid-column: 2; }
 .choice .kind { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; justify-self: start; }
 .choice-label { font-weight: 600; font-size: 1.02rem; }
 .choice .hint { font-size: 0.85rem; color: var(--ink-2); font-style: italic; }
@@ -844,6 +853,90 @@ kbd { font-family: var(--mono); font-size: 0.68rem; border: 1px solid currentCol
 @media (max-width: 560px) {
   .trail-canvas, .trail-canvas.narrow { aspect-ratio: 7 / 4; height: auto; object-fit: fill; }
 }
+
+/* ---------- Stop iPhone double-tap zoom and text selection while playing ---------- */
+*, *::before, *::after { touch-action: manipulation; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+button, .btn, .menu-item, .choice, .mg, .mg *, .overlay, .trail-canvas { -webkit-tap-highlight-color: transparent; }
+.mg, .mg *, .overlay-card .scene, .port-town, .port-town * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.overlay { overscroll-behavior: contain; }
+body.modal-open { overflow: hidden; }
+input, select, textarea { font-size: 16px; }
+@media (max-width: 560px) {
+  .overlay { padding: 0; place-items: stretch; }
+  .overlay-card { width: 100%; min-height: 100%; padding: 0 !important; }
+  .overlay-card > .scene { border: 0; border-radius: 0; min-height: 100dvh; padding: 14px 12px calc(16px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---------- Port Prospect town ---------- */
+.town-layout { display: grid; grid-template-columns: minmax(300px, 420px) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 8px; }
+.town-wrap { position: sticky; top: 12px; }
+.town-map { width: 100%; height: auto; display: block; border-radius: 6px; box-shadow: 0 0 0 1.5px var(--edge); }
+.town-map .land { fill: var(--parch-2); stroke: var(--edge); stroke-width: 2; }
+.town-map .sea { fill: var(--water); stroke: var(--river); stroke-width: 1.5; }
+.town-map .wave { fill: none; stroke: var(--river); stroke-width: 1.4; stroke-linecap: round; }
+.town-map .t-sea { font: italic 600 11px var(--sans); fill: var(--navy); text-anchor: middle; }
+.town-map .road { fill: none; stroke: var(--route); stroke-width: 2.4; stroke-dasharray: 0.1 6; stroke-linecap: round; opacity: .7; }
+.town-map .grass { fill: none; stroke: var(--green); stroke-width: 1.4; stroke-linejoin: round; opacity: .7; }
+.town-map .ink { fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.town-map .ink.thin { stroke-width: 1.2; }
+.town-map .ink.thick { stroke-width: 3; }
+.town-map [class^="fill-"], .town-map [class*=" fill-"] { stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+.town-map .fill-fog { fill: var(--fog); } .town-map .fill-orange { fill: var(--orange); } .town-map .fill-water { fill: var(--water); }
+.town-map .fill-meadow { fill: var(--meadow); } .town-map .fill-tan { fill: var(--parch-3); } .town-map .fill-parch3 { fill: var(--parch-3); }
+.town-map .fill-red { fill: #c86f4f; } .town-map .fill-blue { fill: #2f5a9c; } .town-map .fill-navy { fill: var(--navy); } .town-map .fill-tree { fill: #b9cf8f; }
+.town-map .t-n { font: 700 9px var(--sans); fill: var(--navy); text-anchor: middle; }
+.town-map .t-boat { animation: bob 3s ease-in-out infinite; }
+.town-map .t-boat.b2 { animation-delay: -1.4s; }
+@keyframes bob { 50% { transform: translateY(2px); } }
+.tp { cursor: pointer; outline: none; }
+.tp .hit { fill: transparent; }
+.tp .shadow { fill: rgba(74, 44, 18, .1); }
+.tp .icon { transition: transform .15s; }
+.tp:hover .icon, .tp:focus-visible .icon { transform: translateY(-3px); }
+.tp .label rect { fill: var(--fog); stroke: var(--ink); stroke-width: 1.3; }
+.tp .label text { font: 600 11.5px var(--sans); fill: var(--ink); text-anchor: middle; }
+.tp.on .label rect { fill: var(--navy); stroke: var(--navy); }
+.tp.on .label text { fill: var(--parch); }
+.tp.on .shadow { fill: rgba(243, 156, 18, .45); }
+.tp:focus-visible .label rect { stroke: var(--orange); stroke-width: 2.5; }
+.tp .badge circle { stroke: var(--ink); stroke-width: 1.3; }
+.tp .badge text { font: 700 10px var(--sans); text-anchor: middle; fill: #fff; }
+.badge.b-go circle { fill: var(--green); } .badge.b-ok circle { fill: var(--blue); } .badge.b-warn circle { fill: var(--red); } .badge.b-new circle { fill: var(--orange); }
+.badge.b-new text { fill: var(--ink); }
+.place-panel { min-width: 0; scroll-margin-top: 12px; }
+.place { display: grid; gap: 12px; }
+.place-head { border-bottom: 1.5px dotted var(--route); padding-bottom: 8px; }
+.place-title { font-size: 1.45rem; color: var(--navy); }
+.place-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--tan); margin-top: 6px; }
+.npc-face { width: 52px; height: 52px; flex: none; display: block; }
+.npc-face svg { width: 100%; height: 100%; display: block; }
+.course.cert { background: #f2e7d0; box-shadow: inset 4px 0 0 var(--orange); }
+.boats-art svg { width: 100%; height: auto; display: block; }
+.boats-art .boat-a { animation: sailin 6s ease-out infinite; }
+@keyframes sailin { 0% { transform: translateX(-60px); opacity: 0; } 30%, 100% { transform: none; opacity: 1; } }
+.arrivals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.arrival-card { display: grid; justify-items: center; gap: 4px; text-align: center; background: var(--fog); border: 1.5px solid var(--ink); border-radius: 12px; padding: 10px 8px; cursor: pointer; box-shadow: 0 3px 0 rgba(74, 44, 18, .25); color: var(--ink); }
+.arrival-card:hover, .arrival-card:focus-visible { background: #fff; box-shadow: 0 3px 0 var(--orange); outline: none; }
+.arrival-card:active { transform: translateY(2px); }
+.arrival svg { width: 64px; height: 92px; display: block; }
+.arrival.big { display: grid; justify-items: center; }
+.arrival.big svg { width: 90px; height: 128px; }
+.boat-scene { display: grid; gap: 10px; }
+@media (max-width: 1000px) { .town-layout { grid-template-columns: minmax(0, 1fr); } .town-wrap { position: static; } }
+@media (max-width: 560px) {
+  .arrivals { grid-template-columns: minmax(0, 1fr); }
+  .arrival-card { grid-template-columns: 56px minmax(0, 1fr); justify-items: start; text-align: left; align-items: center; }
+  .arrival-card .arrival { grid-row: span 2; }
+  .arrival-card svg { width: 50px; height: 72px; }
+  .town-map .tp .label text { font-size: 12.5px; }
+}
+@media (max-width: 560px) {
+  .port > .screen-head p.muted { display: none; }
+  .practice > p.small { display: none; }
+  .town-wrap .pick-prompt { margin-top: 0; }
+}
+.boats-art svg { max-height: 90px; }
 
 </style>
 <style>
@@ -5285,6 +5378,115 @@ window.PP = window.PP || {};
 
 </script>
 <script>
+/* Port Prospect, the town. Each place on the town map gathers the things you can do
+ * there and the people you can find there. The UI (js/ui/town.js + game.js) reads this.
+ *
+ *  places[id] = { name, short, blurb, x, y, activities: [prospecting ids], npcs: [npc ids], sections: [ui section ids] }
+ *  school.courses = [{ id, name, blurb, days, cost, skill?, needs?, grants? }]
+ *     grants: { system: id } | { password: true } | { perk: id }
+ *  perks = { id: { name, blurb } }  (read by the journey start / trail code)
+ *  arrivals = people stepping off the boats at the docks
+ */
+(function (PP) {
+  PP.content.town = {
+    places: {
+      docks: {
+        name: 'The Docks', short: 'Docks', x: 196, y: 330,
+        blurb: 'Where the trail begins, and where the boats come in. New faces step off every day, and sailors carry news from out on the trail.',
+        activities: [], npcs: ['marge', 'gus'], sections: ['boats', 'pipeline']
+      },
+      square: {
+        name: 'Market Square', short: 'Market', x: 178, y: 214,
+        blurb: 'Stalls, the coffee cart, the bank on the corner, and a strip mall that has seen better decades.',
+        activities: ['market', 'stripmall'], npcs: ['bernie', 'ray', 'ellen'], sections: []
+      },
+      chamber: {
+        name: 'Chamber Hall', short: 'Chamber', x: 78, y: 150,
+        blurb: 'Mixers, lunch & learns, ribbon-cuttings and a lot of folding chairs.',
+        activities: ['mixer', 'seminar'], npcs: ['bev', 'priya', 'lance'], sections: []
+      },
+      office: {
+        name: 'Your desk', short: 'Your desk', x: 282, y: 140,
+        blurb: 'Phone, laptop, calendar. Where the day-to-day work happens.',
+        activities: ['warm', 'callathon', 'neighbors'], npcs: ['olu', 'fatima', 'kenji', 'harold'], sections: ['plan', 'inbox', 'oncall']
+      },
+      street: {
+        name: 'Harbor Street', short: 'Harbor St', x: 300, y: 236,
+        blurb: 'Offices to rent, agents to partner with, recruits to train, and systems to build.',
+        activities: [], npcs: ['tess', 'sloane'], sections: ['workspace', 'partner', 'recruits', 'systems']
+      },
+      homes: {
+        name: 'Maple Row', short: 'Clients', x: 292, y: 52,
+        blurb: 'Where your clients live. Life keeps happening to them whether you visit or not.',
+        activities: ['referrals', 'appreciation'], npcs: [], sections: ['book']
+      },
+      school: {
+        name: 'Harbor Night School', short: 'School', x: 170, y: 62,
+        blurb: 'Evening classes for working agents. Spend time and money to learn skills, and earn certificates that open shortcuts on the trail.',
+        activities: [], npcs: ['dev'], sections: ['courses']
+      },
+      library: {
+        name: 'The Library', short: 'Library', x: 56, y: 262,
+        blurb: 'Free workshops in Room B. Teach, don\'t sell.',
+        activities: ['library'], npcs: ['connie'], sections: []
+      },
+      field: {
+        name: 'The Ball Field', short: 'Ball field', x: 58, y: 62,
+        blurb: 'Little League on Saturdays, the school fair in spring. Families, and every local business with a banner.',
+        activities: ['littleleague', 'fair'], npcs: [], sections: []
+      }
+    },
+
+    /* Old tab names still used around the code, mapped to a place. */
+    tabPlace: { prospect: 'office', pipeline: 'docks', book: 'homes', build: 'street', people: 'office' },
+
+    school: {
+      courses: [
+        { id: 'c_comm', name: 'Reading the Room', skill: 'communication', days: 2, cost: 150, blurb: 'Saying the hard thing simply. Lots of role-play with strangers. Nobody enjoys it; everybody improves.' },
+        { id: 'c_curious', name: 'Asking Better Questions', skill: 'curiosity', days: 2, cost: 150, blurb: 'Open questions, follow-ups, and the art of the comfortable silence.' },
+        { id: 'c_prep', name: 'Case Prep Bootcamp', skill: 'preparation', days: 2, cost: 200, blurb: 'Agendas, checklists and the habit of reading the file before the meeting. More time in every mini-game.' },
+        { id: 'c_judgment', name: 'Ethics and Judgment', skill: 'judgment', days: 2, cost: 150, blurb: 'Case studies about shortcuts that went wrong. You start seeing the trade-off hidden in every choice.' },
+        { id: 'c_nav', name: 'Wayfinding for Advisors', skill: 'navigation', days: 2, cost: 200, blurb: 'Reading the map before you need it. Named places show up sooner on the trail.' },
+        { id: 'c_resource', name: 'Doing More With Less', skill: 'resourcefulness', days: 1, cost: 100, blurb: 'Who to call, what to borrow, and how to make one contact go twice as far.' },
+        { id: 'cert_specialist', name: 'Specialist Liaison Certificate', days: 3, cost: 700, needs: { preparation: 1 }, grants: { system: 'specialist' }, blurb: 'Learn how the specialists at the Summit actually work. Summit trails take a day less, without needing its Mark.' },
+        { id: 'cert_portal', name: 'Portal Pro Certificate', days: 2, cost: 500, needs: { resourcefulness: 1 }, grants: { system: 'tech' }, blurb: 'Logins, e-signatures and two-factor, mastered. New options in the Login Isles.' },
+        { id: 'cert_crm', name: 'Client Database Workshop', days: 2, cost: 800, needs: { preparation: 1 }, grants: { system: 'crm' }, blurb: 'Set up a client database properly. The Loop of Endless Data Entry takes a day less.' },
+        { id: 'cert_routes', name: 'Old Harbor Routes (Steve\'s class)', days: 2, cost: 400, needs: { navigation: 1 }, grants: { password: true }, blurb: 'Steve teaches one class a year, mostly about fishing. Near the end he mentions the password to the Secret Shortcut.' },
+        { id: 'cert_stamina', name: 'Sustainable Pace Seminar', days: 1, cost: 250, grants: { perk: 'stamina' }, blurb: 'Sleep, boundaries and lunch breaks. Start every journey with +2 Energy.' },
+        { id: 'cert_mapping', name: 'Field Notes Practicum', days: 2, cost: 350, needs: { curiosity: 1 }, grants: { perk: 'scout' }, blurb: 'Keep a proper field journal. Every journey starts with +1 Insight, and nearby places are named on the map.' }
+      ]
+    },
+
+    perks: {
+      stamina: { name: 'Sustainable pace', blurb: '+2 Energy at the start of every journey.' },
+      scout: { name: 'Field notes', blurb: '+1 Insight at the start of every journey.' }
+    },
+
+    /* The docks. People stepping off boats are new to town: they need everything set up,
+     * and nobody has met them yet. Sailors in from the trail bring news of what lies ahead. */
+    arrivals: [
+      { id: 'a_family', arch: 'taylor', fig: 'family', who: 'A young family with a moving van\'s worth of boxes', tell: 'The toddler is asleep on a lamp.', kind: 'resident', bias: { family: 3 }, warm: 'You carry boxes up the gangway for an hour. They ask what you do, then ask for your number.', cold: 'You hand them a card. They put it in a box labelled "MISC".' },
+      { id: 'a_retiree', arch: 'walter', fig: 'retiree', who: 'A couple who just sold their house inland', tell: 'Matching sun hats. One is holding a list titled "Retirement: what now?"', kind: 'resident', bias: { retiree: 3 }, warm: 'You walk them to the good bakery and listen to the list. It is long. They want help with it.', cold: 'They take your card politely. "We have a lot of lists right now."' },
+      { id: 'a_owner', arch: 'rosa', fig: 'owner', who: 'A woman opening a bakery on Harbor Street', tell: 'Carrying a mixer bigger than her suitcase.', kind: 'business', bias: { owner: 3 }, warm: 'You point her to the Chamber, the permit office and the cheapest flour. She owes you one, she says.', cold: 'She is too busy to talk. "Come by when we open."' },
+      { id: 'a_grad', arch: 'mateo', fig: 'phone', who: 'A new grad starting a job at the hospital', tell: 'Reading the employee benefits booklet on the gangway, frowning.', kind: 'resident', bias: { early: 3 }, warm: 'You help decode the benefits booklet over coffee. "Wait, they match what?" A new prospect.', cold: 'They nod at your card and go back to the booklet.' },
+      { id: 'a_widow', arch: 'evelyn', fig: 'retiree', who: 'A woman moving closer to her daughter', tell: 'Holding a folder of her late husband\'s papers very carefully.', kind: 'resident', bias: { changes: 3 }, warm: 'You don\'t pitch. You help her find a taxi and leave your number for "whenever you\'re ready." She calls a week later.', cold: 'She takes your card, but you can tell today is not the day.' },
+      { id: 'a_freelancer', arch: 'zoe', fig: 'phone', who: 'A freelance designer who works from anywhere', tell: 'Laptop open before the boat has docked.', kind: 'resident', bias: { early: 2, owner: 1 }, warm: 'You talk about lumpy income while they look for Wi-Fi. They want to talk properly next week.', cold: 'They connect with you online without looking up.' },
+      { id: 'a_caregiver', arch: 'lorraine', fig: 'family', who: 'Someone moving back to look after their dad', tell: 'Two suitcases, one of them full of pill organizers.', kind: 'resident', bias: { caregiver: 3 }, warm: 'You walk with them to the pharmacy and mention the library has a caregiver group. They ask if you do "this kind of thing too."', cold: 'They thank you. They have a lot on their mind.' },
+      { id: 'a_heir', arch: 'ingrid', fig: 'guest', who: 'Someone here to settle a relative\'s estate', tell: 'Looks at the town like they have never seen it, which they haven\'t.', kind: 'resident', bias: { windfall: 3 }, warm: 'You recommend the lawyer everyone trusts and say nothing about money. That is exactly why they ask you about it later.', cold: 'They take your card. You suspect they are getting a lot of cards.' },
+      { id: 'a_dentist', arch: 'morgan', fig: 'numbers', who: 'A dentist taking over the practice on the square', tell: 'Spreadsheet of the practice\'s finances, printed, laminated.', kind: 'business', bias: { owner: 2, numbers: 2 }, warm: 'You admire the spreadsheet. Sincerely. A friendship is born.', cold: 'They hand you THEIR card. You are now a patient.' },
+      { id: 'a_tourist', fig: 'jogger', who: 'A tourist on a day trip', tell: 'Camera, map, total joy.', kind: 'traveler', warm: 'You give great directions to the lighthouse. Lovely person. Lives four states away.', cold: 'They take your card as a souvenir.' },
+      { id: 'a_cousin', fig: 'guest', who: 'Somebody\'s visiting cousin', tell: 'Here for a wedding. Already sunburnt.', kind: 'traveler', warm: 'You chat about the wedding. Nice, but they leave Sunday.', cold: 'They use your card to fix a wobbly table.' },
+      { id: 'a_rival', fig: 'rival', who: 'A well-dressed agent from the city', tell: 'Already handing out glossy folders on the pier.', kind: 'rival', warm: 'You introduce yourself. He says "Ah, the local." By lunch he has met everyone you were hoping to meet.', cold: 'You watch him work the pier. You learn something, mostly about hair product.' },
+      { id: 'a_sailor', fig: 'vendor', who: 'A sailor in from the far side of the map', tell: 'Weathered, cheerful, and full of stories about the trail.', kind: 'sailor', warm: 'Over a coffee she sketches the trail she came down. Two places on your map get names.', cold: 'She tells you one useful thing about the weather out there.' },
+      { id: 'a_surveyor', fig: 'numbers', who: 'A surveyor back from mapping the far trails', tell: 'Rolled charts under both arms.', kind: 'sailor', warm: 'He lets you copy a corner of his chart. Your map gets clearer.', cold: 'He nods and hurries off with his charts.' },
+      { id: 'a_teacher', arch: 'maxine', fig: 'couple', who: 'A teacher starting at the high school', tell: 'Pension paperwork sticking out of a tote bag.', kind: 'resident', bias: { retiree: 2, family: 1 }, warm: 'You help carry a box of textbooks. "Someone said my pension covers everything. Does it?" A prospect.', cold: 'They\'ll "look into it." Maybe they will.' },
+      { id: 'a_couple', arch: 'taylor', fig: 'couple', who: 'Newlyweds who just bought the blue house', tell: 'Still arguing, lovingly, about who carries what.', kind: 'resident', bias: { family: 2, early: 1 }, warm: 'You settle the argument by carrying the heaviest box yourself. They want to "get organized" together.', cold: 'They are too busy arguing to take a card.' }
+    ]
+  };
+})(window.PP);
+
+</script>
+<script>
 /* Shared pieces for mini-games.
  * Every mini-game exposes the same contract, so the journey, the port quests
  * and the Element Lab can all run them:
@@ -7581,6 +7783,7 @@ window.PP = window.PP || {};
       h('p', { class: 'scene-text' }, text),
       ev.sub ? h('p', { class: 'scene-sub' }, ev.sub) : null,
       skeptic ? h('p', { class: 'skeptic-note' }, 'Gus leans over your shoulder: "Here\'s what each of these really costs."') : null,
+      h('p', { class: 'pick-prompt' }, choices.length > 1 ? 'What do you do? Tap one.' : 'Tap to continue.'),
       h('div', { class: 'choices' }, choices.map((c) => {
         let preview = null;
         if (skeptic || ctx.lab) {
@@ -7592,7 +7795,7 @@ window.PP = window.PP || {};
           h('span', { class: 'kind' }, KIND[c.kind] || c.kind),
           h('span', { class: 'choice-label' }, c.label, c.contact ? h('span', { class: 'tag' }, 'uses ' + PP.content.contacts[c.contact].who) : null, c.item ? h('span', { class: 'tag' }, 'uses item') : null),
           judgment && c.hint && !preview ? h('span', { class: 'hint' }, c.hint) : null,
-          preview);
+          preview, h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
       })));
     host.appendChild(card);
     const first = card.querySelector('.choice');
@@ -7611,9 +7814,18 @@ window.PP = window.PP || {};
         const mg = PP.minigames[c.minigame];
         host.innerHTML = '';
         const stage = h('div', { class: 'scene mg-stage' });
-        host.appendChild(stage);
+        // On the trail, games take over the screen so taps never scroll or zoom the page underneath.
+        let overlay = null;
+        if (ctx.lab) host.appendChild(stage);
+        else {
+          overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': mg.title }, h('div', { class: 'overlay-card' }, stage));
+          overlay.addEventListener('gesturestart', (e) => e.preventDefault());
+          document.body.appendChild(overlay); document.body.classList.add('modal-open');
+          host.appendChild(h('p', { class: 'scene-text muted' }, `Playing ${mg.title}…`));
+        }
         ctx.onMinigame && ctx.onMinigame(true);
         mg.start(stage, { state: s, client: s.client, prep: PP.skill(s, 'preparation'), practice: !!ctx.lab }, (res) => {
+          if (overlay) { overlay.remove(); document.body.classList.remove('modal-open'); host.innerHTML = ''; }
           ctx.onMinigame && ctx.onMinigame(false);
           const notes = PP.apply(s, res.eff, mg.title);
           PP.apply(s, c.eff, ev.title);
@@ -8578,9 +8790,87 @@ window.PP = window.PP || {};
 
 </script>
 <script>
+/* The Port Prospect town map, drawn in the same parchment style as the trail map.
+ * PP.ui.townMap(career, selectedId, onPick) -> <svg>. Each place is a big tap target. */
+(function (PP) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const INK = '#4a2c12', NAVY = '#000a62', ORANGE = '#f39c12';
+  const W = 360, H = 400;
+  const el = (tag, attrs, ...kids) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs || {}) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+    kids.flat().forEach((c) => c && e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+    return e;
+  };
+  const p = (d, cls) => el('path', { d, class: cls || 'ink' });
+
+  /* Little buildings, each drawn around (0,0) = the place's anchor. */
+  const ICON = {
+    docks: () => [
+      p('M-34,8 h68 M-28,8 v14 M-10,8 v14 M8,8 v14 M26,8 v14', 'ink thick'),
+      el('g', { class: 't-boat' }, p('M-60,24 h30 l-6,9 h-18z', 'fill-fog'), p('M-46,24 v-20 l14,17z', 'fill-orange')),
+      el('g', { class: 't-boat b2' }, p('M36,30 h26 l-5,8 h-16z', 'fill-tan'), p('M42,30 v-8 h12 v8', 'fill-fog'))
+    ],
+    square: () => [-26, 0, 26].map((dx, i) => el('g', { transform: `translate(${dx} 0)` },
+      p('M-11,-2 h22 v14 h-22z', 'fill-fog'), p('M-14,-2 l3,-10 h22 l3,10z', i === 1 ? 'fill-orange' : i ? 'fill-water' : 'fill-meadow'), p('M-7,-12 v10 M0,-12 v10 M7,-12 v10', 'ink thin'))),
+    chamber: () => [p('M-26,12 h52 v-24 h-52z', 'fill-fog'), p('M-30,-12 L0,-28 L30,-12z', 'fill-parch3'), p('M-18,12 v-22 M-6,12 v-22 M6,12 v-22 M18,12 v-22', 'ink thin'), p('M0,-28 v-12 l12,4 l-12,4', 'fill-orange')],
+    office: () => [p('M-18,14 v-26 h36 v26z', 'fill-fog'), p('M-22,-12 L0,-26 L22,-12z', 'fill-red'), p('M-4,14 v-12 h8 v12', 'fill-tan'), p('M-13,-6 h7 v7 h-7z M6,-6 h7 v7 h-7z', 'fill-water')],
+    street: () => [-24, 0, 24].map((dx, i) => el('g', { transform: `translate(${dx} 0)` }, p(`M-10,14 v-${22 + i * 6} h20 v${22 + i * 6}z`, i === 1 ? 'fill-parch3' : 'fill-fog'), p(`M-5,${-12 - i * 4} h4 v4 h-4z M2,${-12 - i * 4} h4 v4 h-4z M-5,0 h4 v4 h-4z M2,0 h4 v4 h-4z`, 'fill-water'))),
+    homes: () => [[-28, 4], [0, -4], [28, 4]].map(([dx, dy], i) => el('g', { transform: `translate(${dx} ${dy})` }, p('M-10,10 v-12 h20 v12z', 'fill-fog'), p('M-13,-2 L0,-13 L13,-2z', ['fill-red', 'fill-blue', 'fill-meadow'][i]), p('M-3,10 v-6 h6 v6', 'fill-tan'))),
+    school: () => [p('M-26,14 v-20 h52 v20z', 'fill-fog'), p('M-30,-6 L0,-18 L30,-6z', 'fill-red'), p('M-6,-18 v-14 h12 v14', 'fill-fog'), p('M-8,-32 L0,-40 L8,-32z', 'fill-red'), el('circle', { cx: 0, cy: -25, r: 3, class: 'fill-orange' }), p('M-4,14 v-10 h8 v10', 'fill-tan'), p('M-20,0 h8 v6 h-8z M12,0 h8 v6 h-8z', 'fill-water')],
+    library: () => [p('M-22,12 v-18 h44 v18z', 'fill-fog'), p('M-26,-6 h52 l-4,-8 h-44z', 'fill-parch3'), p('M-14,12 v-16 M14,12 v-16', 'ink thin'), p('M-7,-1 h6 v10 h-6z', 'fill-blue'), p('M0,-1 h6 v10 h-6z', 'fill-orange')],
+    field: () => [el('path', { d: 'M0,-20 L22,0 L0,20 L-22,0z', class: 'fill-meadow' }), p('M0,-20 L22,0 L0,20 L-22,0z', 'ink thin'), el('circle', { cx: 0, cy: 0, r: 3, class: 'fill-fog' }), p('M-30,-22 v-14 h16 v8 h-16', 'fill-orange')]
+  };
+
+  PP.ui.townMap = function (c, selected, onPick) {
+    const T = PP.content.town;
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, class: 'town-map', role: 'group', 'aria-label': 'Map of Port Prospect. Tap a place.' });
+    // Land, water, coast
+    svg.append(
+      el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: 4, class: 'land' }),
+      el('path', { d: `M2,318 C60,300 110,330 150,312 C200,292 240,318 290,300 C320,290 340,296 358,288 V398 H2z`, class: 'sea' }),
+      ...[0, 1, 2].map((r) => el('path', { d: `M${14 + r * 30},${352 + r * 14} q10,-6 20,0 t20,0 M${210 + r * 40},${345 + r * 16} q10,-6 20,0 t20,0`, class: 'wave' })),
+      el('text', { x: 300, y: 384, class: 't-sea' }, 'to the trail →')
+    );
+    // Roads (dotted, like the trail map)
+    const roads = ['M78,150 C120,170 150,190 178,214', 'M178,214 C220,200 250,170 282,140', 'M178,214 C230,225 260,232 300,236', 'M178,214 C185,260 190,295 196,318', 'M56,262 C100,250 140,232 178,214',
+      'M170,62 C175,120 176,170 178,214', 'M170,62 C220,58 250,54 292,52', 'M58,62 C100,60 130,62 170,62', 'M78,150 C70,110 62,85 58,62', 'M282,140 C288,110 290,80 292,52'];
+    roads.forEach((d) => svg.appendChild(el('path', { d, class: 'road' })));
+    // Scenery: trees and grass
+    [[120, 110], [236, 96], [22, 200], [128, 270], [330, 180], [250, 270], [26, 120], [334, 100]].forEach(([x, y], i) =>
+      svg.appendChild(i % 2 ? el('path', { d: `M${x - 5},${y} l5,-10 l5,10`, class: 'grass' }) : el('g', null, el('circle', { cx: x, cy: y - 8, r: 7, class: 'fill-tree' }), el('path', { d: `M${x},${y - 1} v6`, class: 'ink thin' }))));
+    // Compass
+    svg.appendChild(el('g', { transform: 'translate(330 30)', class: 't-compass' }, el('circle', { r: 13, class: 'fill-fog' }), el('path', { d: 'M0,-16 L3,-3 L0,0 L-3,-3z', class: 'fill-orange' }), el('path', { d: 'M0,16 L3,3 L0,0 L-3,3z', class: 'fill-navy' }), el('text', { y: -19, class: 't-n' }, 'N')));
+
+    const badges = {
+      docks: c.pipeline.length ? { n: c.pipeline.length, cls: 'b-go', title: 'ready to set out' } : null,
+      homes: (() => { const act = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)); const un = act.filter((b) => b.sat < 5).length; return un ? { n: '!', cls: 'b-warn', title: 'clients need you' } : act.length ? { n: act.length, cls: 'b-ok', title: 'clients' } : null; })()
+    };
+    Object.entries(T.places).forEach(([id, pl]) => {
+      if (!badges[id] && pl.npcs.some((n) => !c.met[n])) badges[id] = { n: '•', cls: 'b-new', title: 'someone new to meet' };
+      const label = id === 'office' ? { kitchen: 'Your table', cowork: 'Your desk', office: 'Your office' }[c.workspace] || pl.short : pl.short;
+      const lw = label.length * 6.6 + 16;
+      const g = el('g', { class: 'tp' + (id === selected ? ' on' : ''), 'data-id': id, transform: `translate(${pl.x} ${pl.y})`, tabindex: 0, role: 'button', 'aria-label': pl.name },
+        el('circle', { r: 36, class: 'hit' }),
+        el('ellipse', { cx: 0, cy: 16, rx: 34, ry: 6, class: 'shadow' }),
+        el('g', { class: 'icon' }, ICON[id] ? ICON[id]() : []),
+        el('g', { class: 'label', transform: 'translate(0 34)' }, el('rect', { x: -lw / 2, y: -10, width: lw, height: 20, rx: 10 }), el('text', { y: 4 }, label)));
+      const b = badges[id];
+      if (b) g.appendChild(el('g', { class: 'badge ' + b.cls, transform: `translate(${lw / 2 - 2} 24)` }, el('title', null, b.title), el('circle', { r: 9 }), el('text', { y: 4 }, String(b.n))));
+      const go = () => onPick(id);
+      g.addEventListener('click', go);
+      g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+      svg.appendChild(g);
+    });
+    return svg;
+  };
+})(window.PP);
+
+</script>
+<script>
 /* The journey: hiking the trail with your client, day by day.
  *
- * At a landmark you get a numbered "You may:" menu. Continuing shows the forks
+ * At a landmark you get a menu of tappable choices. Continuing shows the forks
  * (with days), then you and your client hike day by day. Each day can bring an
  * encounter, a risk-debt check, or the client asking "are we there yet?".
  * Reaching a landmark plays a cut scene and its event. Clients for Life ends it.
@@ -8650,12 +8940,12 @@ window.PP = window.PP || {};
   function showJournal(...kids) { T.journal.innerHTML = ''; kids.forEach((k) => k && T.journal.appendChild(k)); }
   function menuList(items) {
     return h('ol', { class: 'menu' }, items.map((it, i) => h('li', null, h('button', { class: 'menu-item' + (it.primary ? ' primary' : ''), disabled: it.disabled, onclick: it.go },
-      h('span', { class: 'num' }, String(i + 1) + '.'), h('span', { class: 'mi-label' }, it.label), it.note ? h('span', { class: 'mi-note' }, it.note) : null))));
+      h('span', { class: 'num' }, String(i + 1)), h('span', { class: 'mi-label' }, it.label), it.note ? h('span', { class: 'mi-note' }, it.note) : null, h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')))));
   }
   function onKey(e) {
     if (!T.root || !T.root.isConnected) return;
     if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
-    if (document.querySelector('.overlay')) { if (e.key === 'Escape') document.querySelector('.overlay').remove(); return; }
+    if (document.querySelector('.overlay')) { const m = document.querySelector('.overlay.map-overlay'); if (e.key === 'Escape' && m) m.remove(); return; }
     if (T.journal.querySelector('.mg')) return;
     if (e.key === ' ' && T.mode === 'traveling') { e.preventDefault(); stopTravel(); return; }
     if (e.key === ' ' || e.key === 'Enter') { if (T.scene.cutState) { e.preventDefault(); T.scene.skip(); } return; }
@@ -8757,7 +9047,7 @@ window.PP = window.PP || {};
       goalLine(),
       narration(extra ? 2 : 3),
       extra || null,
-      h('p', { class: 'you-may' }, 'You may:'),
+      h('p', { class: 'you-may' }, 'What will you do? Tap one.'),
       menuList(items));
     focusFirst();
   }
@@ -9184,7 +9474,7 @@ window.PP = window.PP || {};
         h('p', { class: 'lede' }, 'You are a new agent at Port Prospect with some savings and a lot to learn. Find prospects, guide them through the wild terrain to a plan that actually suits them, look after the clients you have, and grow a practice that pays the bills before the money runs out.'),
         ladder(saved ? PP.career.level(saved) : 'survivable', true),
         h('div', { class: 'row' },
-          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; port('prospect'); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
+          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; port(null); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
           h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: chooseAgent }, saved ? 'Start a new career' : 'Start your career'))),
       h('div', { class: 'intro-map', id: 'intro-map' })));
     const demo = PP.newState();
@@ -9206,7 +9496,7 @@ window.PP = window.PP || {};
           h('dt', null, 'Skills'), h('dd', null, Object.keys(a.skills).map((k) => PP.SKILLS.find((x) => x.id === k).label).join(', '))),
         h('p', { class: 'small' }, h('strong', null, a.perk + ': '), a.perkText),
         h('p', { class: 'small muted' }, a.cons),
-        h('button', { class: 'btn primary', onclick: () => { G.career = PP.newCareer(a.id); PP.career.save(G.career); port('prospect', [{ text: `Day 1. You hang your license on the wall at Port Prospect. Time to find some people to help.`, kind: 'info' }]); } }, `Start as a ${a.name}`))))));
+        h('button', { class: 'btn primary', onclick: () => { G.career = PP.newCareer(a.id); PP.career.save(G.career); G.place = null; port('office', [{ text: `Day 1. You hang your license on the wall at Port Prospect. Time to find some people to help.`, kind: 'info' }]); } }, `Start as a ${a.name}`))))));
   }
 
   function ladder(current, compact) {
@@ -9222,9 +9512,9 @@ window.PP = window.PP || {};
     const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
     const unhappy = active.filter((b) => b.sat < 5);
     const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
-    if (!c.pipeline.length) return 'Your pipeline is empty. Go prospecting: call people you know, try a call-a-thon, work the Chamber mixer, or set up at the farmers market.';
-    if (unhappy.length) return `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. A service day would help before you head out.`;
-    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Guide someone along the trail, or keep building.`;
+    if (!c.pipeline.length) return 'Nobody is waiting to set out. Find prospects: make calls from your desk, work the room at Chamber Hall, set up a tent in Market Square, or meet the boats at the Docks.';
+    if (unhappy.length) return `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. Visit Maple Row before you head out.`;
+    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Head to the Docks to set out on the trail, or keep building.`;
   }
 
   function practicePanel(c) {
@@ -9272,11 +9562,20 @@ window.PP = window.PP || {};
       } }, ch.label))));
   }
 
-  function port(tab, flash) {
-    const c = G.career;
-    G.tab = tab || G.tab;
-    const tabs = [['prospect', 'Prospect'], ['pipeline', `Pipeline ${c.pipeline.length}`], ['book', `Clients ${c.book.filter((b) => ['life', 'steady', 'at-risk', 'door'].includes(b.status)).length}`], ['build', 'Practice'], ['people', 'People']];
-    const body = { prospect: tabProspect, pipeline: tabPipeline, book: tabBook, build: tabBuild, people: tabPeople }[G.tab]();
+  /* Port Prospect is a little town. Tap a place to see what you can do there. */
+  function port(where, flash) {
+    const c = G.career, T = PP.content.town;
+    const want = T.places[where] ? where : T.tabPlace[where];
+    if (want) G.place = want;
+    if (!G.place) G.place = c.pipeline.length ? 'docks' : 'office';
+    const panel = h('div', { class: 'place-panel', id: 'place-panel' }, placePanel(G.place));
+    const map = PP.ui.townMap(c, G.place, (id) => {
+      G.place = id;
+      map.querySelectorAll('.tp').forEach((g) => g.classList.toggle('on', g.dataset.id === id));
+      panel.innerHTML = ''; panel.appendChild(placePanel(id));
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      PP.fx && PP.fx.sfx('click');
+    });
     screen(h('section', { class: 'port' },
       h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Home base'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
         h('p', { class: 'muted' }, 'Every activity here takes a day, and every day costs money. Balance prospecting, looking after clients, and time on the trail.')),
@@ -9284,9 +9583,28 @@ window.PP = window.PP || {};
       flash && flash.length ? h('div', { class: 'flash', role: 'status' }, flash.map((n) => h('p', { class: 'fl-' + (n.kind || 'info') }, n.text))) : null,
       todayCard(c),
       h('p', { class: 'coach' }, h('span', { class: 'eyebrow' }, 'What now? '), coach(c)),
-      h('nav', { class: 'port-tabs', 'aria-label': 'Port Prospect' }, tabs.map(([id, label]) => h('button', { 'aria-current': G.tab === id ? 'true' : 'false', onclick: () => port(id) }, label))),
-      body));
+      h('div', { class: 'town-layout' }, h('div', { class: 'town-wrap' }, h('p', { class: 'pick-prompt' }, 'Tap a place in town'), map), panel)));
   }
+
+  function placePanel(id) {
+    const c = G.career, pl = PP.content.town.places[id];
+    const name = id === 'office' ? deskName(c) : pl.name;
+    const acts = pl.activities.map((aid) => PP.content.prospecting.find((a) => a.id === aid)).filter(Boolean);
+    const sec = { plan: planCard, inbox: () => serviceCard('inbox', 'Work through the inbox', 'Questions, paperwork, life news, and the occasional scam.', activeBook()),
+      oncall: contactsAndSkills, pipeline: tabPipeline, book: tabBook, boats: boatsCard, courses: coursesSection,
+      workspace: () => buildParts().ws, partner: () => buildParts().pt, recruits: () => buildParts().rc, systems: () => buildParts().sys };
+    const npcs = pl.npcs.map((nid) => PP.content.npcs.find((n) => n.id === nid)).filter(Boolean);
+    return h('div', { class: 'place' },
+      h('header', { class: 'place-head' }, h('div', { class: 'eyebrow' }, 'You are at'), h('h3', { class: 'place-title' }, name), h('p', { class: 'small muted' }, pl.blurb)),
+      acts.length || pl.sections.some((x) => ['plan', 'boats', 'courses'].includes(x)) ? h('h4', { class: 'place-sub' }, 'Things to do here') : null,
+      pl.sections.filter((x) => ['plan', 'boats'].includes(x)).map((x) => sec[x]()),
+      acts.length ? h('div', { class: 'activity-grid' }, acts.map(activityCard)) : null,
+      pl.sections.filter((x) => !['plan', 'boats'].includes(x)).map((x) => sec[x]()),
+      npcs.length ? h('h4', { class: 'place-sub' }, 'Who\'s here') : null,
+      npcs.length ? h('div', { class: 'npc-grid' }, npcs.map(npcCard)) : null);
+  }
+  function deskName(c) { return { kitchen: 'Your kitchen table', cowork: 'Your desk at the Co-op', office: 'Your office' }[c.workspace] || 'Your desk'; }
+  const activeBook = () => G.career.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
 
   /* Spend a day at the port: do the thing, then the day passes. */
   function spendDay(fn, tab, free) {
@@ -9305,34 +9623,35 @@ window.PP = window.PP || {};
   }
 
   /* ---- Prospecting ---- */
-  function tabProspect() {
+  function planCard() {
     const c = G.career;
-    const plan = h('article', { class: 'panel activity' },
+    return h('article', { class: 'panel activity' },
       h('h3', null, 'Plan your week'), h('p', { class: 'small' }, 'Fit client meetings, prep, prospecting and the specialist into your calendar. A well-planned week gives your next journey a head start.'),
       c.weekPlan ? h('p', { class: 'small good' }, 'Ready: ' + weekLabel(c.weekPlan)) : null,
       h('div', { class: 'row between' }, h('span', { class: 'small muted' }, '1 day · mini-game'),
-        h('button', { class: 'btn primary', onclick: () => overlayGame(PP.minigames.calendar, { state: { skills: c.skills, res: { trust: 5 } }, names: c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).map((b) => b.name), prep: c.skills.preparation || 0 }, (res) => {
-          spendDay(() => { c.weekPlan = res.week; return 'Calendar Tetris: ' + weekLabel(res.week) + ' This carries into your next journey.'; }, 'prospect');
+        h('button', { class: 'btn primary', onclick: () => overlayGame(PP.minigames.calendar, { state: { skills: c.skills, res: { trust: 5 } }, names: activeBook().map((b) => b.name), prep: c.skills.preparation || 0 }, (res) => {
+          spendDay(() => { c.weekPlan = res.week; return 'Calendar Tetris: ' + weekLabel(res.week) + ' This carries into your next journey.'; });
         }, 'Calendar Tetris · 1 day') }, 'Play')));
-    return h('div', { class: 'activity-grid' }, plan, ...PP.content.prospecting.map((a) => {
-      const blocked = (a.id === 'warm' && c.market <= 0) || (a.requires && !a.requires(c));
-      return h('article', { class: 'panel activity' },
-        h('h3', null, a.name), h('p', { class: 'small' }, a.blurb),
-        h('div', { class: 'row between' },
-          h('span', { class: 'small muted' }, `1 day${a.cost ? ' · ' + money(a.cost) : ''}` + (a.id === 'warm' ? ` · ${c.market} contacts left` : '') + (a.minigame ? ' · mini-game' : '') + (a.requires && !a.requires(c) ? ' · ' + a.requiresText : '')),
-          h('button', { class: 'btn primary', disabled: blocked || c.savings < a.cost, onclick: () => runActivity(a) }, a.minigame ? 'Play' : 'Do it')));
-    }));
+  }
+  function activityCard(a) {
+    const c = G.career;
+    const blocked = (a.id === 'warm' && c.market <= 0) || (a.requires && !a.requires(c));
+    return h('article', { class: 'panel activity' },
+      h('h3', null, a.name), h('p', { class: 'small' }, a.blurb),
+      h('div', { class: 'row between' },
+        h('span', { class: 'small muted' }, `1 day${a.cost ? ' · ' + money(a.cost) : ''}` + (a.id === 'warm' ? ` · ${c.market} contacts left` : '') + (a.minigame ? ' · mini-game' : '') + (a.requires && !a.requires(c) ? ' · ' + a.requiresText : '')),
+        h('button', { class: 'btn primary', disabled: blocked || c.savings < a.cost, onclick: () => runActivity(a) }, a.minigame ? 'Play' : 'Do it')));
   }
   function runActivity(a) {
     const c = G.career;
-    if (a.simple) return spendDay(() => { c.savings -= a.cost; return PP.content.runSimpleProspecting(c, a.id).text; }, 'prospect');
+    if (a.simple) return spendDay(() => { c.savings -= a.cost; return PP.content.runSimpleProspecting(c, a.id).text; });
     const mg = PP.minigames[a.minigame];
     overlayGame(mg, { state: { skills: c.skills, res: { trust: 5 } }, client: PP.content.clients.taylor, prep: c.skills.preparation || 0, practice: false }, (res) => {
       spendDay(() => {
         c.savings -= a.cost;
         const got = (res.prospects || []).map((p) => PP.career.addProspect(c, p));
         return got.length ? `${a.name}: ${got.length} new prospect${got.length > 1 ? 's' : ''} for your pipeline (${got.map((p) => `${p.name}, ${p.temp}`).join('; ')}).` : `${a.name}: no new prospects this time.`;
-      }, got0(res) ? 'pipeline' : 'prospect');
+      });
     }, `${a.name} · ${a.cost ? money(a.cost) + ' · ' : ''}1 day`);
   }
   function weekBuff(w) {
@@ -9351,14 +9670,18 @@ window.PP = window.PP || {};
     const stage = h('div', { class: 'overlay-card' });
     overlay.appendChild(stage);
     stage.appendChild(h('div', { class: 'scene' }, h('div', { class: 'eyebrow' }, label || 'Mini-game'), h('h3', { class: 'scene-title' }, mg.title), h('p', { class: 'scene-text' }, mg.blurb),
-      h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: go }, 'Start'), h('button', { class: 'btn ghost', onclick: () => overlay.remove() }, 'Not now'))));
+      h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: go }, 'Start'), h('button', { class: 'btn ghost', onclick: () => close() }, 'Not now'))));
     document.body.appendChild(overlay);
-    overlay.querySelector('.btn').focus();
+    document.body.classList.add('modal-open');
+    const close = () => { overlay.remove(); document.body.classList.remove('modal-open'); };
+    // iOS: a pinch inside a game should never zoom the page out from under you.
+    overlay.addEventListener('gesturestart', (e) => e.preventDefault());
+    overlay.querySelector('.btn').focus({ preventScroll: true });
     function go() {
       stage.innerHTML = '';
       const inner = h('div', { class: 'scene mg-stage' });
       stage.appendChild(inner);
-      mg.start(inner, ctx, (res) => { overlay.remove(); done(res); });
+      mg.start(inner, ctx, (res) => { close(); done(res); });
     }
   }
 
@@ -9397,7 +9720,7 @@ window.PP = window.PP || {};
             const touched = applySat(c, res.sat, active);
             c.lastService = c.days;
             return `${mg.title}: ${touched.length ? 'satisfaction ' + touched.join(', ') + '.' : 'everyone feels a little more looked after.'}`;
-          }, 'book');
+          });
         }, `${mg.title} · 1 day`);
       } }, 'Play (1 day)'));
   }
@@ -9421,7 +9744,7 @@ window.PP = window.PP || {};
   }
 
   /* ---- Build your practice ---- */
-  function tabBuild() {
+  function buildParts() {
     const c = G.career, pr = P();
     const activeCount = c.book.filter((b) => ['life', 'steady'].includes(b.status)).length;
     const ws = h('div', { class: 'panel' }, h('h3', null, 'Workspace'), h('div', { class: 'option-list' }, Object.entries(pr.workspaces).map(([id, w]) => h('div', { class: 'option' + (c.workspace === id ? ' current' : '') },
@@ -9457,40 +9780,146 @@ window.PP = window.PP || {};
           h('div', null, h('strong', null, sy.name), h('div', { class: 'small' }, sy.blurb), h('div', { class: 'small muted' }, mark ? `Mark earned at ${PP.content.nodes[sy.mark].name}` : `Earn the Mark at ${PP.content.nodes[sy.mark].name}`)),
           has ? h('span', { class: 'pill good' }, 'Built') : h('button', { class: 'btn', disabled: !mark || c.savings < sy.cost, onclick: () => spendDay(() => { c.savings -= sy.cost; c.systems[id] = true; return `You build your ${sy.name.toLowerCase()}.`; }, 'build') }, `Build (${money(sy.cost)}, 1 day)`));
       })));
-    return h('div', { class: 'build-grid' }, ws, pt, rc, sys);
+    return { ws, pt, rc, sys };
   }
 
-  /* ---- Skills & people ---- */
-  function tabPeople() {
-    const c = G.career;
-    const fake = { skills: c.skills, contacts: c.contacts, met: c.met, quests: c.quests, res: { trust: 5 } };
-    const contactsBox = h('div', { class: 'panel' },
-      h('div', { class: 'panel-head' }, h('h3', null, 'On call for the trail'), h('span', { class: 'muted small' }, `${c.contacts.length} / ${PP.contactSlots(fake)} slots`)),
-      c.contacts.length ? h('ul', { class: 'contact-list' }, c.contacts.map((id) => {
-        const ct = PP.content.contacts[id];
-        return h('li', null, h('div', null, h('strong', null, ct.name), ' · ', ct.who, h('div', { class: 'small muted' }, ct.ability)),
-          h('button', { class: 'btn ghost small', onclick: () => { c.contacts.splice(c.contacts.indexOf(id), 1); PP.career.save(c); port('people'); } }, 'Drop'));
-      })) : h('p', { class: 'muted small' }, 'Nobody yet. Talk to people, then put them on call. Each helps once per journey.'));
-    const free = c.agent === 'grad';
-    return h('div', { class: 'port-grid' },
-      h('div', { class: 'npc-grid' }, PP.content.npcs.map((n) => {
-        const met = c.met[n.id];
-        const q = n.quest && c.quests[n.quest.id];
-        const ct = PP.content.contacts[n.contact];
-        const canRecruit = (met || q === 'done') && !c.contacts.includes(n.contact);
-        const full = c.contacts.length >= PP.contactSlots(fake);
-        return h('article', { class: 'npc' },
-          h('div', { class: 'npc-head' }, h('span', { class: 'npc-mark', 'aria-hidden': 'true' }, n.name[0]), h('div', null, h('h3', null, n.name), h('div', { class: 'small muted' }, n.role))),
-          h('p', { class: 'npc-greet' }, n.greet),
-          h('div', { class: 'npc-actions' },
-            n.talk ? h('button', { class: 'btn', disabled: met, onclick: () => spendDay(() => { c.met[n.id] = true; PP.apply(fake, n.talk.eff); return n.talk.text + ' ' + skillGain(n.talk.eff); }, 'people', free) }, met ? 'Talked ✓' : n.talk.label + (free ? '' : ' (1 day)')) : null,
-            n.quest ? h('button', { class: 'btn', disabled: q === 'done', onclick: () => runQuest(n, fake, free) }, q === 'done' ? 'Practice passed ✓' : n.quest.label + (q === 'failed' ? ' (retry)' : '')) : null,
-            canRecruit ? h('button', { class: 'btn accent', disabled: full, onclick: () => { c.contacts.push(n.contact); PP.career.save(c); port('people', [{ text: `${n.name} is on call as ${ct.name}.` }]); } }, full ? 'Slots full' : 'Put on call') : null,
-            c.contacts.includes(n.contact) ? h('span', { class: 'pill good' }, 'On call') : null),
-          h('p', { class: 'small muted npc-ability' }, h('strong', null, ct.name + ': '), ct.ability));
-      })),
-      h('aside', { class: 'port-side' }, contactsBox, h('div', { class: 'panel' }, h('h3', null, 'Skills'), skillList(c.skills))));
+  /* ---- People and skills ---- */
+  const fakeState = () => { const c = G.career; return { skills: c.skills, contacts: c.contacts, met: c.met, quests: c.quests, res: { trust: 5 } }; };
+  function contactsAndSkills() {
+    const c = G.career, fake = fakeState();
+    return h('div', { class: 'build-grid' },
+      h('div', { class: 'panel' },
+        h('div', { class: 'panel-head' }, h('h3', null, 'On call for the trail'), h('span', { class: 'muted small' }, `${c.contacts.length} / ${PP.contactSlots(fake)} slots`)),
+        c.contacts.length ? h('ul', { class: 'contact-list' }, c.contacts.map((id) => {
+          const ct = PP.content.contacts[id];
+          return h('li', null, h('div', null, h('strong', null, ct.name), ' · ', ct.who, h('div', { class: 'small muted' }, ct.ability)),
+            h('button', { class: 'btn ghost small', onclick: () => { c.contacts.splice(c.contacts.indexOf(id), 1); PP.career.save(c); port('office'); } }, 'Drop'));
+        })) : h('p', { class: 'muted small' }, 'Nobody yet. Meet people around town, then put them on call. Each helps once per journey.')),
+      h('div', { class: 'panel' }, h('h3', null, 'Your skills'), skillList(c.skills), h('p', { class: 'small muted' }, 'Learn more at Harbor Night School, or from people around town.'),
+        perksLine(c)));
   }
+  function perksLine(c) {
+    const ps = Object.keys(c.perks || {}).map((k) => PP.content.town.perks[k]).filter(Boolean);
+    return ps.length ? h('p', { class: 'small good' }, 'Certificates: ' + ps.map((x) => x.name).join(', ')) : null;
+  }
+  function npcCard(n) {
+    const c = G.career, fake = fakeState(), free = c.agent === 'grad';
+    const met = c.met[n.id];
+    const q = n.quest && c.quests[n.quest.id];
+    const ct = PP.content.contacts[n.contact];
+    const canRecruit = (met || q === 'done') && !c.contacts.includes(n.contact);
+    const full = c.contacts.length >= PP.contactSlots(fake);
+    let n2 = 0; for (const ch of n.name) n2 = (n2 * 31 + ch.charCodeAt(0)) % 9973;
+    return h('article', { class: 'npc' },
+      h('div', { class: 'npc-head' }, h('span', { class: 'npc-face', 'aria-hidden': 'true', html: PP.art.face({ mood: met ? 2 : 1, hue: n2 }) }), h('div', null, h('h3', null, n.name), h('div', { class: 'small muted' }, n.role))),
+      h('p', { class: 'npc-greet' }, n.greet),
+      h('div', { class: 'npc-actions' },
+        n.talk ? h('button', { class: 'btn', disabled: met, onclick: () => spendDay(() => { c.met[n.id] = true; PP.apply(fake, n.talk.eff); return n.talk.text + ' ' + skillGain(n.talk.eff); }, null, free) }, met ? 'Talked ✓' : n.talk.label + (free ? '' : ' (1 day)')) : null,
+        n.quest ? h('button', { class: 'btn', disabled: q === 'done', onclick: () => runQuest(n, fake, free) }, q === 'done' ? 'Practice passed ✓' : n.quest.label + (q === 'failed' ? ' (retry)' : '')) : null,
+        canRecruit ? h('button', { class: 'btn accent', disabled: full, onclick: () => { c.contacts.push(n.contact); PP.career.save(c); port(G.place, [{ text: `${n.name} is on call as ${ct.name}.` }]); } }, full ? 'Slots full' : 'Put on call') : null,
+        c.contacts.includes(n.contact) ? h('span', { class: 'pill good' }, 'On call') : null),
+      h('p', { class: 'small muted npc-ability' }, h('strong', null, ct.name + ': '), ct.ability));
+  }
+
+  /* ---- Harbor Night School ---- */
+  function coursesSection() {
+    const c = G.career;
+    c.perks = c.perks || {}; c.courses = c.courses || {};
+    const S = PP.content.town.school;
+    const meets = (needs) => Object.entries(needs || {}).every(([k, v]) => (c.skills[k] || 0) >= v);
+    const needText = (needs) => Object.entries(needs || {}).map(([k, v]) => `${PP.SKILLS.find((x) => x.id === k).label} ${v}`).join(', ');
+    const done = (co) => co.skill ? (c.skills[co.skill] || 0) >= 2 : co.grants.system ? !!c.systems[co.grants.system] : co.grants.password ? PP.store.get('password', false) : !!c.perks[co.grants.perk];
+    const card = (co) => {
+      const has = done(co), ok = meets(co.needs), afford = c.savings >= co.cost;
+      const what = co.skill ? `+1 ${PP.SKILLS.find((x) => x.id === co.skill).label} (now ${c.skills[co.skill] || 0}/2)` : co.grants.system ? `Builds: ${P().systems[co.grants.system].name}` : co.grants.password ? 'Unlocks the Secret Shortcut' : PP.content.town.perks[co.grants.perk].blurb;
+      return h('article', { class: 'panel activity course' + (co.skill ? '' : ' cert') },
+        h('div', { class: 'eyebrow' }, co.skill ? 'Course' : 'Certificate'),
+        h('h3', null, co.name), h('p', { class: 'small' }, co.blurb), h('p', { class: 'small good' }, what),
+        h('div', { class: 'row between' },
+          h('span', { class: 'small muted' }, `${co.days} day${co.days > 1 ? 's' : ''} · ${money(co.cost)}` + (co.needs && !ok ? ` · needs ${needText(co.needs)}` : '')),
+          has ? h('span', { class: 'pill good' }, co.skill ? 'Mastered' : 'Earned') : h('button', { class: 'btn primary', disabled: !ok || !afford, onclick: () => takeCourse(co) }, 'Enroll')));
+    };
+    return h('div', { class: 'stack' },
+      h('h4', { class: 'place-sub' }, 'Courses: build a skill'), h('div', { class: 'activity-grid' }, S.courses.filter((x) => x.skill).map(card)),
+      h('h4', { class: 'place-sub' }, 'Certificates: shortcuts on the trail'), h('div', { class: 'activity-grid' }, S.courses.filter((x) => !x.skill).map(card)));
+  }
+  function takeCourse(co) {
+    const c = G.career;
+    spendDays(co.days, () => {
+      c.savings -= co.cost;
+      c.courses[co.id] = true;
+      if (co.skill) { c.skills[co.skill] = Math.min(2, (c.skills[co.skill] || 0) + 1); return `${co.name}: ${co.days} evening${co.days > 1 ? 's' : ''} of class. +1 ${PP.SKILLS.find((x) => x.id === co.skill).label}.`; }
+      if (co.grants.system) { c.systems[co.grants.system] = true; return `${co.name} complete. ${P().systems[co.grants.system].name} is now part of your practice.`; }
+      if (co.grants.password) { PP.store.set('password', true); return `${co.name}: two hours on bait, then, almost as an afterthought, "the shortcut password is password1." The Secret Shortcut is open to you.`; }
+      c.perks[co.grants.perk] = true; return `${co.name} complete. ${PP.content.town.perks[co.grants.perk].blurb}`;
+    });
+  }
+  function spendDays(n, fn) {
+    const c = G.career;
+    const lines = [{ text: fn(), kind: 'info' }];
+    for (let i = 0; i < n; i++) lines.push(...PP.career.tickDay(c, false));
+    c.inbox = [];
+    if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
+    PP.career.save(c);
+    port(G.place, lines);
+  }
+
+  /* ---- The docks: watch the boats come in ---- */
+  function boatsCard() {
+    const c = G.career;
+    return h('article', { class: 'panel activity boats' },
+      h('div', { class: 'boats-art', 'aria-hidden': 'true', html: '<svg viewBox="0 0 320 70"><path d="M0,52 q20,-6 40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 V70 H0z" fill="#cfe3f7" stroke="#9cc2e6" stroke-width="1.5"/><g class="boat-a"><path d="M40,44 h70 l-10,14 h-50z" fill="#fbf1e1" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M75,44 v-30 l22,26z" fill="#f39c12" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/></g><g class="boat-b"><path d="M190,46 h56 l-8,12 h-40z" fill="#e3c6a0" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M200,46 v-14 h24 v14" fill="#fbf1e1" stroke="#4a2c12" stroke-width="2"/></g><path d="M258,40 h62 M266,40 v18 M290,40 v18 M314,40 v18" stroke="#4a2c12" stroke-width="2.5"/></svg>' }),
+      h('h3', null, 'Watch the boats come in'),
+      h('p', { class: 'small' }, 'People stepping off the boats are new in town. They need everything set up and nobody has met them yet. Sailors in from the trail bring news of what lies ahead.'),
+      h('div', { class: 'row between' }, h('span', { class: 'small muted' }, '1 day'), h('button', { class: 'btn primary', onclick: () => boatDay(c) }, 'Head to the pier')));
+  }
+  function boatDay(c) {
+    const A = PP.content.town.arrivals;
+    const seen = c.arrSeen || [];
+    const pool = PP.shuffle(A.filter((a) => !seen.includes(a.id)).concat(A)).filter((a, i, arr) => arr.findIndex((b) => b.id === a.id) === i);
+    const three = pool.slice(0, 3);
+    c.arrSeen = seen.concat(three.map((a) => a.id)).slice(-8);
+    const boat = PP.pick(['The 10:40 ferry', 'A water taxi', 'The morning ferry', 'A fishing boat', 'The weekend ferry', 'A sailboat with a hand-painted name']);
+    const overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The docks' });
+    const card = h('div', { class: 'scene boat-scene' });
+    overlay.appendChild(h('div', { class: 'overlay-card' }, card));
+    document.body.appendChild(overlay); document.body.classList.add('modal-open');
+    const close = () => { overlay.remove(); document.body.classList.remove('modal-open'); };
+    const pick = (a) => {
+      card.innerHTML = '';
+      const approach = (how) => {
+        const notes = [];
+        let text = how === 'warm' ? a.warm : a.cold;
+        if (a.kind === 'resident' || a.kind === 'business') {
+          const temp = how === 'warm' ? (PP.chance(0.25) ? 'hot' : 'warm') : (PP.chance(0.55) ? 'cold' : null);
+          if (temp) { const p = PP.career.addProspect(c, { temp, source: 'the docks (new in town)', archetype: a.arch && PP.content.clients[a.arch] ? a.arch : undefined, bias: a.bias }); notes.push(`${p.name} is now in your pipeline (${temp}).`); }
+          else notes.push('No prospect this time.');
+        } else if (a.kind === 'sailor') {
+          const unknown = Object.keys(PP.content.nodes).filter((k) => !c.known[k]);
+          PP.shuffle(unknown).slice(0, how === 'warm' ? 2 : 1).forEach((k) => { c.known[k] = true; notes.push(`${PP.content.nodes[k].name} is now named on your map.`); });
+          if (!unknown.length) notes.push('You already know every place she mentions.');
+        } else if (a.kind === 'rival') {
+          if (c.pipeline.length && PP.chance(how === 'warm' ? 0.2 : 0.4)) { const lost = c.pipeline.splice(Math.floor(Math.random() * c.pipeline.length), 1)[0]; notes.push(`Later you hear ${lost.name} had coffee with him. They are no longer in your pipeline.`); }
+          else notes.push('Nobody of yours went with him. This time.');
+        } else notes.push('Lovely. Not a prospect.');
+        close();
+        spendDay(() => `${boat} comes in. ${text} ${notes.join(' ')}`);
+      };
+      card.append(h('div', { class: 'eyebrow' }, 'The docks'), h('h3', { class: 'scene-title' }, a.who),
+        h('div', { class: 'arrival big', html: PP.art.figure(a.fig, { seed: a.id.length * 7 }) }), h('p', { class: 'scene-text' }, a.tell),
+        h('p', { class: 'pick-prompt' }, 'How do you say hello? Tap one.'),
+        h('div', { class: 'choices' },
+          h('button', { class: 'choice', onclick: () => approach('warm') }, h('span', { class: 'kind' }, 'Take your time'), h('span', { class: 'choice-label' }, 'Help them out, no pitch'), h('span', { class: 'hint' }, 'Slower, but people remember it.'), h('span', { class: 'chev' }, '›')),
+          h('button', { class: 'choice', onclick: () => approach('cold') }, h('span', { class: 'kind' }, 'Quick'), h('span', { class: 'choice-label' }, 'Introduce yourself and hand over a card'), h('span', { class: 'hint' }, 'Covers more ground, leaves less of an impression.'), h('span', { class: 'chev' }, '›'))));
+    };
+    card.append(h('div', { class: 'eyebrow' }, 'The docks · 1 day'), h('h3', { class: 'scene-title' }, `${boat} is coming in`),
+      h('p', { class: 'scene-text' }, 'Three people step onto the pier. You have time to really meet one of them.'),
+      h('p', { class: 'pick-prompt' }, 'Who do you go and meet? Tap one.'),
+      h('div', { class: 'arrivals' }, three.map((a) => h('button', { class: 'arrival-card', onclick: () => pick(a) },
+        h('span', { class: 'arrival', html: PP.art.figure(a.fig, { seed: a.id.length * 7 }) }), h('strong', null, a.who), h('span', { class: 'small muted' }, a.tell)))),
+      h('button', { class: 'btn ghost', onclick: close }, 'Not today'));
+  }
+
   function skillGain(eff) {
     if (!eff || !eff.skill) return '';
     return '(+1 ' + Object.keys(eff.skill).map((k) => PP.SKILLS.find((x) => x.id === k).label).join(', ') + ')';
@@ -9502,7 +9931,7 @@ window.PP = window.PP || {};
         c.met[n.id] = true;
         if (res.passed) { c.quests[q.id] = 'done'; PP.apply(fake, q.reward); return `Passed! ${skillGain(q.reward)} ${n.name} can now be put on call.`; }
         c.quests[q.id] = 'failed'; return `Not quite (${res.score}/${res.max}). You can try again.`;
-      }, 'people', free);
+      }, null, free);
     }, `${n.name} · practice`);
   }
   function skillList(skills) {
@@ -9540,6 +9969,8 @@ window.PP = window.PP || {};
     PP.apply(s, { trust: trustMod });
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
     if (s.pack.includes('cards')) { PP.apply(s, { trust: 1 }); PP.useItem(s, 'cards'); }
+    if (c.perks && c.perks.stamina) PP.apply(s, { energy: 2 });
+    if (c.perks && c.perks.scout) { PP.apply(s, { insight: 1 }); PP.content.trails.forEach((t) => { if (s.map.known[t.a] || s.map.known[t.b]) { c.known[t.a] = true; c.known[t.b] = true; } }); }
     if (c.energyNext) { PP.apply(s, { energy: c.energyNext }); c.energyNext = 0; }
     if (c.weekPlan) { PP.apply(s, weekBuff(c.weekPlan)); PP.log(s, 'Your planned week: ' + weekLabel(c.weekPlan), 'info'); c.weekPlan = null; }
     G.s = s;

@@ -1,6 +1,6 @@
 /* The journey: hiking the trail with your client, day by day.
  *
- * At a landmark you get a numbered "You may:" menu. Continuing shows the forks
+ * At a landmark you get a menu of tappable choices. Continuing shows the forks
  * (with days), then you and your client hike day by day. Each day can bring an
  * encounter, a risk-debt check, or the client asking "are we there yet?".
  * Reaching a landmark plays a cut scene and its event. Clients for Life ends it.
@@ -70,12 +70,12 @@
   function showJournal(...kids) { T.journal.innerHTML = ''; kids.forEach((k) => k && T.journal.appendChild(k)); }
   function menuList(items) {
     return h('ol', { class: 'menu' }, items.map((it, i) => h('li', null, h('button', { class: 'menu-item' + (it.primary ? ' primary' : ''), disabled: it.disabled, onclick: it.go },
-      h('span', { class: 'num' }, String(i + 1) + '.'), h('span', { class: 'mi-label' }, it.label), it.note ? h('span', { class: 'mi-note' }, it.note) : null))));
+      h('span', { class: 'num' }, String(i + 1)), h('span', { class: 'mi-label' }, it.label), it.note ? h('span', { class: 'mi-note' }, it.note) : null, h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')))));
   }
   function onKey(e) {
     if (!T.root || !T.root.isConnected) return;
     if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
-    if (document.querySelector('.overlay')) { if (e.key === 'Escape') document.querySelector('.overlay').remove(); return; }
+    if (document.querySelector('.overlay')) { const m = document.querySelector('.overlay.map-overlay'); if (e.key === 'Escape' && m) m.remove(); return; }
     if (T.journal.querySelector('.mg')) return;
     if (e.key === ' ' && T.mode === 'traveling') { e.preventDefault(); stopTravel(); return; }
     if (e.key === ' ' || e.key === 'Enter') { if (T.scene.cutState) { e.preventDefault(); T.scene.skip(); } return; }
@@ -177,7 +177,7 @@
       goalLine(),
       narration(extra ? 2 : 3),
       extra || null,
-      h('p', { class: 'you-may' }, 'You may:'),
+      h('p', { class: 'you-may' }, 'What will you do? Tap one.'),
       menuList(items));
     focusFirst();
   }

@@ -26,7 +26,7 @@
         h('p', { class: 'lede' }, 'You are a new agent at Port Prospect with some savings and a lot to learn. Find prospects, guide them through the wild terrain to a plan that actually suits them, look after the clients you have, and grow a practice that pays the bills before the money runs out.'),
         ladder(saved ? PP.career.level(saved) : 'survivable', true),
         h('div', { class: 'row' },
-          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; port('prospect'); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
+          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; port(null); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
           h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: chooseAgent }, saved ? 'Start a new career' : 'Start your career'))),
       h('div', { class: 'intro-map', id: 'intro-map' })));
     const demo = PP.newState();
@@ -48,7 +48,7 @@
           h('dt', null, 'Skills'), h('dd', null, Object.keys(a.skills).map((k) => PP.SKILLS.find((x) => x.id === k).label).join(', '))),
         h('p', { class: 'small' }, h('strong', null, a.perk + ': '), a.perkText),
         h('p', { class: 'small muted' }, a.cons),
-        h('button', { class: 'btn primary', onclick: () => { G.career = PP.newCareer(a.id); PP.career.save(G.career); port('prospect', [{ text: `Day 1. You hang your license on the wall at Port Prospect. Time to find some people to help.`, kind: 'info' }]); } }, `Start as a ${a.name}`))))));
+        h('button', { class: 'btn primary', onclick: () => { G.career = PP.newCareer(a.id); PP.career.save(G.career); G.place = null; port('office', [{ text: `Day 1. You hang your license on the wall at Port Prospect. Time to find some people to help.`, kind: 'info' }]); } }, `Start as a ${a.name}`))))));
   }
 
   function ladder(current, compact) {
@@ -64,9 +64,9 @@
     const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
     const unhappy = active.filter((b) => b.sat < 5);
     const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
-    if (!c.pipeline.length) return 'Your pipeline is empty. Go prospecting: call people you know, try a call-a-thon, work the Chamber mixer, or set up at the farmers market.';
-    if (unhappy.length) return `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. A service day would help before you head out.`;
-    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Guide someone along the trail, or keep building.`;
+    if (!c.pipeline.length) return 'Nobody is waiting to set out. Find prospects: make calls from your desk, work the room at Chamber Hall, set up a tent in Market Square, or meet the boats at the Docks.';
+    if (unhappy.length) return `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. Visit Maple Row before you head out.`;
+    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Head to the Docks to set out on the trail, or keep building.`;
   }
 
   function practicePanel(c) {
@@ -114,11 +114,20 @@
       } }, ch.label))));
   }
 
-  function port(tab, flash) {
-    const c = G.career;
-    G.tab = tab || G.tab;
-    const tabs = [['prospect', 'Prospect'], ['pipeline', `Pipeline ${c.pipeline.length}`], ['book', `Clients ${c.book.filter((b) => ['life', 'steady', 'at-risk', 'door'].includes(b.status)).length}`], ['build', 'Practice'], ['people', 'People']];
-    const body = { prospect: tabProspect, pipeline: tabPipeline, book: tabBook, build: tabBuild, people: tabPeople }[G.tab]();
+  /* Port Prospect is a little town. Tap a place to see what you can do there. */
+  function port(where, flash) {
+    const c = G.career, T = PP.content.town;
+    const want = T.places[where] ? where : T.tabPlace[where];
+    if (want) G.place = want;
+    if (!G.place) G.place = c.pipeline.length ? 'docks' : 'office';
+    const panel = h('div', { class: 'place-panel', id: 'place-panel' }, placePanel(G.place));
+    const map = PP.ui.townMap(c, G.place, (id) => {
+      G.place = id;
+      map.querySelectorAll('.tp').forEach((g) => g.classList.toggle('on', g.dataset.id === id));
+      panel.innerHTML = ''; panel.appendChild(placePanel(id));
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      PP.fx && PP.fx.sfx('click');
+    });
     screen(h('section', { class: 'port' },
       h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Home base'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
         h('p', { class: 'muted' }, 'Every activity here takes a day, and every day costs money. Balance prospecting, looking after clients, and time on the trail.')),
@@ -126,9 +135,28 @@
       flash && flash.length ? h('div', { class: 'flash', role: 'status' }, flash.map((n) => h('p', { class: 'fl-' + (n.kind || 'info') }, n.text))) : null,
       todayCard(c),
       h('p', { class: 'coach' }, h('span', { class: 'eyebrow' }, 'What now? '), coach(c)),
-      h('nav', { class: 'port-tabs', 'aria-label': 'Port Prospect' }, tabs.map(([id, label]) => h('button', { 'aria-current': G.tab === id ? 'true' : 'false', onclick: () => port(id) }, label))),
-      body));
+      h('div', { class: 'town-layout' }, h('div', { class: 'town-wrap' }, h('p', { class: 'pick-prompt' }, 'Tap a place in town'), map), panel)));
   }
+
+  function placePanel(id) {
+    const c = G.career, pl = PP.content.town.places[id];
+    const name = id === 'office' ? deskName(c) : pl.name;
+    const acts = pl.activities.map((aid) => PP.content.prospecting.find((a) => a.id === aid)).filter(Boolean);
+    const sec = { plan: planCard, inbox: () => serviceCard('inbox', 'Work through the inbox', 'Questions, paperwork, life news, and the occasional scam.', activeBook()),
+      oncall: contactsAndSkills, pipeline: tabPipeline, book: tabBook, boats: boatsCard, courses: coursesSection,
+      workspace: () => buildParts().ws, partner: () => buildParts().pt, recruits: () => buildParts().rc, systems: () => buildParts().sys };
+    const npcs = pl.npcs.map((nid) => PP.content.npcs.find((n) => n.id === nid)).filter(Boolean);
+    return h('div', { class: 'place' },
+      h('header', { class: 'place-head' }, h('div', { class: 'eyebrow' }, 'You are at'), h('h3', { class: 'place-title' }, name), h('p', { class: 'small muted' }, pl.blurb)),
+      acts.length || pl.sections.some((x) => ['plan', 'boats', 'courses'].includes(x)) ? h('h4', { class: 'place-sub' }, 'Things to do here') : null,
+      pl.sections.filter((x) => ['plan', 'boats'].includes(x)).map((x) => sec[x]()),
+      acts.length ? h('div', { class: 'activity-grid' }, acts.map(activityCard)) : null,
+      pl.sections.filter((x) => !['plan', 'boats'].includes(x)).map((x) => sec[x]()),
+      npcs.length ? h('h4', { class: 'place-sub' }, 'Who\'s here') : null,
+      npcs.length ? h('div', { class: 'npc-grid' }, npcs.map(npcCard)) : null);
+  }
+  function deskName(c) { return { kitchen: 'Your kitchen table', cowork: 'Your desk at the Co-op', office: 'Your office' }[c.workspace] || 'Your desk'; }
+  const activeBook = () => G.career.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
 
   /* Spend a day at the port: do the thing, then the day passes. */
   function spendDay(fn, tab, free) {
@@ -147,34 +175,35 @@
   }
 
   /* ---- Prospecting ---- */
-  function tabProspect() {
+  function planCard() {
     const c = G.career;
-    const plan = h('article', { class: 'panel activity' },
+    return h('article', { class: 'panel activity' },
       h('h3', null, 'Plan your week'), h('p', { class: 'small' }, 'Fit client meetings, prep, prospecting and the specialist into your calendar. A well-planned week gives your next journey a head start.'),
       c.weekPlan ? h('p', { class: 'small good' }, 'Ready: ' + weekLabel(c.weekPlan)) : null,
       h('div', { class: 'row between' }, h('span', { class: 'small muted' }, '1 day · mini-game'),
-        h('button', { class: 'btn primary', onclick: () => overlayGame(PP.minigames.calendar, { state: { skills: c.skills, res: { trust: 5 } }, names: c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).map((b) => b.name), prep: c.skills.preparation || 0 }, (res) => {
-          spendDay(() => { c.weekPlan = res.week; return 'Calendar Tetris: ' + weekLabel(res.week) + ' This carries into your next journey.'; }, 'prospect');
+        h('button', { class: 'btn primary', onclick: () => overlayGame(PP.minigames.calendar, { state: { skills: c.skills, res: { trust: 5 } }, names: activeBook().map((b) => b.name), prep: c.skills.preparation || 0 }, (res) => {
+          spendDay(() => { c.weekPlan = res.week; return 'Calendar Tetris: ' + weekLabel(res.week) + ' This carries into your next journey.'; });
         }, 'Calendar Tetris · 1 day') }, 'Play')));
-    return h('div', { class: 'activity-grid' }, plan, ...PP.content.prospecting.map((a) => {
-      const blocked = (a.id === 'warm' && c.market <= 0) || (a.requires && !a.requires(c));
-      return h('article', { class: 'panel activity' },
-        h('h3', null, a.name), h('p', { class: 'small' }, a.blurb),
-        h('div', { class: 'row between' },
-          h('span', { class: 'small muted' }, `1 day${a.cost ? ' · ' + money(a.cost) : ''}` + (a.id === 'warm' ? ` · ${c.market} contacts left` : '') + (a.minigame ? ' · mini-game' : '') + (a.requires && !a.requires(c) ? ' · ' + a.requiresText : '')),
-          h('button', { class: 'btn primary', disabled: blocked || c.savings < a.cost, onclick: () => runActivity(a) }, a.minigame ? 'Play' : 'Do it')));
-    }));
+  }
+  function activityCard(a) {
+    const c = G.career;
+    const blocked = (a.id === 'warm' && c.market <= 0) || (a.requires && !a.requires(c));
+    return h('article', { class: 'panel activity' },
+      h('h3', null, a.name), h('p', { class: 'small' }, a.blurb),
+      h('div', { class: 'row between' },
+        h('span', { class: 'small muted' }, `1 day${a.cost ? ' · ' + money(a.cost) : ''}` + (a.id === 'warm' ? ` · ${c.market} contacts left` : '') + (a.minigame ? ' · mini-game' : '') + (a.requires && !a.requires(c) ? ' · ' + a.requiresText : '')),
+        h('button', { class: 'btn primary', disabled: blocked || c.savings < a.cost, onclick: () => runActivity(a) }, a.minigame ? 'Play' : 'Do it')));
   }
   function runActivity(a) {
     const c = G.career;
-    if (a.simple) return spendDay(() => { c.savings -= a.cost; return PP.content.runSimpleProspecting(c, a.id).text; }, 'prospect');
+    if (a.simple) return spendDay(() => { c.savings -= a.cost; return PP.content.runSimpleProspecting(c, a.id).text; });
     const mg = PP.minigames[a.minigame];
     overlayGame(mg, { state: { skills: c.skills, res: { trust: 5 } }, client: PP.content.clients.taylor, prep: c.skills.preparation || 0, practice: false }, (res) => {
       spendDay(() => {
         c.savings -= a.cost;
         const got = (res.prospects || []).map((p) => PP.career.addProspect(c, p));
         return got.length ? `${a.name}: ${got.length} new prospect${got.length > 1 ? 's' : ''} for your pipeline (${got.map((p) => `${p.name}, ${p.temp}`).join('; ')}).` : `${a.name}: no new prospects this time.`;
-      }, got0(res) ? 'pipeline' : 'prospect');
+      });
     }, `${a.name} · ${a.cost ? money(a.cost) + ' · ' : ''}1 day`);
   }
   function weekBuff(w) {
@@ -193,14 +222,18 @@
     const stage = h('div', { class: 'overlay-card' });
     overlay.appendChild(stage);
     stage.appendChild(h('div', { class: 'scene' }, h('div', { class: 'eyebrow' }, label || 'Mini-game'), h('h3', { class: 'scene-title' }, mg.title), h('p', { class: 'scene-text' }, mg.blurb),
-      h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: go }, 'Start'), h('button', { class: 'btn ghost', onclick: () => overlay.remove() }, 'Not now'))));
+      h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: go }, 'Start'), h('button', { class: 'btn ghost', onclick: () => close() }, 'Not now'))));
     document.body.appendChild(overlay);
-    overlay.querySelector('.btn').focus();
+    document.body.classList.add('modal-open');
+    const close = () => { overlay.remove(); document.body.classList.remove('modal-open'); };
+    // iOS: a pinch inside a game should never zoom the page out from under you.
+    overlay.addEventListener('gesturestart', (e) => e.preventDefault());
+    overlay.querySelector('.btn').focus({ preventScroll: true });
     function go() {
       stage.innerHTML = '';
       const inner = h('div', { class: 'scene mg-stage' });
       stage.appendChild(inner);
-      mg.start(inner, ctx, (res) => { overlay.remove(); done(res); });
+      mg.start(inner, ctx, (res) => { close(); done(res); });
     }
   }
 
@@ -239,7 +272,7 @@
             const touched = applySat(c, res.sat, active);
             c.lastService = c.days;
             return `${mg.title}: ${touched.length ? 'satisfaction ' + touched.join(', ') + '.' : 'everyone feels a little more looked after.'}`;
-          }, 'book');
+          });
         }, `${mg.title} · 1 day`);
       } }, 'Play (1 day)'));
   }
@@ -263,7 +296,7 @@
   }
 
   /* ---- Build your practice ---- */
-  function tabBuild() {
+  function buildParts() {
     const c = G.career, pr = P();
     const activeCount = c.book.filter((b) => ['life', 'steady'].includes(b.status)).length;
     const ws = h('div', { class: 'panel' }, h('h3', null, 'Workspace'), h('div', { class: 'option-list' }, Object.entries(pr.workspaces).map(([id, w]) => h('div', { class: 'option' + (c.workspace === id ? ' current' : '') },
@@ -299,40 +332,146 @@
           h('div', null, h('strong', null, sy.name), h('div', { class: 'small' }, sy.blurb), h('div', { class: 'small muted' }, mark ? `Mark earned at ${PP.content.nodes[sy.mark].name}` : `Earn the Mark at ${PP.content.nodes[sy.mark].name}`)),
           has ? h('span', { class: 'pill good' }, 'Built') : h('button', { class: 'btn', disabled: !mark || c.savings < sy.cost, onclick: () => spendDay(() => { c.savings -= sy.cost; c.systems[id] = true; return `You build your ${sy.name.toLowerCase()}.`; }, 'build') }, `Build (${money(sy.cost)}, 1 day)`));
       })));
-    return h('div', { class: 'build-grid' }, ws, pt, rc, sys);
+    return { ws, pt, rc, sys };
   }
 
-  /* ---- Skills & people ---- */
-  function tabPeople() {
-    const c = G.career;
-    const fake = { skills: c.skills, contacts: c.contacts, met: c.met, quests: c.quests, res: { trust: 5 } };
-    const contactsBox = h('div', { class: 'panel' },
-      h('div', { class: 'panel-head' }, h('h3', null, 'On call for the trail'), h('span', { class: 'muted small' }, `${c.contacts.length} / ${PP.contactSlots(fake)} slots`)),
-      c.contacts.length ? h('ul', { class: 'contact-list' }, c.contacts.map((id) => {
-        const ct = PP.content.contacts[id];
-        return h('li', null, h('div', null, h('strong', null, ct.name), ' · ', ct.who, h('div', { class: 'small muted' }, ct.ability)),
-          h('button', { class: 'btn ghost small', onclick: () => { c.contacts.splice(c.contacts.indexOf(id), 1); PP.career.save(c); port('people'); } }, 'Drop'));
-      })) : h('p', { class: 'muted small' }, 'Nobody yet. Talk to people, then put them on call. Each helps once per journey.'));
-    const free = c.agent === 'grad';
-    return h('div', { class: 'port-grid' },
-      h('div', { class: 'npc-grid' }, PP.content.npcs.map((n) => {
-        const met = c.met[n.id];
-        const q = n.quest && c.quests[n.quest.id];
-        const ct = PP.content.contacts[n.contact];
-        const canRecruit = (met || q === 'done') && !c.contacts.includes(n.contact);
-        const full = c.contacts.length >= PP.contactSlots(fake);
-        return h('article', { class: 'npc' },
-          h('div', { class: 'npc-head' }, h('span', { class: 'npc-mark', 'aria-hidden': 'true' }, n.name[0]), h('div', null, h('h3', null, n.name), h('div', { class: 'small muted' }, n.role))),
-          h('p', { class: 'npc-greet' }, n.greet),
-          h('div', { class: 'npc-actions' },
-            n.talk ? h('button', { class: 'btn', disabled: met, onclick: () => spendDay(() => { c.met[n.id] = true; PP.apply(fake, n.talk.eff); return n.talk.text + ' ' + skillGain(n.talk.eff); }, 'people', free) }, met ? 'Talked ✓' : n.talk.label + (free ? '' : ' (1 day)')) : null,
-            n.quest ? h('button', { class: 'btn', disabled: q === 'done', onclick: () => runQuest(n, fake, free) }, q === 'done' ? 'Practice passed ✓' : n.quest.label + (q === 'failed' ? ' (retry)' : '')) : null,
-            canRecruit ? h('button', { class: 'btn accent', disabled: full, onclick: () => { c.contacts.push(n.contact); PP.career.save(c); port('people', [{ text: `${n.name} is on call as ${ct.name}.` }]); } }, full ? 'Slots full' : 'Put on call') : null,
-            c.contacts.includes(n.contact) ? h('span', { class: 'pill good' }, 'On call') : null),
-          h('p', { class: 'small muted npc-ability' }, h('strong', null, ct.name + ': '), ct.ability));
-      })),
-      h('aside', { class: 'port-side' }, contactsBox, h('div', { class: 'panel' }, h('h3', null, 'Skills'), skillList(c.skills))));
+  /* ---- People and skills ---- */
+  const fakeState = () => { const c = G.career; return { skills: c.skills, contacts: c.contacts, met: c.met, quests: c.quests, res: { trust: 5 } }; };
+  function contactsAndSkills() {
+    const c = G.career, fake = fakeState();
+    return h('div', { class: 'build-grid' },
+      h('div', { class: 'panel' },
+        h('div', { class: 'panel-head' }, h('h3', null, 'On call for the trail'), h('span', { class: 'muted small' }, `${c.contacts.length} / ${PP.contactSlots(fake)} slots`)),
+        c.contacts.length ? h('ul', { class: 'contact-list' }, c.contacts.map((id) => {
+          const ct = PP.content.contacts[id];
+          return h('li', null, h('div', null, h('strong', null, ct.name), ' · ', ct.who, h('div', { class: 'small muted' }, ct.ability)),
+            h('button', { class: 'btn ghost small', onclick: () => { c.contacts.splice(c.contacts.indexOf(id), 1); PP.career.save(c); port('office'); } }, 'Drop'));
+        })) : h('p', { class: 'muted small' }, 'Nobody yet. Meet people around town, then put them on call. Each helps once per journey.')),
+      h('div', { class: 'panel' }, h('h3', null, 'Your skills'), skillList(c.skills), h('p', { class: 'small muted' }, 'Learn more at Harbor Night School, or from people around town.'),
+        perksLine(c)));
   }
+  function perksLine(c) {
+    const ps = Object.keys(c.perks || {}).map((k) => PP.content.town.perks[k]).filter(Boolean);
+    return ps.length ? h('p', { class: 'small good' }, 'Certificates: ' + ps.map((x) => x.name).join(', ')) : null;
+  }
+  function npcCard(n) {
+    const c = G.career, fake = fakeState(), free = c.agent === 'grad';
+    const met = c.met[n.id];
+    const q = n.quest && c.quests[n.quest.id];
+    const ct = PP.content.contacts[n.contact];
+    const canRecruit = (met || q === 'done') && !c.contacts.includes(n.contact);
+    const full = c.contacts.length >= PP.contactSlots(fake);
+    let n2 = 0; for (const ch of n.name) n2 = (n2 * 31 + ch.charCodeAt(0)) % 9973;
+    return h('article', { class: 'npc' },
+      h('div', { class: 'npc-head' }, h('span', { class: 'npc-face', 'aria-hidden': 'true', html: PP.art.face({ mood: met ? 2 : 1, hue: n2 }) }), h('div', null, h('h3', null, n.name), h('div', { class: 'small muted' }, n.role))),
+      h('p', { class: 'npc-greet' }, n.greet),
+      h('div', { class: 'npc-actions' },
+        n.talk ? h('button', { class: 'btn', disabled: met, onclick: () => spendDay(() => { c.met[n.id] = true; PP.apply(fake, n.talk.eff); return n.talk.text + ' ' + skillGain(n.talk.eff); }, null, free) }, met ? 'Talked ✓' : n.talk.label + (free ? '' : ' (1 day)')) : null,
+        n.quest ? h('button', { class: 'btn', disabled: q === 'done', onclick: () => runQuest(n, fake, free) }, q === 'done' ? 'Practice passed ✓' : n.quest.label + (q === 'failed' ? ' (retry)' : '')) : null,
+        canRecruit ? h('button', { class: 'btn accent', disabled: full, onclick: () => { c.contacts.push(n.contact); PP.career.save(c); port(G.place, [{ text: `${n.name} is on call as ${ct.name}.` }]); } }, full ? 'Slots full' : 'Put on call') : null,
+        c.contacts.includes(n.contact) ? h('span', { class: 'pill good' }, 'On call') : null),
+      h('p', { class: 'small muted npc-ability' }, h('strong', null, ct.name + ': '), ct.ability));
+  }
+
+  /* ---- Harbor Night School ---- */
+  function coursesSection() {
+    const c = G.career;
+    c.perks = c.perks || {}; c.courses = c.courses || {};
+    const S = PP.content.town.school;
+    const meets = (needs) => Object.entries(needs || {}).every(([k, v]) => (c.skills[k] || 0) >= v);
+    const needText = (needs) => Object.entries(needs || {}).map(([k, v]) => `${PP.SKILLS.find((x) => x.id === k).label} ${v}`).join(', ');
+    const done = (co) => co.skill ? (c.skills[co.skill] || 0) >= 2 : co.grants.system ? !!c.systems[co.grants.system] : co.grants.password ? PP.store.get('password', false) : !!c.perks[co.grants.perk];
+    const card = (co) => {
+      const has = done(co), ok = meets(co.needs), afford = c.savings >= co.cost;
+      const what = co.skill ? `+1 ${PP.SKILLS.find((x) => x.id === co.skill).label} (now ${c.skills[co.skill] || 0}/2)` : co.grants.system ? `Builds: ${P().systems[co.grants.system].name}` : co.grants.password ? 'Unlocks the Secret Shortcut' : PP.content.town.perks[co.grants.perk].blurb;
+      return h('article', { class: 'panel activity course' + (co.skill ? '' : ' cert') },
+        h('div', { class: 'eyebrow' }, co.skill ? 'Course' : 'Certificate'),
+        h('h3', null, co.name), h('p', { class: 'small' }, co.blurb), h('p', { class: 'small good' }, what),
+        h('div', { class: 'row between' },
+          h('span', { class: 'small muted' }, `${co.days} day${co.days > 1 ? 's' : ''} · ${money(co.cost)}` + (co.needs && !ok ? ` · needs ${needText(co.needs)}` : '')),
+          has ? h('span', { class: 'pill good' }, co.skill ? 'Mastered' : 'Earned') : h('button', { class: 'btn primary', disabled: !ok || !afford, onclick: () => takeCourse(co) }, 'Enroll')));
+    };
+    return h('div', { class: 'stack' },
+      h('h4', { class: 'place-sub' }, 'Courses: build a skill'), h('div', { class: 'activity-grid' }, S.courses.filter((x) => x.skill).map(card)),
+      h('h4', { class: 'place-sub' }, 'Certificates: shortcuts on the trail'), h('div', { class: 'activity-grid' }, S.courses.filter((x) => !x.skill).map(card)));
+  }
+  function takeCourse(co) {
+    const c = G.career;
+    spendDays(co.days, () => {
+      c.savings -= co.cost;
+      c.courses[co.id] = true;
+      if (co.skill) { c.skills[co.skill] = Math.min(2, (c.skills[co.skill] || 0) + 1); return `${co.name}: ${co.days} evening${co.days > 1 ? 's' : ''} of class. +1 ${PP.SKILLS.find((x) => x.id === co.skill).label}.`; }
+      if (co.grants.system) { c.systems[co.grants.system] = true; return `${co.name} complete. ${P().systems[co.grants.system].name} is now part of your practice.`; }
+      if (co.grants.password) { PP.store.set('password', true); return `${co.name}: two hours on bait, then, almost as an afterthought, "the shortcut password is password1." The Secret Shortcut is open to you.`; }
+      c.perks[co.grants.perk] = true; return `${co.name} complete. ${PP.content.town.perks[co.grants.perk].blurb}`;
+    });
+  }
+  function spendDays(n, fn) {
+    const c = G.career;
+    const lines = [{ text: fn(), kind: 'info' }];
+    for (let i = 0; i < n; i++) lines.push(...PP.career.tickDay(c, false));
+    c.inbox = [];
+    if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
+    PP.career.save(c);
+    port(G.place, lines);
+  }
+
+  /* ---- The docks: watch the boats come in ---- */
+  function boatsCard() {
+    const c = G.career;
+    return h('article', { class: 'panel activity boats' },
+      h('div', { class: 'boats-art', 'aria-hidden': 'true', html: '<svg viewBox="0 0 320 70"><path d="M0,52 q20,-6 40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 V70 H0z" fill="#cfe3f7" stroke="#9cc2e6" stroke-width="1.5"/><g class="boat-a"><path d="M40,44 h70 l-10,14 h-50z" fill="#fbf1e1" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M75,44 v-30 l22,26z" fill="#f39c12" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/></g><g class="boat-b"><path d="M190,46 h56 l-8,12 h-40z" fill="#e3c6a0" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M200,46 v-14 h24 v14" fill="#fbf1e1" stroke="#4a2c12" stroke-width="2"/></g><path d="M258,40 h62 M266,40 v18 M290,40 v18 M314,40 v18" stroke="#4a2c12" stroke-width="2.5"/></svg>' }),
+      h('h3', null, 'Watch the boats come in'),
+      h('p', { class: 'small' }, 'People stepping off the boats are new in town. They need everything set up and nobody has met them yet. Sailors in from the trail bring news of what lies ahead.'),
+      h('div', { class: 'row between' }, h('span', { class: 'small muted' }, '1 day'), h('button', { class: 'btn primary', onclick: () => boatDay(c) }, 'Head to the pier')));
+  }
+  function boatDay(c) {
+    const A = PP.content.town.arrivals;
+    const seen = c.arrSeen || [];
+    const pool = PP.shuffle(A.filter((a) => !seen.includes(a.id)).concat(A)).filter((a, i, arr) => arr.findIndex((b) => b.id === a.id) === i);
+    const three = pool.slice(0, 3);
+    c.arrSeen = seen.concat(three.map((a) => a.id)).slice(-8);
+    const boat = PP.pick(['The 10:40 ferry', 'A water taxi', 'The morning ferry', 'A fishing boat', 'The weekend ferry', 'A sailboat with a hand-painted name']);
+    const overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The docks' });
+    const card = h('div', { class: 'scene boat-scene' });
+    overlay.appendChild(h('div', { class: 'overlay-card' }, card));
+    document.body.appendChild(overlay); document.body.classList.add('modal-open');
+    const close = () => { overlay.remove(); document.body.classList.remove('modal-open'); };
+    const pick = (a) => {
+      card.innerHTML = '';
+      const approach = (how) => {
+        const notes = [];
+        let text = how === 'warm' ? a.warm : a.cold;
+        if (a.kind === 'resident' || a.kind === 'business') {
+          const temp = how === 'warm' ? (PP.chance(0.25) ? 'hot' : 'warm') : (PP.chance(0.55) ? 'cold' : null);
+          if (temp) { const p = PP.career.addProspect(c, { temp, source: 'the docks (new in town)', archetype: a.arch && PP.content.clients[a.arch] ? a.arch : undefined, bias: a.bias }); notes.push(`${p.name} is now in your pipeline (${temp}).`); }
+          else notes.push('No prospect this time.');
+        } else if (a.kind === 'sailor') {
+          const unknown = Object.keys(PP.content.nodes).filter((k) => !c.known[k]);
+          PP.shuffle(unknown).slice(0, how === 'warm' ? 2 : 1).forEach((k) => { c.known[k] = true; notes.push(`${PP.content.nodes[k].name} is now named on your map.`); });
+          if (!unknown.length) notes.push('You already know every place she mentions.');
+        } else if (a.kind === 'rival') {
+          if (c.pipeline.length && PP.chance(how === 'warm' ? 0.2 : 0.4)) { const lost = c.pipeline.splice(Math.floor(Math.random() * c.pipeline.length), 1)[0]; notes.push(`Later you hear ${lost.name} had coffee with him. They are no longer in your pipeline.`); }
+          else notes.push('Nobody of yours went with him. This time.');
+        } else notes.push('Lovely. Not a prospect.');
+        close();
+        spendDay(() => `${boat} comes in. ${text} ${notes.join(' ')}`);
+      };
+      card.append(h('div', { class: 'eyebrow' }, 'The docks'), h('h3', { class: 'scene-title' }, a.who),
+        h('div', { class: 'arrival big', html: PP.art.figure(a.fig, { seed: a.id.length * 7 }) }), h('p', { class: 'scene-text' }, a.tell),
+        h('p', { class: 'pick-prompt' }, 'How do you say hello? Tap one.'),
+        h('div', { class: 'choices' },
+          h('button', { class: 'choice', onclick: () => approach('warm') }, h('span', { class: 'kind' }, 'Take your time'), h('span', { class: 'choice-label' }, 'Help them out, no pitch'), h('span', { class: 'hint' }, 'Slower, but people remember it.'), h('span', { class: 'chev' }, '›')),
+          h('button', { class: 'choice', onclick: () => approach('cold') }, h('span', { class: 'kind' }, 'Quick'), h('span', { class: 'choice-label' }, 'Introduce yourself and hand over a card'), h('span', { class: 'hint' }, 'Covers more ground, leaves less of an impression.'), h('span', { class: 'chev' }, '›'))));
+    };
+    card.append(h('div', { class: 'eyebrow' }, 'The docks · 1 day'), h('h3', { class: 'scene-title' }, `${boat} is coming in`),
+      h('p', { class: 'scene-text' }, 'Three people step onto the pier. You have time to really meet one of them.'),
+      h('p', { class: 'pick-prompt' }, 'Who do you go and meet? Tap one.'),
+      h('div', { class: 'arrivals' }, three.map((a) => h('button', { class: 'arrival-card', onclick: () => pick(a) },
+        h('span', { class: 'arrival', html: PP.art.figure(a.fig, { seed: a.id.length * 7 }) }), h('strong', null, a.who), h('span', { class: 'small muted' }, a.tell)))),
+      h('button', { class: 'btn ghost', onclick: close }, 'Not today'));
+  }
+
   function skillGain(eff) {
     if (!eff || !eff.skill) return '';
     return '(+1 ' + Object.keys(eff.skill).map((k) => PP.SKILLS.find((x) => x.id === k).label).join(', ') + ')';
@@ -344,7 +483,7 @@
         c.met[n.id] = true;
         if (res.passed) { c.quests[q.id] = 'done'; PP.apply(fake, q.reward); return `Passed! ${skillGain(q.reward)} ${n.name} can now be put on call.`; }
         c.quests[q.id] = 'failed'; return `Not quite (${res.score}/${res.max}). You can try again.`;
-      }, 'people', free);
+      }, null, free);
     }, `${n.name} · practice`);
   }
   function skillList(skills) {
@@ -382,6 +521,8 @@
     PP.apply(s, { trust: trustMod });
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
     if (s.pack.includes('cards')) { PP.apply(s, { trust: 1 }); PP.useItem(s, 'cards'); }
+    if (c.perks && c.perks.stamina) PP.apply(s, { energy: 2 });
+    if (c.perks && c.perks.scout) { PP.apply(s, { insight: 1 }); PP.content.trails.forEach((t) => { if (s.map.known[t.a] || s.map.known[t.b]) { c.known[t.a] = true; c.known[t.b] = true; } }); }
     if (c.energyNext) { PP.apply(s, { energy: c.energyNext }); c.energyNext = 0; }
     if (c.weekPlan) { PP.apply(s, weekBuff(c.weekPlan)); PP.log(s, 'Your planned week: ' + weekLabel(c.weekPlan), 'info'); c.weekPlan = null; }
     G.s = s;
