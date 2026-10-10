@@ -223,11 +223,14 @@
       pathEls[t.a + '|' + t.b] = p;
     });
     svg.appendChild(trails);
-    // Secret shortcut caption + waystones
-    const sc = el('g', { class: 'm-secret' + (s.password ? ' open' : '') },
-      el('text', { x: 200, y: 542 }, 'Secret Shortcut'), el('text', { x: 206, y: 576, class: 'm-sub' }, s.password ? "password: password1 (thanks, Steve)" : "password known only to 'Steve'"));
-    [[470, 556], [640, 556], [810, 556]].forEach(([x, y]) => sc.appendChild(el('circle', { cx: x, cy: y, r: 11, class: 'waystone' })));
-    svg.appendChild(sc);
+    // Hidden passages: a small dashed bypass under each obstacle that has one.
+    const pg = el('g', { class: 'm-passages' });
+    Object.keys(PP.content.passages || {}).forEach((id) => {
+      const n = PP.content.nodes[id]; if (!n) return;
+      const open = (PP.content.passages[id] || []).some((p) => PP.passageOpen && PP.passageOpen(Object.assign({}, s, { map: Object.assign({}, s.map, { current: id }) }), p));
+      pg.appendChild(el('path', { d: `M${n.x - 34},${n.y + 22} q34,26 68,0`, class: 'passage' + (open ? ' open' : '') }));
+    });
+    svg.appendChild(pg);
 
     // Landmarks
     const icons = el('g', { class: 'm-icons' });

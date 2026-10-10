@@ -168,6 +168,8 @@
     const people = here && (PEOPLE[here] || []).filter((p, i) => !s.talked[here + i]);
     const items = [];
     items.push({ label: s.seg ? 'Continue on the trail' : 'Continue on the trail', note: s.seg ? nextLandmarkText() : 'See where the trail goes from here', go: s.seg ? travel : forks, primary: true });
+    const openHere = here ? PP.passagesAt(here).filter((p) => PP.passageOpen(s, p)) : [];
+    if (here && openHere.length && !s.passageTaken[here] && !s.faced[here]) items.push({ label: 'Take a hidden passage', note: openHere.map((p) => p.name).join(' or '), go: () => passageFork(here, PP.content.nodes[here], openHere, PP.passagesAt(here).filter((p) => !openHere.includes(p)), () => menu()) });
     items.push({ label: `Check in with ${C()}`, note: s.lastCheckin === s.day ? 'Already talked today' : 'Ask questions, learn what matters', go: checkin });
     if (people && people.length) items.push({ label: 'Talk to people here', note: people[0].who, go: talk });
     items.push({ label: 'Rest for a day', note: `Energy +3, but ${C()} waits`, go: rest });
@@ -178,9 +180,21 @@
       goalLine(),
       narration(extra ? 2 : 3),
       extra || null,
+      here ? passageHint(here) : null,
       h('p', { class: 'you-may' }, 'What will you do? Tap one.'),
       menuList(items));
     focusFirst();
+  }
+  /* Show which hidden passages exist here, so players know what to work toward. */
+  function passageHint(id) {
+    const s = T.s, ps = PP.passagesAt(id);
+    if (!ps.length) return null;
+    const taken = s.passageTaken[id];
+    return h('div', { class: 'passage-hint' }, h('span', { class: 'eyebrow' }, 'Hidden passages here'),
+      h('ul', null, ps.map((p) => {
+        const ok = PP.passageOpen(s, p);
+        return h('li', { class: taken === p.id ? 'used' : ok ? 'open' : 'locked' }, h('strong', null, p.name), ' · ', taken === p.id ? 'you took this one' : ok ? (s.faced[id] || s.passageTaken[id] ? 'open to you next time' : 'open to you now') : 'needs ' + PP.passageNeed(p));
+      })));
   }
   function focusFirst() { const b = T.journal.querySelector('.menu-item:not([disabled]), .choice'); if (b) b.focus({ preventScroll: true }); }
   function packNote() {
@@ -200,9 +214,9 @@
       const to = t.a === here ? t.b : t.a;
       const v = PP.visibility(s, to);
       const known = v === 'visited' || v === 'named';
-      const days = Math.max(1, Math.ceil(trailDays(s, t) / PACE[s.pace].speed));
+      const days = Math.max(1, Math.ceil((trailDays(s, t) - (s.passageBoost || 0)) / PACE[s.pace].speed));
       const isBack = s.cameFrom === to;
-      const locked = t.kind === 'secret' && !s.password;
+      const locked = false;
       return { t, to, known, days, isBack, locked, v };
     }).sort((a, b) => (a.isBack - b.isBack) || (a.locked - b.locked) || ((a.t.kind === 'side') - (b.t.kind === 'side')));
     const items = opts.map((o) => ({
@@ -221,10 +235,11 @@
   function depart(t, to) {
     const s = T.s;
     s.cameFrom = s.map.current;
-    const d = trailDays(s, t);
+    const d = Math.max(1, trailDays(s, t) - (s.passageBoost || 0));
+    s.passageBoost = 0;
     s.seg = { from: s.map.current, to, total: d, left: d, trail: t };
     s.walked.push(s.map.current + '|' + to);
-    say(`You set out from ${nodeName(s.map.current)}${t.kind === 'secret' ? ' along the Secret Shortcut. The padlock opens with "password1".' : '.'}`);
+    say(`You set out from ${nodeName(s.map.current)}.`);
     T.scene.setLandmark(null);
     T.scene.setTerrain(PP.content.nodes[to].kind === 'clients' ? 'toll' : PP.content.nodes[to].kind);
     travel();
@@ -320,7 +335,7 @@
 
   /* Systems built from trail Marks make some trails shorter. */
   function trailDays(s, t) {
-    let d = t.days;
+    let d = t.days - (s.followUp ? 1 : 0); // a client you already know moves faster
     const sys = PP.content.practice ? PP.content.practice.systems : {};
     for (const id in sys) if (sys[id].shortens && PP.career.hasSystem(s.career, id) && (t.a === sys[id].shortens || t.b === sys[id].shortens)) d -= 1;
     return Math.max(1, d);
@@ -384,8 +399,32 @@
     await T.scene.cut('arrive', { kind: node.kind, title: node.name, caption: first ? node.arrive : 'You have been here before.' });
     T.scene.setLandmark(node.kind);
     const ev = first || PP.chance(0.6) ? pickLandmarkEvent(id, first) : null;
-    if (ev) { if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu(), id); }
-    else menu();
+    const face = async () => {
+      if (ev) { s.faced[id] = true; if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu(), id); }
+      else menu();
+    };
+    // Hidden passages: if you have earned a way through, you can take it instead of facing the obstacle.
+    const ps = PP.passagesAt(id);
+    const openPs = ps.filter((p) => PP.passageOpen(s, p) && !s.passageTaken[id]);
+    if (openPs.length && ev) return passageFork(id, node, openPs, ps.filter((p) => !openPs.includes(p)), face);
+    face();
+  }
+
+  /* There is more than one way through. */
+  function passageFork(id, node, openPs, lockedPs, face) {
+    const s = T.s;
+    const ev = {
+      id: 'passage_' + id, title: `A way through ${node.name}`, at: [id],
+      text: openPs.length > 1 ? `You know more than one way through ${node.name}. Which do you take?` : `You know a way through ${node.name} that most agents never find.`,
+      sub: lockedPs.length ? 'Still hidden here: ' + lockedPs.map((p) => `${p.name} (needs ${PP.passageNeed(p)})`).join('; ') + '.' : null,
+      choices: openPs.map((p) => ({ label: `Take ${p.name.charAt(0).toLowerCase() + p.name.slice(1)}`, kind: 'help', passage: p, hint: `Opened by ${PP.passageNeed(p)}. Gets you through well, and the next trail is a day shorter.`, eff: () => PP.val(p.eff, s), result: (st) => PP.val(p.text, st) + ' (Next trail: one day shorter.)' }))
+        .concat([{ label: 'Face it head on', kind: 'through', head: true, hint: 'The usual way. You might learn something, or it might cost you.', result: 'You square your shoulders and walk straight in.' }])
+    };
+    ev.choices.forEach((c) => { if (c.passage) { const p = c.passage; const before = c.eff; c.eff = () => { PP.passageSpend(s, p.key); s.passageTaken[id] = p.id; s.passageBoost = 1; const cr = s.career; if (cr) { cr.passagesUsed = cr.passagesUsed || {}; cr.passagesUsed[p.id] = (cr.passagesUsed[p.id] || 0) + 1; } return before(); }; } });
+    runEvent(ev, () => {
+      if (s.passageTaken[id]) { say(`You took ${s.passageTaken[id] && openPs.find((p) => p.id === s.passageTaken[id]).name.toLowerCase()} through ${node.name}.`, 'arrive'); menu(); }
+      else face();
+    }, id);
   }
   function pickLandmarkEvent(id, first) {
     const s = T.s;
@@ -512,7 +551,7 @@
       h('div', { class: 'map-card' },
         h('div', { class: 'row between' }, h('div', null, h('div', { class: 'eyebrow' }, 'Day ' + s.day), h('h3', null, 'The territory')), h('button', { class: 'btn', onclick: () => ov.remove() }, 'Close (Esc)')),
         host,
-        h('p', { class: 'small map-legend' }, h('span', { class: 'lg dot' }), ' Main trail  ', h('span', { class: 'lg dash' }), ' Side trail (dead end)  ', h('span', { class: 'lg road' }), ' Secret Shortcut  ', h('span', { class: 'lg walked' }), ' Where you have been')));
+        h('p', { class: 'small map-legend' }, h('span', { class: 'lg dot' }), ' Main trail  ', h('span', { class: 'lg dash' }), ' Side trail (dead end)  ', h('span', { class: 'lg road' }), ' Hidden passage  ', h('span', { class: 'lg walked' }), ' Where you have been')));
     document.body.appendChild(ov);
     PP.ui.renderMap(host, s, {});
     ov.querySelector('.btn').focus();

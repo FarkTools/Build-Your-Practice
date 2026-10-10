@@ -167,16 +167,27 @@
   players.forEach((p) => { p.loop = true; p.preload = 'auto'; p.setAttribute('playsinline', ''); });
   let cur = 0, unlocked = false;
   const SILENT = toWav(new Float32Array(1200));
+  /* iPhone only lets a media element play with sound if its first unmuted play happens
+   * inside a tap. So: play a silent clip, unmuted, during the first tap. And on every tap
+   * afterwards, if the music should be playing but isn't, start it right there. */
   function unlock() {
-    if (unlocked) return;
+    players.forEach((p) => {
+      if (p._unlocked) return;
+      if (!p._key) p.src = SILENT;
+      p.muted = false;
+      const pr = p.play();
+      const ok = () => { p._unlocked = true; if (!p._live) p.pause(); };
+      if (pr && pr.then) pr.then(ok).catch((e) => { if (e && e.name === 'AbortError') p._unlocked = true; else A.err = String(e && e.name || e); }); else ok();
+    });
     unlocked = true;
-    players.forEach((p) => { if (!p.src) p.src = SILENT; p.muted = true; const pr = p.play(); const fin = () => { if (!p._live) p.pause(); p.muted = false; }; if (pr && pr.then) pr.then(fin).catch(() => { p.muted = false; unlocked = false; }); else fin(); });
-    ['touchend', 'click', 'keydown'].forEach((t) => document.removeEventListener(t, unlock, true));
-    if (A.key) setTimeout(() => apply(A.key), 60);
-    // Warm up the common loops in the background so switching places doesn't stutter.
-    ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 800 + i * 700));
+    if (!warmed) { warmed = true; ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 1500 + i * 900)); }
   }
-  ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, unlock, true));
+  let warmed = false;
+  function ensure() {
+    unlock();
+    if (A.music && A.key && !A.held && !players.some((p) => p._live && !p.paused)) apply(A.key);
+  }
+  ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, ensure, true));
 
   function apply(key) {
     players.forEach((p) => { p._live = false; p.pause(); });
@@ -189,7 +200,7 @@
       p._live = true;
       p.muted = false;
       const pr = p.play();
-      if (pr && pr.catch) pr.catch(() => {});
+      if (pr && pr.catch) pr.catch((e) => { if (e && e.name === 'AbortError') return; A.err = String(e && e.name || e); p._live = false; });
     } catch (e) { /* audio unavailable */ }
   }
   A.bed = (key) => { if (key === A.key) return; A.key = key; apply(key); };
@@ -212,4 +223,5 @@
     return 'calm';
   };
   A.render = render; // for testing
+  A.status = () => { const p = players.find((x) => x._live); return `Music ${A.music ? 'on' : 'off'} · ${A.key || 'nothing queued'} · ${p && !p.paused ? 'playing' : 'not playing'}` + (A.err ? ` · ${A.err}` : ''); };
 })(window.PP);

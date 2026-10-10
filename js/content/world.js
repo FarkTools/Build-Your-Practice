@@ -21,27 +21,35 @@
       arrive: 'Thick, green, and divided into cells. Every step adds another tab.' },
     snakepit: { name: 'Snake Pit of Unreturned Calls', x: 705, y: 500, kind: 'snakepit', side: true, label: [580, 528], skull: true, teaser: 'A dark hole. Something is ringing down there.',
       arrive: 'Ringing, ringing, ringing. Every snake down here is a voicemail someone meant to return.' },
-    sands: { name: 'Shifting Sands of Initiatives', x: 780, y: 325, kind: 'sands', label: [636, 280], color: 'tan', teaser: "Dunes that weren't there yesterday.",
-      arrive: 'The dunes moved overnight. There is a new initiative. It has a logo.' },
-    caves: { name: 'Nobody-Remembers-Why Caves', x: 882, y: 410, kind: 'caves', side: true, label: [766, 446], skull: true, teaser: 'A dark cave mouth with a faded sign.',
-      arrive: 'Every process in here exists for a reason. Nobody remembers what it was.' },
+    sands: { name: 'Shifting Sands of Incentives', x: 780, y: 325, kind: 'sands', label: [636, 280], color: 'tan', teaser: 'Dunes covered in contest banners.',
+      arrive: 'The dunes are covered in banners: a sales contest, a bonus trip, a "product of the month." The ground shifts toward whatever pays most this quarter.' },
+    caves: { name: 'Caves of What-Ifs', x: 882, y: 410, kind: 'caves', side: true, label: [766, 446], teaser: 'A dark cave mouth. Voices inside asking "but what if...?"',
+      arrive: 'Every client has a cave of what-ifs: losing a job, getting sick, living longer than the money. Nobody wants to go in. The good plans are built by people who do.' },
     summit: { name: 'Specialist Summit', x: 852, y: 168, kind: 'summit', major: true, label: [618, 186], sub: 'allow 3–5 business days', teaser: 'A peak above the clouds. Someone up there knows things.',
       arrive: 'Thin air, deep expertise. The Specialist will see you now (eventually).' },
     isles: { name: 'The Login Isles', x: 1010, y: 300, kind: 'isles', label: [952, 248], color: 'blue', teaser: 'Islands joined by flickering bridges.',
       arrive: 'Every island has a different password. Every bridge requires two-factor authentication.' },
     toll: { name: 'Annual Review Toll Bridge', x: 1090, y: 296, kind: 'toll', label: [1044, 382], teaser: 'A bridge with a toll booth. The toll is... paperwork?',
       arrive: 'A creaky bridge over the river. The troll in the booth wants to see that everything is up to date.' },
-    backchannel: { name: 'Back-Channel Bridge', x: 1086, y: 432, kind: 'backchannel', label: [946, 456], teaser: 'A quiet stone bridge few people use.',
-      arrive: 'A quiet stone bridge. You can see Clients for Life from here. You know almost nothing about how you got here.' },
     clients: { name: 'Clients for Life', x: 1128, y: 158, kind: 'clients', label: [1112, 214], color: 'navy', big: true, teaser: 'The X on the map. Where every journey is supposed to end.',
       arrive: 'The X on the map. Now the real question: where does this client actually need to land?' }
   };
+
+  /* Each landmark belongs to a stage of the client relationship. */
+  PP.content.stages = [
+    { id: 'rapport', label: 'Rapport', blurb: 'They trust you enough to talk honestly.' },
+    { id: 'facts', label: 'Fact find', blurb: 'You know what they have and what they want.' },
+    { id: 'risks', label: 'Risks', blurb: 'You understand what could go wrong for them.' },
+    { id: 'solutions', label: 'Solutions', blurb: 'You know which plan actually fits.' },
+    { id: 'followthrough', label: 'Follow-through', blurb: 'The paperwork, approvals and reviews got done.' },
+    { id: 'followup', label: 'Follow-up', blurb: 'You came back when life changed.' }
+  ];
+  Object.entries({'meadows': 'rapport', 'lighthouse': 'rapport', 'wreck': 'rapport', 'fog': 'facts', 'loop': 'facts', 'cliffs': 'facts', 'swamp': 'risks', 'caves': 'risks', 'snakepit': 'followthrough', 'sands': 'solutions', 'summit': 'solutions', 'isles': 'followthrough', 'toll': 'followthrough', 'clients': 'followup'}).forEach(([id, st]) => { if (PP.content.nodes[id]) PP.content.nodes[id].stage = st; });
 
   /* Trails. days = travel time at a steady pace. kind: main (dotted), side (dashed, dead end), secret.
    * c = optional control point for the curve, so the map matches the hand-drawn route. */
   PP.content.trails = [
     { a: 'port', b: 'meadows', days: 3, kind: 'main', c: [150, 440], desc: 'Up the hill path to the Meadows of Understanding.' },
-    { a: 'port', b: 'backchannel', days: 4, kind: 'secret', locked: true, desc: 'A narrow overgrown path marked SECRET SHORTCUT. There is a padlock. The password is known only to Steve.' },
     { a: 'meadows', b: 'lighthouse', days: 3, kind: 'main', c: [250, 300], desc: 'North along the coast road toward the lighthouse. Slower, but you would get advice.' },
     { a: 'meadows', b: 'loop', days: 2, kind: 'main', c: [330, 410], desc: 'East on a well-worn shortcut. Lots of footprints. Many of them go in circles.' },
     { a: 'lighthouse', b: 'wreck', days: 1, kind: 'side', desc: 'Down to the rocks, where someone is singing a very catchy song about closing today.' },
@@ -53,11 +61,11 @@
     { a: 'swamp', b: 'sands', days: 2, kind: 'main', c: [770, 380], desc: 'North onto dunes that keep rearranging themselves.' },
     { a: 'sands', b: 'summit', days: 3, kind: 'main', c: [790, 240], desc: 'Up the mountain path to the Specialist. Steep, but someone up there knows things.' },
     { a: 'sands', b: 'isles', days: 3, kind: 'main', c: [930, 360], desc: 'The low road along the river, skipping the Summit. You would be on your own.' },
-    { a: 'summit', b: 'caves', days: 1, kind: 'side', desc: 'A side trail down to a cave with a faded sign: "Required. Do not ask."' },
+    { a: 'sands', b: 'caves', days: 1, kind: 'side', desc: 'A side trail down into the Caves of What-Ifs. Before you settle on a plan, look at what could go wrong.' },
     { a: 'summit', b: 'isles', days: 3, kind: 'main', c: [930, 170], desc: 'Down the far side of the mountain to the islands.' },
     { a: 'isles', b: 'toll', days: 1, kind: 'main', desc: 'Across the last island to the toll bridge.' },
     { a: 'toll', b: 'clients', days: 1, kind: 'main', c: [1120, 240], desc: 'Over the bridge. Clients for Life is just ahead.' },
-    { a: 'backchannel', b: 'clients', days: 2, kind: 'secret', c: [1180, 300], desc: 'Up the river bank to Clients for Life.' }
+
   ];
 
   PP.trailBetween = (a, b) => PP.content.trails.find((t) => (t.a === a && t.b === b) || (t.a === b && t.b === a));

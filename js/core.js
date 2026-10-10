@@ -112,6 +112,8 @@ window.PP = window.PP || {};
       talked: {},                  // landmark people already talked to
       seenCuts: {},
       seenEvents: {},
+      passageTaken: {},
+      faced: {},
       turn: 0,
       log: [],
       ending: null

@@ -954,6 +954,14 @@ input, select, textarea { font-size: 16px; }
   .brand-mark { width: 28px; height: 28px; }
   .topbar .fx-sound { font-size: 0.64rem; padding: 3px 7px; }
 }
+.passage-hint { background: rgba(255, 255, 255, .35); border: 1.5px dashed var(--route); border-radius: 10px; padding: 8px 12px; display: grid; gap: 4px; }
+.passage-hint ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 0.86rem; }
+.passage-hint li::before { content: "🔒 "; }
+.passage-hint li.open::before { content: "🗝 "; }
+.passage-hint li.used::before { content: "✓ "; color: var(--green); }
+.passage-hint li.locked { color: var(--ink-2); }
+.pmap .passage { fill: none; stroke: var(--tan); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; opacity: .55; }
+.pmap .passage.open { stroke: var(--orange); opacity: 1; stroke-width: 2.6; }
 
 </style>
 <style>
@@ -1345,6 +1353,8 @@ window.PP = window.PP || {};
       talked: {},                  // landmark people already talked to
       seenCuts: {},
       seenEvents: {},
+      passageTaken: {},
+      faced: {},
       turn: 0,
       log: [],
       ending: null
@@ -1476,9 +1486,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.10.0';
+  PP.VERSION = '0.10.1';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.10.1', 'Music fix for iPhone: unlocks with sound on your first tap and restarts on any tap if it stopped'],
     ['0.10.0', 'Music and ambience: sounds for every place in town and every landmark, travel music that follows the mood'],
     ['0.9.0', 'Sound rebuilt for iPhone, version number and About box'],
     ['0.8.0', 'Port Prospect becomes a town, Harbor Night School, the Docks, tappable choices'],
@@ -1512,27 +1523,35 @@ window.PP = window.PP || {};
       arrive: 'Thick, green, and divided into cells. Every step adds another tab.' },
     snakepit: { name: 'Snake Pit of Unreturned Calls', x: 705, y: 500, kind: 'snakepit', side: true, label: [580, 528], skull: true, teaser: 'A dark hole. Something is ringing down there.',
       arrive: 'Ringing, ringing, ringing. Every snake down here is a voicemail someone meant to return.' },
-    sands: { name: 'Shifting Sands of Initiatives', x: 780, y: 325, kind: 'sands', label: [636, 280], color: 'tan', teaser: "Dunes that weren't there yesterday.",
-      arrive: 'The dunes moved overnight. There is a new initiative. It has a logo.' },
-    caves: { name: 'Nobody-Remembers-Why Caves', x: 882, y: 410, kind: 'caves', side: true, label: [766, 446], skull: true, teaser: 'A dark cave mouth with a faded sign.',
-      arrive: 'Every process in here exists for a reason. Nobody remembers what it was.' },
+    sands: { name: 'Shifting Sands of Incentives', x: 780, y: 325, kind: 'sands', label: [636, 280], color: 'tan', teaser: 'Dunes covered in contest banners.',
+      arrive: 'The dunes are covered in banners: a sales contest, a bonus trip, a "product of the month." The ground shifts toward whatever pays most this quarter.' },
+    caves: { name: 'Caves of What-Ifs', x: 882, y: 410, kind: 'caves', side: true, label: [766, 446], teaser: 'A dark cave mouth. Voices inside asking "but what if...?"',
+      arrive: 'Every client has a cave of what-ifs: losing a job, getting sick, living longer than the money. Nobody wants to go in. The good plans are built by people who do.' },
     summit: { name: 'Specialist Summit', x: 852, y: 168, kind: 'summit', major: true, label: [618, 186], sub: 'allow 3–5 business days', teaser: 'A peak above the clouds. Someone up there knows things.',
       arrive: 'Thin air, deep expertise. The Specialist will see you now (eventually).' },
     isles: { name: 'The Login Isles', x: 1010, y: 300, kind: 'isles', label: [952, 248], color: 'blue', teaser: 'Islands joined by flickering bridges.',
       arrive: 'Every island has a different password. Every bridge requires two-factor authentication.' },
     toll: { name: 'Annual Review Toll Bridge', x: 1090, y: 296, kind: 'toll', label: [1044, 382], teaser: 'A bridge with a toll booth. The toll is... paperwork?',
       arrive: 'A creaky bridge over the river. The troll in the booth wants to see that everything is up to date.' },
-    backchannel: { name: 'Back-Channel Bridge', x: 1086, y: 432, kind: 'backchannel', label: [946, 456], teaser: 'A quiet stone bridge few people use.',
-      arrive: 'A quiet stone bridge. You can see Clients for Life from here. You know almost nothing about how you got here.' },
     clients: { name: 'Clients for Life', x: 1128, y: 158, kind: 'clients', label: [1112, 214], color: 'navy', big: true, teaser: 'The X on the map. Where every journey is supposed to end.',
       arrive: 'The X on the map. Now the real question: where does this client actually need to land?' }
   };
+
+  /* Each landmark belongs to a stage of the client relationship. */
+  PP.content.stages = [
+    { id: 'rapport', label: 'Rapport', blurb: 'They trust you enough to talk honestly.' },
+    { id: 'facts', label: 'Fact find', blurb: 'You know what they have and what they want.' },
+    { id: 'risks', label: 'Risks', blurb: 'You understand what could go wrong for them.' },
+    { id: 'solutions', label: 'Solutions', blurb: 'You know which plan actually fits.' },
+    { id: 'followthrough', label: 'Follow-through', blurb: 'The paperwork, approvals and reviews got done.' },
+    { id: 'followup', label: 'Follow-up', blurb: 'You came back when life changed.' }
+  ];
+  Object.entries({'meadows': 'rapport', 'lighthouse': 'rapport', 'wreck': 'rapport', 'fog': 'facts', 'loop': 'facts', 'cliffs': 'facts', 'swamp': 'risks', 'caves': 'risks', 'snakepit': 'followthrough', 'sands': 'solutions', 'summit': 'solutions', 'isles': 'followthrough', 'toll': 'followthrough', 'clients': 'followup'}).forEach(([id, st]) => { if (PP.content.nodes[id]) PP.content.nodes[id].stage = st; });
 
   /* Trails. days = travel time at a steady pace. kind: main (dotted), side (dashed, dead end), secret.
    * c = optional control point for the curve, so the map matches the hand-drawn route. */
   PP.content.trails = [
     { a: 'port', b: 'meadows', days: 3, kind: 'main', c: [150, 440], desc: 'Up the hill path to the Meadows of Understanding.' },
-    { a: 'port', b: 'backchannel', days: 4, kind: 'secret', locked: true, desc: 'A narrow overgrown path marked SECRET SHORTCUT. There is a padlock. The password is known only to Steve.' },
     { a: 'meadows', b: 'lighthouse', days: 3, kind: 'main', c: [250, 300], desc: 'North along the coast road toward the lighthouse. Slower, but you would get advice.' },
     { a: 'meadows', b: 'loop', days: 2, kind: 'main', c: [330, 410], desc: 'East on a well-worn shortcut. Lots of footprints. Many of them go in circles.' },
     { a: 'lighthouse', b: 'wreck', days: 1, kind: 'side', desc: 'Down to the rocks, where someone is singing a very catchy song about closing today.' },
@@ -1544,11 +1563,11 @@ window.PP = window.PP || {};
     { a: 'swamp', b: 'sands', days: 2, kind: 'main', c: [770, 380], desc: 'North onto dunes that keep rearranging themselves.' },
     { a: 'sands', b: 'summit', days: 3, kind: 'main', c: [790, 240], desc: 'Up the mountain path to the Specialist. Steep, but someone up there knows things.' },
     { a: 'sands', b: 'isles', days: 3, kind: 'main', c: [930, 360], desc: 'The low road along the river, skipping the Summit. You would be on your own.' },
-    { a: 'summit', b: 'caves', days: 1, kind: 'side', desc: 'A side trail down to a cave with a faded sign: "Required. Do not ask."' },
+    { a: 'sands', b: 'caves', days: 1, kind: 'side', desc: 'A side trail down into the Caves of What-Ifs. Before you settle on a plan, look at what could go wrong.' },
     { a: 'summit', b: 'isles', days: 3, kind: 'main', c: [930, 170], desc: 'Down the far side of the mountain to the islands.' },
     { a: 'isles', b: 'toll', days: 1, kind: 'main', desc: 'Across the last island to the toll bridge.' },
     { a: 'toll', b: 'clients', days: 1, kind: 'main', c: [1120, 240], desc: 'Over the bridge. Clients for Life is just ahead.' },
-    { a: 'backchannel', b: 'clients', days: 2, kind: 'secret', c: [1180, 300], desc: 'Up the river bank to Clients for Life.' }
+
   ];
 
   PP.trailBetween = (a, b) => PP.content.trails.find((t) => (t.a === a && t.b === b) || (t.a === b && t.b === a));
@@ -2378,6 +2397,100 @@ window.PP = window.PP || {};
     people: { text: '"Lenny. My husband. He\'s self-employed, so no pension of his own. Mine\'s kind of ours."', fact: 'lenny_counts' },
     worry: { curious: true, text: '"The years between stopping and the pension starting. I don\'t actually know what happens there. Never asked. Funny, right? I ask questions all day."', fact: 'pension_gap', guarded: '"Worry? I\'ve got the pension." She takes a long sip of coffee.' },
     money: { text: '"Fine. Regular paycheck, regular bills. Lenny\'s money comes in spring through fall, and then it\'s mostly my money."', fact: 'lenny_counts' }
+  };
+})(window.PP);
+
+</script>
+<script>
+/* Hidden passages: better ways through each obstacle, opened by what you have built up.
+ *
+ * Every obstacle can still be faced head on (its normal event) or skipped by going around.
+ * A passage is the third way: it gets you through the obstacle well, often turns it to
+ * your advantage, and makes the next trail a day shorter. Locked passages are shown as
+ * teasers ("needs Curiosity 2") so players know what to work toward.
+ *
+ *  PP.content.passages[nodeId] = [{
+ *    id, name,                       short evocative name, e.g. 'The boardwalk'
+ *    key: one of                      what opens it
+ *      { skill: 'curiosity', level: 2 }
+ *      { contact: 'whisperer' }       on call and not yet used this journey (uses it up)
+ *      { system: 'planning' }         built at Harbor Street (or earned at the school)
+ *      { item: 'notebook' }           in your pack, unused (uses it up)
+ *      { trust: 7 } | { insight: 6 }  this journey's resources
+ *      { fact: 'key' | 'stakeholder' | 'any' } or { facts: 3 }   what you know about this client
+ *      { perk: 'scout' }              a school certificate perk
+ *      { password: true }             Steve's back channels (from Steve, or his class at the school)
+ *      { visits: 2 }                  you have been to this landmark on 2+ earlier journeys
+ *      { followup: true }             only on a follow-up journey with an existing client
+ *      { any: [key, key, ...] }       any one of these
+ *    text: string | (s) => string,    what happens (use PP.clientName(s) for the client)
+ *    eff:  effect object | (s) => effect   (see PP.apply in core.js)
+ *  }]
+ *
+ * The engine (PP.passageOpen / PP.passageNeed) lives at the bottom of this file.
+ */
+(function (PP) {
+  const C = (s) => PP.clientName(s);
+  PP.content.passages = {
+    swamp: [
+      { id: 'swamp_boardwalk', name: 'The boardwalk', key: { system: 'planning' },
+        text: (s) => `Your planning software lays a clean boardwalk across the cells. ${C(s)} watches the numbers line up and, for once, relaxes.`, eff: { momentum: 2, insight: 1 } },
+      { id: 'swamp_their_model', name: 'Their own spreadsheet', key: { fact: 'any' },
+        text: (s) => `Instead of fighting ${C(s)}'s spreadsheet, you ask them to walk you through it. Tab 7 is where the real worry lives.`, eff: (s) => ({ insight: 2, trust: 1, fact: s.client.spreadsheetFact }) },
+      { id: 'swamp_local', name: 'Your old path through the reeds', key: { visits: 2 },
+        text: 'You have crossed this swamp before. You know which cells hold weight and which are just formatting.', eff: { momentum: 1, energy: 1 } }
+    ]
+  };
+
+  /* ---------- engine ---------- */
+  const skillLabel = (id) => (PP.SKILLS.find((x) => x.id === id) || { label: id }).label;
+  function open(s, k) {
+    const c = s.career || {};
+    if (k.any) return k.any.some((x) => open(s, x));
+    if (k.skill) return PP.skill(s, k.skill) >= Math.max(1, k.level - (c.perks && c.perks.pathfinder ? 1 : 0));
+    if (k.contact) return (s.contacts || []).includes(k.contact) && PP.contactReady(s, k.contact);
+    if (k.system) return PP.career.hasSystem(c, k.system);
+    if (k.item) return PP.hasItem(s, k.item);
+    if (k.trust) return s.res.trust >= k.trust;
+    if (k.insight) return s.res.insight >= k.insight;
+    if (k.facts) return Object.keys(s.facts).length >= k.facts;
+    if (k.fact) {
+      const cl = s.client || {};
+      if (k.fact === 'any') return Object.keys(s.facts).length > 0;
+      if (k.fact === 'key') return PP.knows(s, cl.keyFact);
+      if (k.fact === 'stakeholder') return PP.knows(s, cl.stakeholderFact);
+      return PP.knows(s, k.fact);
+    }
+    if (k.perk) return !!(c.perks && c.perks[k.perk]);
+    if (k.password) return !!s.password;
+    if (k.visits) return ((c.visits || {})[s.map.current] || 0) >= k.visits;
+    if (k.followup) return !!s.followUp;
+    return false;
+  }
+  function need(k) {
+    if (k.any) return k.any.map(need).join(' or ');
+    if (k.skill) return `${skillLabel(k.skill)} ${k.level}`;
+    if (k.contact) return `${(PP.content.contacts[k.contact] || {}).who || k.contact} on call`;
+    if (k.system) return `the ${((PP.content.practice.systems[k.system]) || {}).name || k.system}`;
+    if (k.item) return `a ${((PP.content.items[k.item]) || {}).name || k.item} in your pack`;
+    if (k.trust) return `Trust ${k.trust}`;
+    if (k.insight) return `Insight ${k.insight}`;
+    if (k.facts) return `${k.facts} facts about the client`;
+    if (k.fact) return k.fact === 'any' ? 'something you have learned about the client' : k.fact === 'key' ? 'the thing that changes everything for this client' : k.fact === 'stakeholder' ? 'knowing who else has a say' : 'a particular fact about the client';
+    if (k.perk) return `the ${((PP.content.town && PP.content.town.perks[k.perk]) || {}).name || k.perk} certificate`;
+    if (k.password) return 'one of Steve\'s back channels';
+    if (k.visits) return `${k.visits} earlier trips through here`;
+    if (k.followup) return 'an existing client';
+    return '?';
+  }
+  PP.passageOpen = (s, p) => open(s, p.key);
+  PP.passageNeed = (p) => p.need || need(p.key);
+  PP.passagesAt = (id) => (PP.content.passages && PP.content.passages[id]) || [];
+  /* Spend what the key consumes (a contact's help or a pack item). */
+  PP.passageSpend = (s, k) => {
+    if (k.any) { const hit = k.any.find((x) => open(s, x)); if (hit) PP.passageSpend(s, hit); return; }
+    if (k.contact) PP.useContact(s, k.contact);
+    if (k.item) PP.useItem(s, k.item);
   };
 })(window.PP);
 
@@ -6082,16 +6195,27 @@ window.PP = window.PP || {};
   players.forEach((p) => { p.loop = true; p.preload = 'auto'; p.setAttribute('playsinline', ''); });
   let cur = 0, unlocked = false;
   const SILENT = toWav(new Float32Array(1200));
+  /* iPhone only lets a media element play with sound if its first unmuted play happens
+   * inside a tap. So: play a silent clip, unmuted, during the first tap. And on every tap
+   * afterwards, if the music should be playing but isn't, start it right there. */
   function unlock() {
-    if (unlocked) return;
+    players.forEach((p) => {
+      if (p._unlocked) return;
+      if (!p._key) p.src = SILENT;
+      p.muted = false;
+      const pr = p.play();
+      const ok = () => { p._unlocked = true; if (!p._live) p.pause(); };
+      if (pr && pr.then) pr.then(ok).catch((e) => { if (e && e.name === 'AbortError') p._unlocked = true; else A.err = String(e && e.name || e); }); else ok();
+    });
     unlocked = true;
-    players.forEach((p) => { if (!p.src) p.src = SILENT; p.muted = true; const pr = p.play(); const fin = () => { if (!p._live) p.pause(); p.muted = false; }; if (pr && pr.then) pr.then(fin).catch(() => { p.muted = false; unlocked = false; }); else fin(); });
-    ['touchend', 'click', 'keydown'].forEach((t) => document.removeEventListener(t, unlock, true));
-    if (A.key) setTimeout(() => apply(A.key), 60);
-    // Warm up the common loops in the background so switching places doesn't stutter.
-    ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 800 + i * 700));
+    if (!warmed) { warmed = true; ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 1500 + i * 900)); }
   }
-  ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, unlock, true));
+  let warmed = false;
+  function ensure() {
+    unlock();
+    if (A.music && A.key && !A.held && !players.some((p) => p._live && !p.paused)) apply(A.key);
+  }
+  ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, ensure, true));
 
   function apply(key) {
     players.forEach((p) => { p._live = false; p.pause(); });
@@ -6104,7 +6228,7 @@ window.PP = window.PP || {};
       p._live = true;
       p.muted = false;
       const pr = p.play();
-      if (pr && pr.catch) pr.catch(() => {});
+      if (pr && pr.catch) pr.catch((e) => { if (e && e.name === 'AbortError') return; A.err = String(e && e.name || e); p._live = false; });
     } catch (e) { /* audio unavailable */ }
   }
   A.bed = (key) => { if (key === A.key) return; A.key = key; apply(key); };
@@ -6127,6 +6251,7 @@ window.PP = window.PP || {};
     return 'calm';
   };
   A.render = render; // for testing
+  A.status = () => { const p = players.find((x) => x._live); return `Music ${A.music ? 'on' : 'off'} · ${A.key || 'nothing queued'} · ${p && !p.paused ? 'playing' : 'not playing'}` + (A.err ? ` · ${A.err}` : ''); };
 })(window.PP);
 
 </script>
@@ -8417,11 +8542,14 @@ window.PP = window.PP || {};
       pathEls[t.a + '|' + t.b] = p;
     });
     svg.appendChild(trails);
-    // Secret shortcut caption + waystones
-    const sc = el('g', { class: 'm-secret' + (s.password ? ' open' : '') },
-      el('text', { x: 200, y: 542 }, 'Secret Shortcut'), el('text', { x: 206, y: 576, class: 'm-sub' }, s.password ? "password: password1 (thanks, Steve)" : "password known only to 'Steve'"));
-    [[470, 556], [640, 556], [810, 556]].forEach(([x, y]) => sc.appendChild(el('circle', { cx: x, cy: y, r: 11, class: 'waystone' })));
-    svg.appendChild(sc);
+    // Hidden passages: a small dashed bypass under each obstacle that has one.
+    const pg = el('g', { class: 'm-passages' });
+    Object.keys(PP.content.passages || {}).forEach((id) => {
+      const n = PP.content.nodes[id]; if (!n) return;
+      const open = (PP.content.passages[id] || []).some((p) => PP.passageOpen && PP.passageOpen(Object.assign({}, s, { map: Object.assign({}, s.map, { current: id }) }), p));
+      pg.appendChild(el('path', { d: `M${n.x - 34},${n.y + 22} q34,26 68,0`, class: 'passage' + (open ? ' open' : '') }));
+    });
+    svg.appendChild(pg);
 
     // Landmarks
     const icons = el('g', { class: 'm-icons' });
@@ -9345,6 +9473,8 @@ window.PP = window.PP || {};
     const people = here && (PEOPLE[here] || []).filter((p, i) => !s.talked[here + i]);
     const items = [];
     items.push({ label: s.seg ? 'Continue on the trail' : 'Continue on the trail', note: s.seg ? nextLandmarkText() : 'See where the trail goes from here', go: s.seg ? travel : forks, primary: true });
+    const openHere = here ? PP.passagesAt(here).filter((p) => PP.passageOpen(s, p)) : [];
+    if (here && openHere.length && !s.passageTaken[here] && !s.faced[here]) items.push({ label: 'Take a hidden passage', note: openHere.map((p) => p.name).join(' or '), go: () => passageFork(here, PP.content.nodes[here], openHere, PP.passagesAt(here).filter((p) => !openHere.includes(p)), () => menu()) });
     items.push({ label: `Check in with ${C()}`, note: s.lastCheckin === s.day ? 'Already talked today' : 'Ask questions, learn what matters', go: checkin });
     if (people && people.length) items.push({ label: 'Talk to people here', note: people[0].who, go: talk });
     items.push({ label: 'Rest for a day', note: `Energy +3, but ${C()} waits`, go: rest });
@@ -9355,9 +9485,21 @@ window.PP = window.PP || {};
       goalLine(),
       narration(extra ? 2 : 3),
       extra || null,
+      here ? passageHint(here) : null,
       h('p', { class: 'you-may' }, 'What will you do? Tap one.'),
       menuList(items));
     focusFirst();
+  }
+  /* Show which hidden passages exist here, so players know what to work toward. */
+  function passageHint(id) {
+    const s = T.s, ps = PP.passagesAt(id);
+    if (!ps.length) return null;
+    const taken = s.passageTaken[id];
+    return h('div', { class: 'passage-hint' }, h('span', { class: 'eyebrow' }, 'Hidden passages here'),
+      h('ul', null, ps.map((p) => {
+        const ok = PP.passageOpen(s, p);
+        return h('li', { class: taken === p.id ? 'used' : ok ? 'open' : 'locked' }, h('strong', null, p.name), ' · ', taken === p.id ? 'you took this one' : ok ? (s.faced[id] || s.passageTaken[id] ? 'open to you next time' : 'open to you now') : 'needs ' + PP.passageNeed(p));
+      })));
   }
   function focusFirst() { const b = T.journal.querySelector('.menu-item:not([disabled]), .choice'); if (b) b.focus({ preventScroll: true }); }
   function packNote() {
@@ -9377,9 +9519,9 @@ window.PP = window.PP || {};
       const to = t.a === here ? t.b : t.a;
       const v = PP.visibility(s, to);
       const known = v === 'visited' || v === 'named';
-      const days = Math.max(1, Math.ceil(trailDays(s, t) / PACE[s.pace].speed));
+      const days = Math.max(1, Math.ceil((trailDays(s, t) - (s.passageBoost || 0)) / PACE[s.pace].speed));
       const isBack = s.cameFrom === to;
-      const locked = t.kind === 'secret' && !s.password;
+      const locked = false;
       return { t, to, known, days, isBack, locked, v };
     }).sort((a, b) => (a.isBack - b.isBack) || (a.locked - b.locked) || ((a.t.kind === 'side') - (b.t.kind === 'side')));
     const items = opts.map((o) => ({
@@ -9398,10 +9540,11 @@ window.PP = window.PP || {};
   function depart(t, to) {
     const s = T.s;
     s.cameFrom = s.map.current;
-    const d = trailDays(s, t);
+    const d = Math.max(1, trailDays(s, t) - (s.passageBoost || 0));
+    s.passageBoost = 0;
     s.seg = { from: s.map.current, to, total: d, left: d, trail: t };
     s.walked.push(s.map.current + '|' + to);
-    say(`You set out from ${nodeName(s.map.current)}${t.kind === 'secret' ? ' along the Secret Shortcut. The padlock opens with "password1".' : '.'}`);
+    say(`You set out from ${nodeName(s.map.current)}.`);
     T.scene.setLandmark(null);
     T.scene.setTerrain(PP.content.nodes[to].kind === 'clients' ? 'toll' : PP.content.nodes[to].kind);
     travel();
@@ -9497,7 +9640,7 @@ window.PP = window.PP || {};
 
   /* Systems built from trail Marks make some trails shorter. */
   function trailDays(s, t) {
-    let d = t.days;
+    let d = t.days - (s.followUp ? 1 : 0); // a client you already know moves faster
     const sys = PP.content.practice ? PP.content.practice.systems : {};
     for (const id in sys) if (sys[id].shortens && PP.career.hasSystem(s.career, id) && (t.a === sys[id].shortens || t.b === sys[id].shortens)) d -= 1;
     return Math.max(1, d);
@@ -9561,8 +9704,32 @@ window.PP = window.PP || {};
     await T.scene.cut('arrive', { kind: node.kind, title: node.name, caption: first ? node.arrive : 'You have been here before.' });
     T.scene.setLandmark(node.kind);
     const ev = first || PP.chance(0.6) ? pickLandmarkEvent(id, first) : null;
-    if (ev) { if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu(), id); }
-    else menu();
+    const face = async () => {
+      if (ev) { s.faced[id] = true; if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu(), id); }
+      else menu();
+    };
+    // Hidden passages: if you have earned a way through, you can take it instead of facing the obstacle.
+    const ps = PP.passagesAt(id);
+    const openPs = ps.filter((p) => PP.passageOpen(s, p) && !s.passageTaken[id]);
+    if (openPs.length && ev) return passageFork(id, node, openPs, ps.filter((p) => !openPs.includes(p)), face);
+    face();
+  }
+
+  /* There is more than one way through. */
+  function passageFork(id, node, openPs, lockedPs, face) {
+    const s = T.s;
+    const ev = {
+      id: 'passage_' + id, title: `A way through ${node.name}`, at: [id],
+      text: openPs.length > 1 ? `You know more than one way through ${node.name}. Which do you take?` : `You know a way through ${node.name} that most agents never find.`,
+      sub: lockedPs.length ? 'Still hidden here: ' + lockedPs.map((p) => `${p.name} (needs ${PP.passageNeed(p)})`).join('; ') + '.' : null,
+      choices: openPs.map((p) => ({ label: `Take ${p.name.charAt(0).toLowerCase() + p.name.slice(1)}`, kind: 'help', passage: p, hint: `Opened by ${PP.passageNeed(p)}. Gets you through well, and the next trail is a day shorter.`, eff: () => PP.val(p.eff, s), result: (st) => PP.val(p.text, st) + ' (Next trail: one day shorter.)' }))
+        .concat([{ label: 'Face it head on', kind: 'through', head: true, hint: 'The usual way. You might learn something, or it might cost you.', result: 'You square your shoulders and walk straight in.' }])
+    };
+    ev.choices.forEach((c) => { if (c.passage) { const p = c.passage; const before = c.eff; c.eff = () => { PP.passageSpend(s, p.key); s.passageTaken[id] = p.id; s.passageBoost = 1; const cr = s.career; if (cr) { cr.passagesUsed = cr.passagesUsed || {}; cr.passagesUsed[p.id] = (cr.passagesUsed[p.id] || 0) + 1; } return before(); }; } });
+    runEvent(ev, () => {
+      if (s.passageTaken[id]) { say(`You took ${s.passageTaken[id] && openPs.find((p) => p.id === s.passageTaken[id]).name.toLowerCase()} through ${node.name}.`, 'arrive'); menu(); }
+      else face();
+    }, id);
   }
   function pickLandmarkEvent(id, first) {
     const s = T.s;
@@ -9689,7 +9856,7 @@ window.PP = window.PP || {};
       h('div', { class: 'map-card' },
         h('div', { class: 'row between' }, h('div', null, h('div', { class: 'eyebrow' }, 'Day ' + s.day), h('h3', null, 'The territory')), h('button', { class: 'btn', onclick: () => ov.remove() }, 'Close (Esc)')),
         host,
-        h('p', { class: 'small map-legend' }, h('span', { class: 'lg dot' }), ' Main trail  ', h('span', { class: 'lg dash' }), ' Side trail (dead end)  ', h('span', { class: 'lg road' }), ' Secret Shortcut  ', h('span', { class: 'lg walked' }), ' Where you have been')));
+        h('p', { class: 'small map-legend' }, h('span', { class: 'lg dot' }), ' Main trail  ', h('span', { class: 'lg dash' }), ' Side trail (dead end)  ', h('span', { class: 'lg road' }), ' Hidden passage  ', h('span', { class: 'lg walked' }), ' Where you have been')));
     document.body.appendChild(ov);
     PP.ui.renderMap(host, s, {});
     ov.querySelector('.btn').focus();
@@ -10451,7 +10618,8 @@ window.PP = window.PP || {};
   const h = PP.h;
   function about() {
     const status = h('p', { class: 'small muted', 'aria-live': 'polite' });
-    const show = () => { const a = (PP.fx && PP.fx.audio) || {}; status.textContent = `Sound is ${PP.fx && PP.fx.sound ? 'on' : 'off'} · ${a.unlocked ? 'ready' : 'waiting for a tap'} · played ${a.played || 0}` + (a.errors ? ` · ${a.errors} blocked (${a.last})` : ''); };
+    const music = h('p', { class: 'small muted' });
+    const show = () => { const a = (PP.fx && PP.fx.audio) || {}; music.textContent = PP.audio ? PP.audio.status() : ''; status.textContent = `Sound is ${PP.fx && PP.fx.sound ? 'on' : 'off'} · ${a.unlocked ? 'ready' : 'waiting for a tap'} · played ${a.played || 0}` + (a.errors ? ` · ${a.errors} blocked (${a.last})` : ''); };
     const ov = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'About', onclick: (e) => { if (e.target === ov) ov.remove(); } },
       h('div', { class: 'overlay-card about-card' }, h('div', { class: 'scene' },
         h('div', { class: 'eyebrow' }, 'About'),
@@ -10462,7 +10630,7 @@ window.PP = window.PP || {};
         h('ul', { class: 'about-changes' }, (PP.CHANGES || []).map(([v, t]) => h('li', null, h('strong', null, v), ' ', t))),
         h('h4', { class: 'place-sub' }, 'Sound check'),
         h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { if (PP.fx) { if (!PP.fx.sound) PP.fx.soundToggle().click(); PP.fx.sfx('great'); } setTimeout(show, 300); } }, 'Play a test sound')),
-        status,
+        status, music,
         h('p', { class: 'small muted' }, 'No sound? Check the Sound switch in the top bar and your media volume. On iPhone, the ring/silent switch can mute games on older iOS.'),
         h('button', { class: 'btn', onclick: () => ov.remove() }, 'Close'))));
     document.body.appendChild(ov);
