@@ -159,59 +159,78 @@
     let sum = 0; for (let i = 0; i < o.length; i++) sum += o[i] * o[i];
     const rms = Math.sqrt(sum / o.length) || 1, k = Math.min(25, (kind === 'music' ? 0.1 : 0.06) / rms);
     for (let i = 0; i < o.length; i++) o[i] *= k;
-    return (cache[key] = toWav(o));
+    return (cache[key] = o);
+  }
+  const urls = {};
+  const urlFor = (key) => urls[key] || (urls[key] = toWav(render(key)));
+
+  /* ---------- players ----------
+   * Web Audio path (preferred): a looping buffer source into the shared master, so
+   * music, ambience and effects all mix. Fallback: two reusable <audio> elements. */
+  const FX = () => PP.fx || {};
+  let webSrc = null, webKey = null;
+  const webBufs = {};
+  function stopWeb() { if (webSrc) { try { webSrc.stop(); } catch (e) { /* already stopped */ } webSrc.disconnect(); webSrc = null; webKey = null; } }
+  function playWeb(key) {
+    if (webKey === key && webSrc) return;
+    stopWeb();
+    const f = FX();
+    const src = f.ac.createBufferSource();
+    src.buffer = webBufs[key] || (webBufs[key] = f.toBuffer(render(key)));
+    src.loop = true;
+    const g = f.ac.createGain(); g.gain.setValueAtTime(0.0001, f.ac.currentTime); g.gain.exponentialRampToValueAtTime(1, f.ac.currentTime + 0.6);
+    src.connect(g).connect(f.master); src.start();
+    webSrc = src; webKey = key;
   }
 
-  /* ---------- players ---------- */
   const players = [new Audio(), new Audio()];
   players.forEach((p) => { p.loop = true; p.preload = 'auto'; p.setAttribute('playsinline', ''); });
-  let cur = 0, unlocked = false;
-  const SILENT = toWav(new Float32Array(1200));
-  /* iPhone only lets a media element play with sound if its first unmuted play happens
-   * inside a tap. So: play a silent clip, unmuted, during the first tap. And on every tap
-   * afterwards, if the music should be playing but isn't, start it right there. */
-  function unlock() {
-    players.forEach((p) => {
-      if (p._unlocked) return;
-      if (!p._key) p.src = SILENT;
-      p.muted = false;
-      const pr = p.play();
-      const ok = () => { p._unlocked = true; if (!p._live) p.pause(); };
-      if (pr && pr.then) pr.then(ok).catch((e) => { if (e && e.name === 'AbortError') p._unlocked = true; else A.err = String(e && e.name || e); }); else ok();
-    });
-    unlocked = true;
-    if (!warmed) { warmed = true; ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 1500 + i * 900)); }
-  }
-  let warmed = false;
-  function ensure() {
-    unlock();
-    if (A.music && A.key && !A.held && !players.some((p) => p._live && !p.paused)) apply(A.key);
-  }
-  ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, ensure, true));
-
-  function apply(key) {
-    players.forEach((p) => { p._live = false; p.pause(); });
-    if (!key || !A.music || A.held || !unlocked) return;
-    // Coming back to the loop that was just playing (e.g. travel music after a stop)? Resume it.
+  let cur = 0;
+  function stopHtml() { players.forEach((p) => { p._live = false; p.pause(); }); }
+  function playHtml(key) {
     const same = players.find((x) => x._key === key);
     const p = same || players[(cur = 1 - cur)];
-    try {
-      if (!same) { p.src = render(key); p._key = key; }
-      p._live = true;
-      p.muted = false;
-      const pr = p.play();
-      if (pr && pr.catch) pr.catch((e) => { if (e && e.name === 'AbortError') return; A.err = String(e && e.name || e); p._live = false; });
-    } catch (e) { /* audio unavailable */ }
+    players.forEach((x) => { if (x !== p) { x._live = false; x.pause(); } });
+    if (!same) { p.src = urlFor(key); p._key = key; }
+    p._live = true;
+    const pr = p.play();
+    if (pr && pr.catch) pr.catch((e) => { if (e && e.name === 'AbortError') return; A.err = String(e && e.name || e); p._live = false; });
   }
+
+  function apply(key) {
+    const want = key && A.music && !A.held;
+    const f = FX();
+    if (!want) { stopWeb(); stopHtml(); return; }
+    if (!f.audio || !f.audio.unlocked) return; // nothing can play before the first tap
+    try {
+      if (f.web && f.web()) { stopHtml(); playWeb(key); A.engine = 'web'; }
+      else { stopWeb(); playHtml(key); A.engine = 'html'; }
+    } catch (e) { A.err = String(e && e.message || e); }
+  }
+  // The first tap starts the engine; whenever the engine state changes, (re)start the right loop.
+  document.addEventListener('pp-audio', () => apply(A.key));
+  let warmed = false;
+  document.addEventListener('pp-audio', () => {
+    if (warmed) return; warmed = true;
+    ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 1500 + i * 900));
+  });
+  // On every tap: if music should be playing but isn't (iOS can stop it), start it right there.
+  ['touchend', 'click'].forEach((t) => document.addEventListener(t, () => {
+    const f = FX();
+    if (!A.key || !A.music || A.held) return;
+    if (f.web && f.web()) { if (!webSrc) apply(A.key); }
+    else if (!players.some((p) => p._live && !p.paused)) apply(A.key);
+  }));
+
   A.bed = (key) => { if (key === A.key) return; A.key = key; apply(key); };
-  A.hold = (on) => { A.held = on; apply(on ? null : A.key); };
+  A.hold = (on) => { A.held = on; apply(A.key); };
   A.toggle = () => {
     A.music = !A.music; PP.store.set('music', A.music);
     document.querySelectorAll('.fx-music').forEach((x) => { x.setAttribute('aria-pressed', String(A.music)); x.textContent = A.music ? 'Music on' : 'Music off'; });
     apply(A.key);
   };
   A.button = () => PP.h('button', { class: 'fx-sound fx-music', 'aria-pressed': String(A.music), title: 'Music and ambience', onclick: A.toggle }, A.music ? 'Music on' : 'Music off');
-  document.addEventListener('visibilitychange', () => { if (document.hidden) players.forEach((p) => p.pause()); else apply(A.key); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { stopWeb(); stopHtml(); } else apply(A.key); });
 
   /* Mood of the trail right now, from the journey state. */
   A.trailMood = (s) => {
@@ -223,5 +242,5 @@
     return 'calm';
   };
   A.render = render; // for testing
-  A.status = () => { const p = players.find((x) => x._live); return `Music ${A.music ? 'on' : 'off'} · ${A.key || 'nothing queued'} · ${p && !p.paused ? 'playing' : 'not playing'}` + (A.err ? ` · ${A.err}` : ''); };
+  A.status = () => { const f = PP.fx || {}; const p = players.find((x) => x._live); const playing = f.web && f.web() ? !!webSrc : !!(p && !p.paused); return `Music ${A.music ? 'on' : 'off'} · ${A.key || 'nothing queued'} · ${playing ? 'playing' : 'not playing'} · engine ${f.web && f.web() ? 'web audio' : 'audio elements'}${f.ac ? ' (' + f.ac.state + ')' : ''}` + (A.err ? ` · ${A.err}` : ''); };
 })(window.PP);

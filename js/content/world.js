@@ -214,3 +214,21 @@
     }
   };
 })(window.PP);
+
+/* Where the relationship stands right now: each stage is done or not, from the journey state. */
+(function (PP) {
+  PP.stageStatus = function (s) {
+    const cl = s.client || {}, v = s.map.visited || {};
+    const done = {
+      rapport: s.res.trust >= 6 || Object.keys(s.askedTopics || {}).length >= 2,
+      facts: Object.keys(s.facts || {}).length >= 2 || s.res.insight >= 5,
+      risks: !!(s.askedTopics && s.askedTopics.worry) || PP.knows(s, cl.keyFact) || !!v.caves,
+      solutions: PP.destinationRevealed ? PP.destinationRevealed(s) : false,
+      followthrough: !!v.toll || (!!v.summit && !!v.isles),
+      followup: !!s.followUp && !!v.clients
+    };
+    const list = PP.content.stages.filter((st) => st.id !== 'followup' || s.followUp);
+    let current = null;
+    return list.map((st) => { const d = !!done[st.id]; const cur = !d && !current; if (cur) current = st.id; return Object.assign({}, st, { done: d, current: cur }); });
+  };
+})(window.PP);

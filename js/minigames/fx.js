@@ -99,13 +99,13 @@
     whoosh: [[300, 0, 0.15, 'triangle', 0.05], [600, 0.04, 0.12, 'triangle', 0.04]]
   };
   /* ---------- Sound engine ----------
-   * Every effect is rendered once into a small WAV file and played with ordinary
-   * <audio> elements. That is the most reliable path on iPhone (including inside
-   * embedded pages and with AirPods), where Web Audio often stays silently suspended.
-   * Each audio element is "unlocked" by playing it muted inside the first real tap;
-   * after that the game can play it from timers too. */
+   * Effects and music must share ONE mixer: on iPhone, starting a second <audio>
+   * element can pause the first, which is why taps silenced the music.
+   * So the primary engine is Web Audio, started inside the first real tap (the only
+   * moment iOS allows it). If the browser refuses, effects fall back to <audio> elements.
+   * Every sound is synthesized here, nothing is downloaded. */
   const RATE = 22050, GAIN = 2.2;
-  function wav(seq) {
+  function synth(seq) {
     const len = Math.ceil((Math.max(...seq.map(([, st, d]) => st + d)) + 0.04) * RATE);
     const buf = new Float32Array(len);
     seq.forEach(([f, st, d, type, vol]) => {
@@ -117,43 +117,65 @@
         buf[a + i] += w * env * (vol || 0.1) * GAIN;
       }
     });
-    const out = new DataView(new ArrayBuffer(44 + len * 2));
+    return buf;
+  }
+  function wavUrl(buf) {
+    const len = buf.length, out = new DataView(new ArrayBuffer(44 + len * 2));
     const str = (o, s2) => [...s2].forEach((ch, i) => out.setUint8(o + i, ch.charCodeAt(0)));
     str(0, 'RIFF'); out.setUint32(4, 36 + len * 2, true); str(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
     out.setUint32(24, RATE, true); out.setUint32(28, RATE * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); str(36, 'data'); out.setUint32(40, len * 2, true);
-    for (let i = 0; i < len; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, buf[i])) * 32767, true);
+    for (let i = 0; i < len; i++) out.setInt16(44 + i * 2, Math.tanh(buf[i]) * 32767, true);
     return URL.createObjectURL(new Blob([out], { type: 'audio/wav' }));
   }
-  const POOL = {}, PER = 3;
-  fx.audio = { engine: 'html', unlocked: false, played: 0, errors: 0, last: '' };
+  fx.RATE = RATE; fx.wavUrl = wavUrl;
+  fx.audio = { engine: 'starting', unlocked: false, played: 0, errors: 0, last: '' };
+
+  /* Web Audio: one context, one master gain. */
+  fx.web = () => !!(fx.ac && fx.ac.state === 'running');
+  fx.toBuffer = (f32) => { const b = fx.ac.createBuffer(1, f32.length, RATE); b.getChannelData(0).set(f32); return b; };
+  function webStart() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      if (!fx.ac) {
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
+        fx.ac = new AC();
+        fx.master = fx.ac.createGain(); fx.master.gain.value = 1; fx.master.connect(fx.ac.destination);
+        fx.ac.onstatechange = () => { fx.audio.engine = fx.web() ? 'web' : 'html'; document.dispatchEvent(new Event('pp-audio')); };
+      }
+      if (fx.ac.state !== 'running') fx.ac.resume().catch(() => {});
+      const src = fx.ac.createBufferSource(); src.buffer = fx.ac.createBuffer(1, 1, RATE); src.connect(fx.ac.destination); src.start(0);
+    } catch (e) { fx.audio.last = String(e && e.message || e); }
+    fx.audio.engine = fx.web() ? 'web' : 'html';
+  }
+
+  /* Fallback: pooled <audio> elements per effect. */
+  const POOL = {}, PER = 3, BUF = {};
+  const f32 = (name) => BUF[name] || (BUF[name] = synth(SFX[name]));
   function pool(name) {
-    if (!POOL[name]) {
-      const url = wav(SFX[name]);
-      POOL[name] = { i: 0, els: Array.from({ length: PER }, () => { const a = new Audio(url); a.preload = 'auto'; a.setAttribute('playsinline', ''); return a; }) };
-    }
+    if (!POOL[name]) { const url = wavUrl(f32(name)); POOL[name] = { i: 0, els: Array.from({ length: PER }, () => { const a = new Audio(url); a.preload = 'auto'; a.setAttribute('playsinline', ''); return a; }) }; }
     return POOL[name];
   }
   function unlock() {
-    if (fx.audio.unlocked) return;
+    webStart();
     fx.audio.unlocked = true;
-    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
-    Object.keys(SFX).forEach((name) => pool(name).els.forEach((a) => {
-      a.muted = true;
-      const p = a.play();
-      const done = () => { if (!a._wanted) { a.pause(); a.currentTime = 0; } a.muted = false; };
-      if (p && p.then) p.then(done).catch((e) => { a.muted = false; fx.audio.errors++; fx.audio.last = String(e && e.name || e); fx.audio.unlocked = false; });
-      else done();
-    }));
-    ['touchend', 'click', 'keydown'].forEach((t) => document.removeEventListener(t, unlock, true));
+    document.dispatchEvent(new Event('pp-audio'));
   }
   ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, unlock, true));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && fx.ac && fx.ac.state !== 'running') fx.ac.resume().catch(() => {}); });
 
+  const WEB_BUF = {};
   fx.sfx = (name) => {
     if (!fx.sound || !SFX[name]) return;
     try {
+      if (fx.web()) {
+        const src = fx.ac.createBufferSource();
+        src.buffer = WEB_BUF[name] || (WEB_BUF[name] = fx.toBuffer(f32(name)));
+        src.connect(fx.master); src.start();
+        fx.audio.played++;
+        return;
+      }
       const pl = pool(name), a = pl.els[pl.i++ % PER];
-      a._wanted = true;
-      a.muted = false;
       a.currentTime = 0;
       const p = a.play();
       fx.audio.played++;

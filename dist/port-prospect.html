@@ -967,6 +967,13 @@ input, select, textarea { font-size: 16px; }
 .passage-hint li.locked { color: var(--ink-2); }
 .pmap .passage { fill: none; stroke: var(--tan); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; opacity: .55; }
 .pmap .passage.open { stroke: var(--orange); opacity: 1; stroke-width: 2.6; }
+.stage-strip { grid-column: 1 / -1; display: grid; gap: 4px; }
+.stage-strip ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; flex-wrap: wrap; }
+.stage-strip li { font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; border: 1.3px solid var(--ink-3); color: var(--ink-2); background: transparent; }
+.stage-strip li.done { background: var(--meadow); border-color: var(--green); color: var(--green); }
+.stage-strip li.done::before { content: "✓ "; }
+.stage-strip li.current { border-color: var(--orange); background: var(--orange-2); color: var(--ink); }
+.ledger .stage-strip { flex-basis: 100%; }
 
 </style>
 <style>
@@ -1493,9 +1500,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.10.1';
+  PP.VERSION = '0.10.2';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.10.2', 'Music keeps playing when you tap: effects and music now share one mixer'],
     ['0.10.1', 'Music fix for iPhone: unlocks with sound on your first tap and restarts on any tap if it stopped'],
     ['0.10.0', 'Music and ambience: sounds for every place in town and every landmark, travel music that follows the mood'],
     ['0.9.0', 'Sound rebuilt for iPhone, version number and About box'],
@@ -1721,6 +1729,24 @@ window.PP = window.PP || {};
       inconvenient: { text: 'You spend two evenings filling them in.', eff: { energy: -2 } },
       costly: { text: 'One of the gaps mattered.', eff: { trust: -2, momentum: -1 } }
     }
+  };
+})(window.PP);
+
+/* Where the relationship stands right now: each stage is done or not, from the journey state. */
+(function (PP) {
+  PP.stageStatus = function (s) {
+    const cl = s.client || {}, v = s.map.visited || {};
+    const done = {
+      rapport: s.res.trust >= 6 || Object.keys(s.askedTopics || {}).length >= 2,
+      facts: Object.keys(s.facts || {}).length >= 2 || s.res.insight >= 5,
+      risks: !!(s.askedTopics && s.askedTopics.worry) || PP.knows(s, cl.keyFact) || !!v.caves,
+      solutions: PP.destinationRevealed ? PP.destinationRevealed(s) : false,
+      followthrough: !!v.toll || (!!v.summit && !!v.isles),
+      followup: !!s.followUp && !!v.clients
+    };
+    const list = PP.content.stages.filter((st) => st.id !== 'followup' || s.followUp);
+    let current = null;
+    return list.map((st) => { const d = !!done[st.id]; const cur = !d && !current; if (cur) current = st.id; return Object.assign({}, st, { done: d, current: cur }); });
   };
 })(window.PP);
 
@@ -5816,13 +5842,13 @@ window.PP = window.PP || {};
     whoosh: [[300, 0, 0.15, 'triangle', 0.05], [600, 0.04, 0.12, 'triangle', 0.04]]
   };
   /* ---------- Sound engine ----------
-   * Every effect is rendered once into a small WAV file and played with ordinary
-   * <audio> elements. That is the most reliable path on iPhone (including inside
-   * embedded pages and with AirPods), where Web Audio often stays silently suspended.
-   * Each audio element is "unlocked" by playing it muted inside the first real tap;
-   * after that the game can play it from timers too. */
+   * Effects and music must share ONE mixer: on iPhone, starting a second <audio>
+   * element can pause the first, which is why taps silenced the music.
+   * So the primary engine is Web Audio, started inside the first real tap (the only
+   * moment iOS allows it). If the browser refuses, effects fall back to <audio> elements.
+   * Every sound is synthesized here, nothing is downloaded. */
   const RATE = 22050, GAIN = 2.2;
-  function wav(seq) {
+  function synth(seq) {
     const len = Math.ceil((Math.max(...seq.map(([, st, d]) => st + d)) + 0.04) * RATE);
     const buf = new Float32Array(len);
     seq.forEach(([f, st, d, type, vol]) => {
@@ -5834,43 +5860,65 @@ window.PP = window.PP || {};
         buf[a + i] += w * env * (vol || 0.1) * GAIN;
       }
     });
-    const out = new DataView(new ArrayBuffer(44 + len * 2));
+    return buf;
+  }
+  function wavUrl(buf) {
+    const len = buf.length, out = new DataView(new ArrayBuffer(44 + len * 2));
     const str = (o, s2) => [...s2].forEach((ch, i) => out.setUint8(o + i, ch.charCodeAt(0)));
     str(0, 'RIFF'); out.setUint32(4, 36 + len * 2, true); str(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
     out.setUint32(24, RATE, true); out.setUint32(28, RATE * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); str(36, 'data'); out.setUint32(40, len * 2, true);
-    for (let i = 0; i < len; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, buf[i])) * 32767, true);
+    for (let i = 0; i < len; i++) out.setInt16(44 + i * 2, Math.tanh(buf[i]) * 32767, true);
     return URL.createObjectURL(new Blob([out], { type: 'audio/wav' }));
   }
-  const POOL = {}, PER = 3;
-  fx.audio = { engine: 'html', unlocked: false, played: 0, errors: 0, last: '' };
+  fx.RATE = RATE; fx.wavUrl = wavUrl;
+  fx.audio = { engine: 'starting', unlocked: false, played: 0, errors: 0, last: '' };
+
+  /* Web Audio: one context, one master gain. */
+  fx.web = () => !!(fx.ac && fx.ac.state === 'running');
+  fx.toBuffer = (f32) => { const b = fx.ac.createBuffer(1, f32.length, RATE); b.getChannelData(0).set(f32); return b; };
+  function webStart() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      if (!fx.ac) {
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
+        fx.ac = new AC();
+        fx.master = fx.ac.createGain(); fx.master.gain.value = 1; fx.master.connect(fx.ac.destination);
+        fx.ac.onstatechange = () => { fx.audio.engine = fx.web() ? 'web' : 'html'; document.dispatchEvent(new Event('pp-audio')); };
+      }
+      if (fx.ac.state !== 'running') fx.ac.resume().catch(() => {});
+      const src = fx.ac.createBufferSource(); src.buffer = fx.ac.createBuffer(1, 1, RATE); src.connect(fx.ac.destination); src.start(0);
+    } catch (e) { fx.audio.last = String(e && e.message || e); }
+    fx.audio.engine = fx.web() ? 'web' : 'html';
+  }
+
+  /* Fallback: pooled <audio> elements per effect. */
+  const POOL = {}, PER = 3, BUF = {};
+  const f32 = (name) => BUF[name] || (BUF[name] = synth(SFX[name]));
   function pool(name) {
-    if (!POOL[name]) {
-      const url = wav(SFX[name]);
-      POOL[name] = { i: 0, els: Array.from({ length: PER }, () => { const a = new Audio(url); a.preload = 'auto'; a.setAttribute('playsinline', ''); return a; }) };
-    }
+    if (!POOL[name]) { const url = wavUrl(f32(name)); POOL[name] = { i: 0, els: Array.from({ length: PER }, () => { const a = new Audio(url); a.preload = 'auto'; a.setAttribute('playsinline', ''); return a; }) }; }
     return POOL[name];
   }
   function unlock() {
-    if (fx.audio.unlocked) return;
+    webStart();
     fx.audio.unlocked = true;
-    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
-    Object.keys(SFX).forEach((name) => pool(name).els.forEach((a) => {
-      a.muted = true;
-      const p = a.play();
-      const done = () => { if (!a._wanted) { a.pause(); a.currentTime = 0; } a.muted = false; };
-      if (p && p.then) p.then(done).catch((e) => { a.muted = false; fx.audio.errors++; fx.audio.last = String(e && e.name || e); fx.audio.unlocked = false; });
-      else done();
-    }));
-    ['touchend', 'click', 'keydown'].forEach((t) => document.removeEventListener(t, unlock, true));
+    document.dispatchEvent(new Event('pp-audio'));
   }
   ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, unlock, true));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && fx.ac && fx.ac.state !== 'running') fx.ac.resume().catch(() => {}); });
 
+  const WEB_BUF = {};
   fx.sfx = (name) => {
     if (!fx.sound || !SFX[name]) return;
     try {
+      if (fx.web()) {
+        const src = fx.ac.createBufferSource();
+        src.buffer = WEB_BUF[name] || (WEB_BUF[name] = fx.toBuffer(f32(name)));
+        src.connect(fx.master); src.start();
+        fx.audio.played++;
+        return;
+      }
       const pl = pool(name), a = pl.els[pl.i++ % PER];
-      a._wanted = true;
-      a.muted = false;
       a.currentTime = 0;
       const p = a.play();
       fx.audio.played++;
@@ -6194,59 +6242,78 @@ window.PP = window.PP || {};
     let sum = 0; for (let i = 0; i < o.length; i++) sum += o[i] * o[i];
     const rms = Math.sqrt(sum / o.length) || 1, k = Math.min(25, (kind === 'music' ? 0.1 : 0.06) / rms);
     for (let i = 0; i < o.length; i++) o[i] *= k;
-    return (cache[key] = toWav(o));
+    return (cache[key] = o);
+  }
+  const urls = {};
+  const urlFor = (key) => urls[key] || (urls[key] = toWav(render(key)));
+
+  /* ---------- players ----------
+   * Web Audio path (preferred): a looping buffer source into the shared master, so
+   * music, ambience and effects all mix. Fallback: two reusable <audio> elements. */
+  const FX = () => PP.fx || {};
+  let webSrc = null, webKey = null;
+  const webBufs = {};
+  function stopWeb() { if (webSrc) { try { webSrc.stop(); } catch (e) { /* already stopped */ } webSrc.disconnect(); webSrc = null; webKey = null; } }
+  function playWeb(key) {
+    if (webKey === key && webSrc) return;
+    stopWeb();
+    const f = FX();
+    const src = f.ac.createBufferSource();
+    src.buffer = webBufs[key] || (webBufs[key] = f.toBuffer(render(key)));
+    src.loop = true;
+    const g = f.ac.createGain(); g.gain.setValueAtTime(0.0001, f.ac.currentTime); g.gain.exponentialRampToValueAtTime(1, f.ac.currentTime + 0.6);
+    src.connect(g).connect(f.master); src.start();
+    webSrc = src; webKey = key;
   }
 
-  /* ---------- players ---------- */
   const players = [new Audio(), new Audio()];
   players.forEach((p) => { p.loop = true; p.preload = 'auto'; p.setAttribute('playsinline', ''); });
-  let cur = 0, unlocked = false;
-  const SILENT = toWav(new Float32Array(1200));
-  /* iPhone only lets a media element play with sound if its first unmuted play happens
-   * inside a tap. So: play a silent clip, unmuted, during the first tap. And on every tap
-   * afterwards, if the music should be playing but isn't, start it right there. */
-  function unlock() {
-    players.forEach((p) => {
-      if (p._unlocked) return;
-      if (!p._key) p.src = SILENT;
-      p.muted = false;
-      const pr = p.play();
-      const ok = () => { p._unlocked = true; if (!p._live) p.pause(); };
-      if (pr && pr.then) pr.then(ok).catch((e) => { if (e && e.name === 'AbortError') p._unlocked = true; else A.err = String(e && e.name || e); }); else ok();
-    });
-    unlocked = true;
-    if (!warmed) { warmed = true; ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 1500 + i * 900)); }
-  }
-  let warmed = false;
-  function ensure() {
-    unlock();
-    if (A.music && A.key && !A.held && !players.some((p) => p._live && !p.paused)) apply(A.key);
-  }
-  ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, ensure, true));
-
-  function apply(key) {
-    players.forEach((p) => { p._live = false; p.pause(); });
-    if (!key || !A.music || A.held || !unlocked) return;
-    // Coming back to the loop that was just playing (e.g. travel music after a stop)? Resume it.
+  let cur = 0;
+  function stopHtml() { players.forEach((p) => { p._live = false; p.pause(); }); }
+  function playHtml(key) {
     const same = players.find((x) => x._key === key);
     const p = same || players[(cur = 1 - cur)];
-    try {
-      if (!same) { p.src = render(key); p._key = key; }
-      p._live = true;
-      p.muted = false;
-      const pr = p.play();
-      if (pr && pr.catch) pr.catch((e) => { if (e && e.name === 'AbortError') return; A.err = String(e && e.name || e); p._live = false; });
-    } catch (e) { /* audio unavailable */ }
+    players.forEach((x) => { if (x !== p) { x._live = false; x.pause(); } });
+    if (!same) { p.src = urlFor(key); p._key = key; }
+    p._live = true;
+    const pr = p.play();
+    if (pr && pr.catch) pr.catch((e) => { if (e && e.name === 'AbortError') return; A.err = String(e && e.name || e); p._live = false; });
   }
+
+  function apply(key) {
+    const want = key && A.music && !A.held;
+    const f = FX();
+    if (!want) { stopWeb(); stopHtml(); return; }
+    if (!f.audio || !f.audio.unlocked) return; // nothing can play before the first tap
+    try {
+      if (f.web && f.web()) { stopHtml(); playWeb(key); A.engine = 'web'; }
+      else { stopWeb(); playHtml(key); A.engine = 'html'; }
+    } catch (e) { A.err = String(e && e.message || e); }
+  }
+  // The first tap starts the engine; whenever the engine state changes, (re)start the right loop.
+  document.addEventListener('pp-audio', () => apply(A.key));
+  let warmed = false;
+  document.addEventListener('pp-audio', () => {
+    if (warmed) return; warmed = true;
+    ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 1500 + i * 900));
+  });
+  // On every tap: if music should be playing but isn't (iOS can stop it), start it right there.
+  ['touchend', 'click'].forEach((t) => document.addEventListener(t, () => {
+    const f = FX();
+    if (!A.key || !A.music || A.held) return;
+    if (f.web && f.web()) { if (!webSrc) apply(A.key); }
+    else if (!players.some((p) => p._live && !p.paused)) apply(A.key);
+  }));
+
   A.bed = (key) => { if (key === A.key) return; A.key = key; apply(key); };
-  A.hold = (on) => { A.held = on; apply(on ? null : A.key); };
+  A.hold = (on) => { A.held = on; apply(A.key); };
   A.toggle = () => {
     A.music = !A.music; PP.store.set('music', A.music);
     document.querySelectorAll('.fx-music').forEach((x) => { x.setAttribute('aria-pressed', String(A.music)); x.textContent = A.music ? 'Music on' : 'Music off'; });
     apply(A.key);
   };
   A.button = () => PP.h('button', { class: 'fx-sound fx-music', 'aria-pressed': String(A.music), title: 'Music and ambience', onclick: A.toggle }, A.music ? 'Music on' : 'Music off');
-  document.addEventListener('visibilitychange', () => { if (document.hidden) players.forEach((p) => p.pause()); else apply(A.key); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { stopWeb(); stopHtml(); } else apply(A.key); });
 
   /* Mood of the trail right now, from the journey state. */
   A.trailMood = (s) => {
@@ -6258,7 +6325,7 @@ window.PP = window.PP || {};
     return 'calm';
   };
   A.render = render; // for testing
-  A.status = () => { const p = players.find((x) => x._live); return `Music ${A.music ? 'on' : 'off'} · ${A.key || 'nothing queued'} · ${p && !p.paused ? 'playing' : 'not playing'}` + (A.err ? ` · ${A.err}` : ''); };
+  A.status = () => { const f = PP.fx || {}; const p = players.find((x) => x._live); const playing = f.web && f.web() ? !!webSrc : !!(p && !p.paused); return `Music ${A.music ? 'on' : 'off'} · ${A.key || 'nothing queued'} · ${playing ? 'playing' : 'not playing'} · engine ${f.web && f.web() ? 'web audio' : 'audio elements'}${f.ac ? ' (' + f.ac.state + ')' : ''}` + (A.err ? ` · ${A.err}` : ''); };
 })(window.PP);
 
 </script>
@@ -9420,10 +9487,16 @@ window.PP = window.PP || {};
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Pace'), h('strong', null, PACE[s.pace].label)),
       s.career ? moneyCell(s.career, prev) : null,
       h('div', { class: 'ledger-cell wide weather' }, h('span', { class: 'lk' }, 'Conditions'), h('span', null, T.weather || WEATHER[0])),
-      PP.ui.gauges(s, prev));
+      PP.ui.gauges(s, prev),
+      stageStrip(s));
     T.lastSavings = s.career ? s.career.savings : 0;
   }
 
+  function stageStrip(s) {
+    return h('div', { class: 'stage-strip', 'aria-label': 'The relationship so far' },
+      h('span', { class: 'lk' }, s.followUp ? `Relationship · lap ${s.followUp.lap}` : 'Relationship'),
+      h('ol', null, PP.stageStatus(s).map((st) => h('li', { class: st.done ? 'done' : st.current ? 'current' : '', title: st.blurb }, st.label))));
+  }
   function moneyCell(c) {
     const lvl = PP.career.levelInfo(c);
     const inc = PP.career.income(c), cost = PP.career.costs(c);

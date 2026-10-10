@@ -108,10 +108,16 @@
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Pace'), h('strong', null, PACE[s.pace].label)),
       s.career ? moneyCell(s.career, prev) : null,
       h('div', { class: 'ledger-cell wide weather' }, h('span', { class: 'lk' }, 'Conditions'), h('span', null, T.weather || WEATHER[0])),
-      PP.ui.gauges(s, prev));
+      PP.ui.gauges(s, prev),
+      stageStrip(s));
     T.lastSavings = s.career ? s.career.savings : 0;
   }
 
+  function stageStrip(s) {
+    return h('div', { class: 'stage-strip', 'aria-label': 'The relationship so far' },
+      h('span', { class: 'lk' }, s.followUp ? `Relationship · lap ${s.followUp.lap}` : 'Relationship'),
+      h('ol', null, PP.stageStatus(s).map((st) => h('li', { class: st.done ? 'done' : st.current ? 'current' : '', title: st.blurb }, st.label))));
+  }
   function moneyCell(c) {
     const lvl = PP.career.levelInfo(c);
     const inc = PP.career.income(c), cost = PP.career.costs(c);
