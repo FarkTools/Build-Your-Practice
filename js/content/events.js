@@ -480,8 +480,8 @@
       when: (s) => s.day >= 3,
       text: (s) => `A man in a quarter-zip jogs up the trail and falls in beside ${C(s)}. "Vance, Velocity Wealth. I can have a plan on your desk by Friday. No questions, no homework." He hands ${C(s)} a metal business card.`,
       choices: [
-        { label: 'Let your work speak for itself', kind: 'through', hint: 'Only works if the relationship is already strong.', eff: (s) => (s.res.trust >= 6 ? { trust: 1 } : { poached: true }), preview: 'Trust 6 or more: they stay. Less: they leave with Vance.', result: (s) => (s.poached ? `${C(s)} hesitates, then walks off with Vance.` : `${C(s)} hands the card back. "I like the homework, actually."`) },
-        { label: 'Ask your client what they make of his offer', kind: 'prepare', hint: 'Talking it through usually helps, if there is enough trust to work with.', eff: (s) => (s.res.trust >= 4 ? { trust: 1, insight: 1 } : PP.chance(0.5) ? { poached: true } : { insight: 1 }), preview: 'Trust 4 or more: they stay, and you learn something. Less: a coin flip.', result: (s) => (s.poached ? `"Honestly? Friday sounds good." ${C(s)} goes with Vance.` : `"No questions means he doesn't know me," ${C(s)} says. Vance jogs off.`) },
+        { label: 'Let your work speak for itself', kind: 'through', hint: 'Only works if the relationship is already strong.', eff: (s) => (s.res.trust >= 6 ? { trust: 1 } : { poached: 'Vance from Velocity Wealth' }), preview: 'Trust 6 or more: they stay. Less: they leave with Vance.', result: (s) => (s.poached ? `${C(s)} hesitates, then walks off with Vance.` : `${C(s)} hands the card back. "I like the homework, actually."`) },
+        { label: 'Ask your client what they make of his offer', kind: 'prepare', hint: 'Talking it through usually helps, if there is enough trust to work with.', eff: (s) => (s.res.trust >= 4 ? { trust: 1, insight: 1 } : PP.chance(0.5) ? { poached: 'Vance from Velocity Wealth' } : { insight: 1 }), preview: 'Trust 4 or more: they stay, and you learn something. Less: a coin flip.', result: (s) => (s.poached ? `"Honestly? Friday sounds good." ${C(s)} goes with Vance.` : `"No questions means he doesn't know me," ${C(s)} says. Vance jogs off.`) },
         { label: 'Tell your client Vance is a crook', kind: 'through', eff: { trust: -1 }, result: 'It works, but it does not look great on you.' },
         { label: 'Promise you can be faster than Vance', kind: 'around', eff: { momentum: 2, pace: 'brisk', debt: { tag: 'premature_pitch', sev: 2 } }, result: 'You pick up the pace. Now you have a deadline you invented.' }
       ]
@@ -518,7 +518,7 @@
       id: 'enc_lost_family', title: 'A lost family', at: ['travel'],
       text: 'A family stands at a fork with their map upside down. The kids are arguing about snacks. The parents are arguing about the mortgage.',
       choices: [
-        { label: 'Help them find their way', kind: 'help', eff: { energy: -1, prospect: { temp: 'warm', source: 'a family you helped on the trail', bias: { taylor: 3 } } }, result: 'You turn their map the right way up. They ask for your card. (New prospect in your pipeline.)' },
+        { label: 'Help them find their way', kind: 'help', eff: { energy: -1, prospect: { temp: 'warm', source: 'a family you helped on the trail', bias: { family: 3 } } }, result: 'You turn their map the right way up. They ask for your card. (New prospect in your pipeline.)' },
         { label: 'Point the way and keep going', kind: 'around', eff: { momentum: 1 }, result: '"That way!" They wave thanks.' }
       ]
     },

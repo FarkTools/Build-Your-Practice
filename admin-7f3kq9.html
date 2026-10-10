@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Build Your Practice · Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Build Your Practice: a light adventure game about growing a client practice, one trail at a time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Kalam:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22%3E%3Ccircle cx=%2220%22 cy=%2220%22 r=%2218%22 fill=%22%23f5ddbb%22 stroke=%22%23000a62%22 stroke-width=%223%22/%3E%3Cpath d=%22M20,4 L24,18 L20,21 L16,18z%22 fill=%22%23f39c12%22/%3E%3Cpath d=%22M20,36 L24,22 L20,19 L16,22z%22 fill=%22%23000a62%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/games-mobile.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#f5ddbb" stroke="#f39c12" stroke-width="2"/><circle cx="20" cy="20" r="13.5" fill="none" stroke="#000a62" stroke-width="1.2" stroke-dasharray="1.5 2.6"/><path d="M20,5 L23.2,17 L20,20 L16.8,17z" fill="#f39c12" stroke="#4a2c12" stroke-width="1.1" stroke-linejoin="round"/><path d="M20,35 L23.2,23 L20,20 L16.8,23z" fill="#000a62" stroke="#4a2c12" stroke-width="1.1" stroke-linejoin="round"/><path d="M5,20 L17,16.8 L20,20 L17,23.2z M35,20 L23,16.8 L20,20 L23,23.2z" fill="#fbf1e1" stroke="#4a2c12" stroke-width="1.1" stroke-linejoin="round"/><circle cx="20" cy="20" r="1.8" fill="#4a2c12"/></svg><span>Build Your Practice</span><span class="tagline">admin</span></div>
+    <nav class="tabs" aria-label="Views">
+      <button data-view="play">Play</button>
+      <button data-view="lab">Element Lab</button>
+      <button data-view="roadmap">Roadmap</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="view-play" class="view"></section>
+    <section id="view-lab" class="view" hidden></section>
+    <section id="view-roadmap" class="view roadmap" hidden>
+      <header class="screen-head">
+        <div><div class="eyebrow">Path forward</div><h2 class="display-sm">Build Your Practice: from concept to something agents replay</h2></div>
+        <p class="muted">The concept doc's own test: do players choose "Play again" without being asked? Everything below is ordered to answer that as cheaply as possible.</p>
+      </header>
+
+      <div class="phases">
+        <article class="phase now">
+          <div class="phase-tag">Phase 0 · built</div>
+          <h3>Playable vertical slice</h3>
+          <p>Every core element, playable end to end.</p>
+          <ul>
+            <li>Four agent types that trade savings, skills and natural market</li>
+            <li>Port Prospect as home base: every activity takes a day and costs money</li>
+            <li>Prospecting games: Call-a-thon, Chamber of Commerce mixer, Farmers Market tent, plus warm calls, lunch &amp; learns and referrals</li>
+            <li>A pipeline that goes cold, a book of clients who need service, and rivals who poach</li>
+            <li>Build the practice: workspace, a partner, recruits you train, and systems earned on the trail</li>
+            <li>Journeys on your parchment map: days of hiking, forks, encounters, mentors, cut scenes</li>
+            <li>Hidden risk debt, clawbacks and referrals that ripple into later journeys</li>
+            <li>8 mini-games that change every session, 12 client types, 150+ events, 56 port happenings</li>
+          </ul>
+        </article>
+        <article class="phase">
+          <div class="phase-tag">Phase 1 · 2–3 weeks</div>
+          <h3>Playtest with agents</h3>
+          <p>Put the link in front of 5–8 agents, mixing new and experienced. Watch two of them play live. Ask the seven questions from the concept doc right after a run, while it is fresh.</p>
+          <ul>
+            <li>Track the one number that matters: how many start a second run unprompted</li>
+            <li>Collect real situations to replace placeholder ones (questions 3, 4 and 5 feed the event deck directly)</li>
+            <li>Tune numbers in the content files: costs, debt odds, client patience</li>
+            <li>Add a short "send feedback" link after the ending screen (a GitHub issue template works)</li>
+          </ul>
+        </article>
+        <article class="phase">
+          <div class="phase-tag">Phase 2</div>
+          <h3>Depth and replay</h3>
+          <ul>
+            <li>More mini-games: The Handoff, Explain It, Change of Mind</li>
+            <li>A client generator: combine goals, patience, preferences and hidden concerns so no two runs repeat</li>
+            <li>More events per place, especially ones that only fire because of an earlier choice</li>
+            <li>Contact relationships that improve across runs</li>
+          </ul>
+        </article>
+        <article class="phase">
+          <div class="phase-tag">Phase 3</div>
+          <h3>Presentation</h3>
+          <ul>
+            <li>Illustrated overworld art and character portraits</li>
+            <li>Sound, small animations, save and resume</li>
+            <li>Only after the loop is proven fun: richer movement and exploration</li>
+          </ul>
+        </article>
+        <article class="phase">
+          <div class="phase-tag">Phase 4 · optional</div>
+          <h3>Learning-context version</h3>
+          <ul>
+            <li>A facilitator debrief screen that maps a run to discussion questions</li>
+            <li>Kept separate from, and complementary to, formal policy and compliance training</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="roadmap-cols">
+        <article class="panel">
+          <h3>How it is built</h3>
+          <p>Plain HTML, CSS and JavaScript. No build step, no framework, no server. It runs from GitHub Pages or by opening <code>index.html</code>.</p>
+          <ul class="plain mono-list">
+            <li><code>js/core.js</code> state, resources, effects, risk debt</li>
+            <li><code>js/content/</code> clients, port, world, events: edit these to change the game</li>
+            <li><code>js/minigames/</code> one file per mini-game, all with the same interface</li>
+            <li><code>js/content/career.js</code> savings, payouts, levels, clawbacks</li>
+            <li><code>js/ui/</code> map, trail scene, journey loop, game flow, Element Lab</li>
+          </ul>
+        </article>
+        <article class="panel">
+          <h3>Adding content</h3>
+          <ul class="plain">
+            <li><strong>An event:</strong> add an object to <code>js/content/events.js</code>. Pick where it fires, write the text, and give each choice a kind and an effect.</li>
+            <li><strong>A shortcut that bites later:</strong> give a choice <code>debt: {tag, sev}</code> and describe the tag in <code>world.js</code>.</li>
+            <li><strong>A client:</strong> copy one in <code>clients.js</code> and change the facts, script and destinations.</li>
+            <li><strong>A mini-game:</strong> copy a file in <code>js/minigames/</code>; it only has to call <code>done()</code> with an effect.</li>
+          </ul>
+        </article>
+        <article class="panel">
+          <h3>Hosting on GitHub Pages</h3>
+          <ol class="plain">
+            <li>Create a repository and push this folder.</li>
+            <li>Settings → Pages → Deploy from a branch → <code>main</code>, root folder.</li>
+            <li>Share <code>https://&lt;you&gt;.github.io/&lt;repo&gt;/</code>.</li>
+          </ol>
+          <p class="small muted">Players use <code>index.html</code> (play only). This admin page adds the Element Lab and Roadmap. Deep links: <code>#play</code>, <code>#lab</code>, <code>#roadmap</code>.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/content/world.js"></script>
+<script src="js/content/port.js"></script>
+<script src="js/content/clients.js"></script>
+<script src="js/content/events.js"></script>
+<script src="js/content/events-places.js"></script>
+<script src="js/content/events-road.js"></script>
+<script src="js/content/contact-wiring.js"></script>
+<script src="js/content/agents.js"></script>
+<script src="js/content/career.js"></script>
+<script src="js/content/prospecting.js"></script>
+<script src="js/content/port-days.js"></script>
+<script src="js/minigames/common.js"></script>
+<script src="js/minigames/fx.js"></script>
+<script src="js/minigames/conversation.js"></script>
+<script src="js/minigames/fact-find.js"></script>
+<script src="js/minigames/inbox.js"></script>
+<script src="js/minigames/calendar.js"></script>
+<script src="js/minigames/life-happens.js"></script>
+<script src="js/minigames/callathon.js"></script>
+<script src="js/minigames/mixer.js"></script>
+<script src="js/minigames/market.js"></script>
+<script src="js/ui/widgets.js"></script>
+<script src="js/ui/map.js"></script>
+<script src="js/ui/trailscene.js"></script>
+<script src="js/ui/trail.js"></script>
+<script src="js/ui/game.js"></script>
+<script src="js/ui/lab.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

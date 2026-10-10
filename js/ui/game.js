@@ -86,16 +86,45 @@
       h('p', { class: 'small' }, `Income: ${money(PP.career.bookIncome(c))}/day from clients` + (PP.career.overrides(c) ? ` + ${money(PP.career.overrides(c))}/day from your recruits` : '') + `. Costs: ${money(c.living)}/day living` + (PP.career.rent(c) ? ` + ${money(PP.career.rent(c))}/day rent` : '') + '.'));
   }
 
+  /* Today at the port: a small happening most mornings. */
+  function todayCard(c) {
+    if (!PP.content.pickPortDay) return null;
+    if (!c.today || c.today.day !== c.days) {
+      const ev = c.days > 0 && PP.chance(0.65) ? PP.content.pickPortDay(c) : null;
+      c.today = { day: c.days, id: ev ? ev.id : null, done: !ev };
+      PP.career.save(c);
+    }
+    if (c.today.done || !c.today.id) return null;
+    const ev = PP.content.portDays.find((x) => x.id === c.today.id);
+    if (!ev) return null;
+    const txt = typeof ev.text === 'function' ? ev.text(c) : ev.text;
+    return h('div', { class: 'panel today' }, h('div', { class: 'eyebrow' }, 'Today at the port'), h('p', null, txt),
+      h('div', { class: 'today-choices' }, ev.choices.map((ch) => h('button', { class: 'btn' + (ev.choices.length === 1 ? ' primary' : ''), onclick: () => {
+        c.today.done = true;
+        const eff = ch.eff || {};
+        const notes = [{ text: typeof ch.result === 'function' ? ch.result(c) : ch.result, kind: 'info' }];
+        if (eff.day) {
+          const rest = Object.assign({}, eff); delete rest.day;
+          return spendDay(() => { PP.content.applyPortDay(c, rest, { noTick: true }).forEach((n) => notes.push(n)); return notes.map((n) => n.text).join(' '); });
+        }
+        PP.content.applyPortDay(c, eff, { noTick: true }).forEach((n) => notes.push(n));
+        if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
+        PP.career.save(c);
+        port(G.tab, notes);
+      } }, ch.label))));
+  }
+
   function port(tab, flash) {
     const c = G.career;
     G.tab = tab || G.tab;
-    const tabs = [['prospect', 'Prospecting'], ['pipeline', `Pipeline (${c.pipeline.length})`], ['book', `Your clients (${c.book.filter((b) => ['life', 'steady', 'at-risk', 'door'].includes(b.status)).length})`], ['build', 'Build your practice'], ['people', 'Skills & people']];
+    const tabs = [['prospect', 'Prospect'], ['pipeline', `Pipeline ${c.pipeline.length}`], ['book', `Clients ${c.book.filter((b) => ['life', 'steady', 'at-risk', 'door'].includes(b.status)).length}`], ['build', 'Practice'], ['people', 'People']];
     const body = { prospect: tabProspect, pipeline: tabPipeline, book: tabBook, build: tabBuild, people: tabPeople }[G.tab]();
     screen(h('section', { class: 'port' },
       h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Home base'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
         h('p', { class: 'muted' }, 'Every activity here takes a day, and every day costs money. Balance prospecting, looking after clients, and time on the trail.')),
       practicePanel(c),
       flash && flash.length ? h('div', { class: 'flash', role: 'status' }, flash.map((n) => h('p', { class: 'fl-' + (n.kind || 'info') }, n.text))) : null,
+      todayCard(c),
       h('p', { class: 'coach' }, h('span', { class: 'eyebrow' }, 'What now? '), coach(c)),
       h('nav', { class: 'port-tabs', 'aria-label': 'Port Prospect' }, tabs.map(([id, label]) => h('button', { 'aria-current': G.tab === id ? 'true' : 'false', onclick: () => port(id) }, label))),
       body));
@@ -128,11 +157,11 @@
           spendDay(() => { c.weekPlan = res.week; return 'Calendar Tetris: ' + weekLabel(res.week) + ' This carries into your next journey.'; }, 'prospect');
         }, 'Calendar Tetris · 1 day') }, 'Play')));
     return h('div', { class: 'activity-grid' }, plan, ...PP.content.prospecting.map((a) => {
-      const blocked = a.id === 'warm' && c.market <= 0;
+      const blocked = (a.id === 'warm' && c.market <= 0) || (a.requires && !a.requires(c));
       return h('article', { class: 'panel activity' },
         h('h3', null, a.name), h('p', { class: 'small' }, a.blurb),
         h('div', { class: 'row between' },
-          h('span', { class: 'small muted' }, `1 day${a.cost ? ' · ' + money(a.cost) : ''}` + (a.id === 'warm' ? ` · ${c.market} contacts left` : '') + (a.minigame ? ' · mini-game' : '')),
+          h('span', { class: 'small muted' }, `1 day${a.cost ? ' · ' + money(a.cost) : ''}` + (a.id === 'warm' ? ` · ${c.market} contacts left` : '') + (a.minigame ? ' · mini-game' : '') + (a.requires && !a.requires(c) ? ' · ' + a.requiresText : '')),
           h('button', { class: 'btn primary', disabled: blocked || c.savings < a.cost, onclick: () => runActivity(a) }, a.minigame ? 'Play' : 'Do it')));
     }));
   }
@@ -353,6 +382,7 @@
     PP.apply(s, { trust: trustMod });
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
     if (s.pack.includes('cards')) { PP.apply(s, { trust: 1 }); PP.useItem(s, 'cards'); }
+    if (c.energyNext) { PP.apply(s, { energy: c.energyNext }); c.energyNext = 0; }
     if (c.weekPlan) { PP.apply(s, weekBuff(c.weekPlan)); PP.log(s, 'Your planned week: ' + weekLabel(c.weekPlan), 'info'); c.weekPlan = null; }
     G.s = s;
     PP.career.save(c);
@@ -391,7 +421,7 @@
 
     const rating = kind === 'poached' ? 'A rival took your client' : kind !== 'landed' ? (kind === 'walked' ? 'The client found another guide' : 'The trail went cold')
       : pts >= 6 ? 'Trusted Guide' : pts >= 4 ? 'Steady Navigator' : pts >= 2 ? 'Got There, Eventually' : 'Lost in the Wilds';
-    const why = kind === 'poached' ? `${cl.name} went with Vance from Velocity Wealth. The relationship was not strong enough to hold.`
+    const why = kind === 'poached' ? `${cl.name} went with ${typeof s.poached === 'string' ? s.poached : 'a rival agent'}. The relationship was not strong enough to hold.`
       : kind === 'walked' ? `${cl.name} stopped talking to you. Trust ran out before the trail did.`
         : kind === 'stalled' ? `Everything slowed down until nothing was moving. ${cl.name} decided to "revisit this next year."`
           : fitText(s, fit);

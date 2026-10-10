@@ -63,7 +63,16 @@
     names: {
       taylor: ['Taylor', 'Jamie', 'Alex', 'Robin', 'Casey', 'Drew', 'Kai', 'Jesse'],
       morgan: ['Morgan', 'Sam', 'Dana', 'Quinn', 'Reese', 'Harper', 'Elliot', 'Blair'],
-      rosa: ['Rosa', 'Lena', 'Marisol', 'Bea', 'Nadia', 'Ines', 'Carmen', 'Opal']
+      rosa: ['Rosa', 'Lena', 'Marisol', 'Bea', 'Nadia', 'Ines', 'Carmen', 'Opal'],
+      evelyn: ['Evelyn', 'Marguerite', 'Dolores', 'Imelda', 'Hiroko', 'Agnes', 'Winifred', 'Odette'],
+      walter: ['Walter', 'Gerald', 'Lionel', 'Raymond', 'Desmond', 'Arturo', 'Clifford', 'Ignatius'],
+      mateo: ['Mateo', 'Jaylen', 'Arjun', 'Tobias', 'Nico', 'Malik', 'Soren', 'Emeka'],
+      lorraine: ['Lorraine', 'Denise', 'Yolanda', 'Shirin', 'Colleen', 'Patrice', 'Mona', 'Theresa'],
+      zoe: ['Zoe', 'Wren', 'Juniper', 'Sasha', 'Ari', 'Ellis', 'Noor', 'Indigo'],
+      darnell: ['Darnell', 'Julian', 'Tomas', 'Andre', 'Felix', 'Ravi', 'Curtis', 'Owen'],
+      ingrid: ['Ingrid', 'Celeste', 'Margo', 'Anouk', 'Tamsin', 'Freya', 'Leila', 'Vivian'],
+      rafael: ['Rafael', 'Santiago', 'Dmitri', 'Kwame', 'Lorenzo', 'Bastian', 'Hamid', 'Ezra'],
+      maxine: ['Maxine', 'Maureen', 'Adaeze', 'Philippa', 'Consuelo', 'Annette', 'Bridget', 'Lourdes']
     },
     life: { hot: 24, warm: 15, cold: 9 }
   });
@@ -107,16 +116,21 @@
 
     /* Prospects */
     newName(c, arch) {
-      const list = P.names[arch];
+      const list = P.names[arch] || (PP.content.clients[arch] && PP.content.clients[arch].names) || [PP.content.clients[arch].name];
       const used = c.usedNames[arch] || 0;
       c.usedNames[arch] = used + 1;
       return list[used % list.length] + (used >= list.length ? ' ' + String.fromCharCode(65 + Math.floor(used / list.length) - 1) + '.' : '');
     },
     addProspect(c, opts) {
-      const weights = opts.bias || { taylor: 1, morgan: 1, rosa: 1 };
-      if (c.agent === 'insider') weights.morgan = (weights.morgan || 1) + 1;
+      // Every archetype can show up. A bias (by archetype id or by segment) makes some likelier.
+      const bias = Object.assign({}, opts.bias || {});
+      if (c.agent === 'insider') bias.numbers = (bias.numbers || 0) + 1;
+      const weights = {};
+      Object.values(PP.content.clients).forEach((cl) => { weights[cl.id] = 1 + (bias[cl.id] || 0) * 1.5 + (bias[cl.segment] || 0) * 1.5; });
+      // Gently favour archetypes this career hasn't met much yet, so runs feel fresh.
+      Object.keys(weights).forEach((k) => { weights[k] /= 1 + 0.6 * (c.usedNames[k] || 0); });
       let arch = opts.archetype;
-      if (!arch) { const tot = Object.values(weights).reduce((a, b) => a + b, 0); let r = Math.random() * tot; for (const k in weights) { r -= weights[k]; if (r <= 0) { arch = k; break; } } arch = arch || 'taylor'; }
+      if (!arch) { const tot = Object.values(weights).reduce((a, b) => a + b, 0); let r = Math.random() * tot; for (const k in weights) { r -= weights[k]; if (r <= 0) { arch = k; break; } } arch = arch || Object.keys(weights)[0]; }
       let temp = opts.temp || 'warm';
       if (temp === 'cold' && c.agent === 'connector' && opts.event) temp = 'warm';
       const p = { id: PP.uid('p'), archetype: arch, name: C.newName(c, arch), temp, source: opts.source || 'met somewhere', expires: c.days + P.life[temp] };

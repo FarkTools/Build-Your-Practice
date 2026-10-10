@@ -74,6 +74,19 @@
   };
   const TAGNAME = { emotion: 'a feeling', question: 'a question', misconception: 'a misconception', tangent: 'a tangent', fact: 'something important' };
 
+  /* Where the meeting happens. Purely framing: a label and one or two small interruptions
+   * that pause the clock. seg limits a setting to clients it suits. */
+  const SETTINGS = [
+    { id: 'coffee', name: 'A corner table at the coffee shop', bits: ['"Oat latte for... Steve?" The barista waits. Nobody is Steve.', 'The espresso machine shrieks. You both pause.', 'Someone asks if the chair next to you is taken.'] },
+    { id: 'kitchen', name: 'Their kitchen table', bits: ['The dog wants out. Then in. Then out again.', 'A timer goes off. "That\'s the oven. One second."', 'A kid wanders in looking for the scissors.'] },
+    { id: 'video', name: 'A video call that keeps freezing', freeze: true, bits: ['Their video freezes mid-word. You wait.', '"You\'re on mute," you say. "No, you\'re on mute," they say.', 'The picture goes blocky. "Can you hear me now?"'] },
+    { id: 'park', name: 'A walk in the park', bits: ['A goose eyes you both. You give it room.', 'A frisbee lands at your feet. You throw it back. Badly.', 'You stop to let a line of ducklings cross.'] },
+    { id: 'office', name: 'The small meeting room at your office', bits: ['Your phone buzzes. You flip it face down.', 'Someone opens the door: "Oh, sorry. Wrong room."'] },
+    { id: 'shop', name: 'Behind the counter of their shop', seg: ['owner'], bits: ['A customer walks in. "Be right with you!"', 'The delivery truck arrives. Signatures, please.'] },
+    { id: 'cafeteria', name: 'The hospital cafeteria, during visiting hours', seg: ['caregiver'], bits: ['A page goes out over the speaker. They check their phone, just in case.'] },
+    { id: 'porch', name: 'Their front porch, with lemonade', seg: ['retiree', 'changes', 'family'], bits: ['A neighbour waves and shouts hello. You wave back.', 'The wind chimes get very enthusiastic.'] }
+  ];
+
   PP.minigames.conversation = {
     title: 'The Conversation',
     risk: 'missing what actually matters',
@@ -86,6 +99,12 @@
       const prep = ctx.prep || 0;
       const per = 9 + prep * 2;
       const ui = PP.mg.shell(root, this.title, this.risk);
+      const setting = PP.pick(SETTINGS.filter((x) => !x.seg || x.seg.includes(client.segment)));
+      ui.wrap.insertBefore(h('div', { class: 'mg-scene' }, h('b', null, setting.name)), ui.hud);
+      // One or two small interruptions, never on the first line.
+      const bits = PP.shuffle(setting.bits);
+      const interruptAt = {};
+      PP.shuffle(script.map((_, k) => k).slice(1)).slice(0, script.length > 4 && PP.chance(0.45) ? 2 : 1).forEach((k, n) => (interruptAt[k] = bits[n % bits.length]));
       let localTrust = ctx.state.res.trust;
       const trustM = F.meter('Trust', 'good'); trustM.set(localTrust, 10);
       const insightC = F.counter('Insights');
@@ -95,7 +114,7 @@
       const notebook = h('div', { class: 'cv-notebook', title: 'What you have learned' }, h('span', null, 'Notebook'), h('b', null, '0'));
       const speech = h('div', { class: 'cv-speech' });
       const tagChip = h('div', { class: 'cv-tag' });
-      const stage = h('div', { class: 'mg-stage-area cv-stage' },
+      const stage = h('div', { class: 'mg-stage-area cv-stage cv-set-' + setting.id },
         h('div', { class: 'cv-portrait' }, face, h('strong', null, client.name), h('span', { class: 'small' }, client.title)),
         h('div', { class: 'cv-right' }, speech, tagChip), notebook);
       const acts = h('div', { class: 'cv-acts' });
@@ -106,7 +125,7 @@
       const onKey = (e) => { const a = ACTIONS.find((x) => x.key === e.key); if (a) { e.preventDefault(); respond(a.id); } };
       document.addEventListener('keydown', onKey);
 
-      let i = -1, timer = null, finished = false, locked = false, typeT = null, pitched = false;
+      let i = -1, timer = null, finished = false, locked = false, typeT = null, pitched = false, intT = null, intEl = null;
       const acc = { trust: 0, momentum: 0, insight: 0 };
       const facts = [], missed = [], debts = [], lines = [];
       const baseMood = () => Math.max(-2, Math.min(2, Math.round((localTrust - 5) / 2)));
@@ -133,11 +152,27 @@
         acts.querySelectorAll('button').forEach((b) => (b.disabled = false));
         if (timer) timer.stop();
         timer = PP.mg.timer(ui.bar, per, () => respond('listen', true));
+        if (interruptAt[i]) { const text = interruptAt[i]; intT = setTimeout(() => interrupt(text), 1400); }
+      }
+      function clearInterrupt() {
+        clearTimeout(intT);
+        if (intEl) { intEl.remove(); intEl = null; }
+        stage.classList.remove('frozen');
+      }
+      function interrupt(text) {
+        if (finished || locked) return;
+        timer && timer.pause(true);
+        intEl = h('div', { class: 'cv-interrupt' }, text, h('small', null, 'Clock paused'));
+        stage.appendChild(intEl);
+        if (setting.freeze) stage.classList.add('frozen');
+        F.sfx('ding');
+        intT = setTimeout(() => { clearInterrupt(); if (!locked && timer) timer.pause(false); }, 2200);
       }
       function respond(action, timedOut) {
         if (finished || locked || i < 0 || i >= script.length) return;
         locked = true;
         clearInterval(typeT);
+        clearInterrupt();
         timer && timer.stop();
         acts.querySelectorAll('button').forEach((b) => (b.disabled = true));
         const st = script[i];
@@ -190,7 +225,7 @@
       function finish() {
         if (finished) return;
         finished = true;
-        timer && timer.stop(); clearInterval(typeT);
+        timer && timer.stop(); clearInterval(typeT); clearInterrupt();
         document.removeEventListener('keydown', onKey);
         const remaining = missed.filter((f) => !facts.includes(f));
         const score = lines.reduce((a, l) => a + (l.q === 'good' ? 1 : l.q === 'ok' ? 0.5 : 0), 0);
@@ -200,13 +235,13 @@
         const result = {
           score: Math.round(score * 10) / 10, max: script.length, eff, lines, showDebt: practice,
           passed: ctx.pass != null ? score >= ctx.pass : null,
-          headline: facts.length ? 'You picked up on: ' + facts.map((f) => client.facts[f].label.toLowerCase()).join('; ') + '.' : 'You came away with the facts, but not much underneath them.'
+          headline: setting.name + '. ' + (facts.length ? 'You picked up on: ' + facts.map((f) => client.facts[f].label.toLowerCase()).join('; ') + '.' : 'You came away with the facts, but not much underneath them.')
         };
         if (remaining.length) result.lines.push({ q: 'bad', text: 'Slipped past you: ' + remaining.map((f) => client.facts[f].label.toLowerCase()).join('; ') + '.' });
         PP.mg.summary(root, PP.minigames.conversation.title, result, done);
       }
       next();
-      return { stop() { finished = true; timer && timer.stop(); clearInterval(typeT); document.removeEventListener('keydown', onKey); } };
+      return { stop() { finished = true; timer && timer.stop(); clearInterval(typeT); clearInterrupt(); document.removeEventListener('keydown', onKey); } };
     }
   };
 })(window.PP);

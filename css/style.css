@@ -54,9 +54,7 @@ p { margin: 0; }
 /* ---------- Top bar (on the navy table) ---------- */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding-block: 14px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--parch); font-weight: 600; font-size: 1.25rem; }
-.brand-mark { width: 24px; height: 24px; position: relative; }
-.brand-mark::before, .brand-mark::after { content: ""; position: absolute; left: 10px; top: -1px; width: 5px; height: 26px; background: var(--orange); border-radius: 3px; transform: rotate(45deg); box-shadow: 0 0 0 2px var(--navy-line); }
-.brand-mark::after { transform: rotate(-45deg); }
+.brand-mark { width: 32px; height: 32px; flex: none; display: block; }
 .tagline { font-style: italic; font-weight: 400; font-size: 0.95rem; color: #aeb6e6; }
 .tabs { display: flex; gap: 2px; }
 .tabs button { background: none; border: 0; padding: 6px 14px; border-radius: 999px; cursor: pointer; color: #c9cff2; font-weight: 600; font-size: 0.95rem; }
@@ -791,3 +789,51 @@ kbd { font-family: var(--mono); font-size: 0.68rem; border: 1px solid currentCol
 }
 .avatar.face { background: none; border: 0; display: inline-block; }
 .avatar.face svg { width: 100%; height: 100%; display: block; }
+.panel.today { border-left: 4px solid var(--orange); display: grid; gap: 8px; }
+.today-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- Phone layout (iPhone first) ---------- */
+@media (max-width: 560px) {
+  body { -webkit-text-size-adjust: 100%; }
+  .topbar { padding-block: 10px; }
+  .topbar.player { justify-content: flex-start; }
+  .brand { font-size: 1.1rem; }
+  main { padding-inline: 0; }
+  .view { padding: 18px 14px 22px; border-width: 2px; }
+  .view::before { inset: 5px; }
+  .display-sm { font-size: 1.55rem; }
+  .screen-head { gap: 6px; }
+  /* Career ladder: dots for every level, a label only for where you are */
+  .ladder li { padding: 18px 0 2px; }
+  .ladder li strong { font-size: 0.78rem; }
+  .ladder li:not(.now) strong { visibility: hidden; }
+  .ladder li.now strong { white-space: nowrap; }
+  .ladder li.now:first-child strong { justify-self: start; }
+  .ladder li.now:last-child strong { justify-self: end; }
+  /* Numbers: a tidy 3-column grid instead of a ragged wrap */
+  .practice-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; }
+  .practice-nums .stat strong { font-size: 1.05rem; }
+  /* Tabs: one swipeable row */
+  .port-tabs { flex-wrap: nowrap; overflow-x: auto; gap: 16px; scrollbar-width: none; -webkit-overflow-scrolling: touch; margin-inline: -14px; padding-inline: 14px; }
+  .port-tabs::-webkit-scrollbar { display: none; }
+  .port-tabs button { white-space: nowrap; flex: none; min-height: 44px; }
+  /* Options: text on top, button underneath at full width */
+  .option { flex-direction: column; align-items: stretch; gap: 8px; }
+  .option .btn { width: 100%; min-height: 44px; }
+  .option .pill { align-self: flex-start; }
+  .activity .row.between { flex-wrap: wrap; gap: 8px; }
+  .activity .btn { min-height: 44px; min-width: 96px; }
+  .btn { min-height: 42px; }
+  .today-choices { flex-direction: column; }
+  .today-choices .btn { width: 100%; }
+  /* Trail scene: taller, cropped around the hikers so they are not tiny */
+  .trail-canvas { aspect-ratio: auto; height: 190px; object-fit: cover; object-position: 42% 75%; }
+  .overlay-card { padding: 12px; }
+}
+@media (max-width: 560px) {
+  .port-tabs { overflow: visible; margin-inline: 0; padding-inline: 0; gap: 0; justify-content: space-between; }
+  .port-tabs button { font-size: 0.88rem; padding-inline: 2px; }
+}
+@media (max-width: 560px) {
+  .trail-canvas, .trail-canvas.narrow { aspect-ratio: 7 / 4; height: auto; object-fit: fill; }
+}

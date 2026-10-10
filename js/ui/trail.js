@@ -295,10 +295,15 @@
   function pickEncounter() {
     const s = T.s;
     const pool = PP.content.events.filter((e) => e.at.includes('travel') && !s.seenEvents[e.id] && (!e.when || e.when(s)));
+    return weighted(pool, (e) => (e.weight || 1));
+  }
+  /* Events this career has already seen many times are less likely, so journeys stay fresh. */
+  function freshness(e) { const seen = (T.s.career && T.s.career.evSeen && T.s.career.evSeen[e.id]) || 0; return 1 / (1 + seen * 1.5); }
+  function weighted(pool, w) {
     if (!pool.length) return null;
-    const total = pool.reduce((a, e) => a + (e.weight || 1), 0);
-    let r = Math.random() * total;
-    for (const e of pool) { r -= e.weight || 1; if (r <= 0) return e; }
+    const ws = pool.map((e) => w(e) * freshness(e));
+    let r = Math.random() * ws.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < pool.length; i++) { r -= ws[i]; if (r <= 0) return pool[i]; }
     return pool[0];
   }
 
@@ -373,14 +378,15 @@
     if (id === 'clients') { await T.scene.cut('finale', { title: node.name, caption: node.arrive, duration: 3400 }); T.scene.setLandmark('clients'); return finale(); }
     await T.scene.cut('arrive', { kind: node.kind, title: node.name, caption: first ? node.arrive : 'You have been here before.' });
     T.scene.setLandmark(node.kind);
-    const ev = first ? pickLandmarkEvent(id) : null;
+    const ev = first || PP.chance(0.6) ? pickLandmarkEvent(id, first) : null;
     if (ev) { if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu(), id); }
     else menu();
   }
-  function pickLandmarkEvent(id) {
+  function pickLandmarkEvent(id, first) {
     const s = T.s;
     const pool = PP.content.events.filter((e) => e.at.includes(id) && !s.seenEvents[e.id] && (!e.when || e.when(s)));
-    return pool.find((e) => e.first) || pool[0] || null;
+    // The landmark's signature event is likeliest on a first visit, but not guaranteed once you've seen it before.
+    return weighted(pool, (e) => (e.first ? (first ? 3 : 0.5) : 1));
   }
 
   /* ---------- Menu actions ---------- */

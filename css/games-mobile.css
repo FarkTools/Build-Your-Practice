@@ -1,0 +1,260 @@
+/* Mini-game additions and phone layout.
+ * Loaded after style.css. New pieces used by the mini-games (session "scene" line,
+ * rival gimmicks, weather, venues, settings, new calendar blocks) plus overrides that
+ * keep every game usable at iPhone widths (375-430px). */
+
+/* ---------- Shared: the session scene line under the title ---------- */
+.mg-scene { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; background: var(--parch-2); border-left: 4px solid var(--orange); border-radius: 0 8px 8px 0; padding: 6px 10px; font-size: 0.86rem; color: var(--ink-2); line-height: 1.3; }
+.mg-scene b { color: var(--navy); font-weight: 700; }
+
+/* ---------- Call-a-thon ---------- */
+.ct-bubble.reply { animation: rise .25s ease-out; }
+.ct-answer { min-height: 40px; }
+
+/* ---------- Mixer: venues ---------- */
+.mx-room { height: 440px; }
+.mx-bubble .chip-btn, .mk-bubble .chip-btn { min-height: 36px; }
+.mx-room.v-gala { background-color: #e8dcef; background-image: radial-gradient(rgba(111, 106, 154, .14) 1.5px, transparent 2px); }
+.mx-room.v-ribbon { background-color: #e7efd6; background-image: linear-gradient(90deg, transparent 0 48%, rgba(163, 50, 28, .25) 48% 52%, transparent 52%); background-size: 100% 100%; }
+.mx-room.v-trivia { background-color: #ead7bd; background-image: repeating-linear-gradient(90deg, rgba(74, 44, 18, .07) 0 2px, transparent 2px 40px); }
+.mx-room.v-potluck { background-color: #e3ecd2; background-image: repeating-linear-gradient(45deg, rgba(127, 159, 90, .12) 0 10px, transparent 10px 20px); }
+.mx-room.v-gala .mx-table { background: #fff; box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 4px rgba(111, 106, 154, .25); }
+.mx-room.v-trivia .mx-table { border-radius: 8px; }
+.mx-room.v-potluck .mx-table { border-radius: 6px; width: 96px; height: 44px; background: #fbf1e1; }
+.mx-leave { min-height: 40px; }
+
+/* ---------- Farmers market: rival gimmicks and weather ---------- */
+.mk-gim { position: absolute; left: 40%; bottom: -74px; display: block; pointer-events: none; }
+.mk-gim.g-tube { width: 14px; height: 74px; background: #e86fa3; border-radius: 7px; transform-origin: bottom; animation: tube .55s ease-in-out infinite alternate; }
+.mk-gim.g-wheel { left: 26%; bottom: -60px; width: 52px; height: 52px; border-radius: 50%; background: conic-gradient(#e6b85c 0 60deg, #c86f4f 60deg 120deg, #9cc2e6 120deg 180deg, #7f9f5a 180deg 240deg, #fbf1e1 240deg 300deg, #6f6a9a 300deg); box-shadow: 0 0 0 2px var(--ink); animation: mkspin 1.6s linear infinite; }
+.mk-gim.g-popcorn { left: 30%; bottom: -58px; width: 40px; height: 50px; background: repeating-linear-gradient(90deg, #c86f4f 0 6px, #fbf1e1 6px 12px); border-radius: 2px 2px 6px 6px; box-shadow: 0 0 0 2px var(--ink); }
+.mk-gim.g-popcorn::before { content: ""; position: absolute; left: -4px; right: -4px; top: -14px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 20% 60%, #fff6d8 6px, transparent 7px), radial-gradient(circle at 50% 40%, #fff6d8 7px, transparent 8px), radial-gradient(circle at 80% 60%, #fff6d8 6px, transparent 7px); animation: mkpuff .8s ease-in-out infinite alternate; }
+.mk-gim.g-dog { left: 18%; bottom: -46px; width: 64px; height: 42px; animation: bob .5s ease-in-out infinite; }
+.mk-gim.g-dog svg { width: 100%; height: 100%; display: block; }
+@keyframes mkspin { to { transform: rotate(360deg); } }
+@keyframes mkpuff { to { transform: translateY(-3px); } }
+.mk-tent.rival span { padding: 6px 4px 0; text-align: center; line-height: 1.15; }
+.mk-lane.mk-rain { background: linear-gradient(#b9c6c9 0 36%, #d7cdbd 36% 100%); }
+.mk-lane.mk-rain::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 8; background-image: repeating-linear-gradient(105deg, transparent 0 14px, rgba(80, 110, 150, .22) 14px 15px); animation: mkrain .5s linear infinite; }
+@keyframes mkrain { to { background-position: -15px 40px; } }
+.mk-lane.mk-holiday { background: linear-gradient(#c9ddb8 0 36%, #efe2cc 36% 100%); }
+.mk-lane.mk-holiday::before { content: ""; position: absolute; left: 0; right: 0; top: calc(36% + 2px); height: 10px; z-index: 0; pointer-events: none; background-image: radial-gradient(circle, #f39c12 3px, transparent 4px), radial-gradient(circle, #c4586f 3px, transparent 4px), radial-gradient(circle, #3d6fb6 3px, transparent 4px); background-size: 42px 10px; background-position: 0 0, 14px 0, 28px 0; animation: mktwinkle 1.2s steps(2) infinite; }
+@keyframes mktwinkle { 50% { opacity: .55; } }
+.mk-lane.mk-hot { background: linear-gradient(#e9e2a6 0 36%, #efd9b4 36% 100%); }
+.mk-bubble { max-width: min(360px, 92%); }
+
+/* ---------- Conversation: settings and interruptions ---------- */
+.cv-stage { border-radius: 12px; padding: 10px; }
+.cv-stage.cv-set-coffee { background: #efe0cc; }
+.cv-stage.cv-set-kitchen { background: #f2e7d2; background-image: repeating-linear-gradient(0deg, rgba(74, 44, 18, .05) 0 1px, transparent 1px 22px); }
+.cv-stage.cv-set-video { background: #dfe5ef; }
+.cv-stage.cv-set-park { background: #e3ecd2; }
+.cv-stage.cv-set-office { background: #ece6dc; }
+.cv-stage.cv-set-shop { background: #f3e2cf; }
+.cv-stage.cv-set-cafeteria { background: #e6ece9; }
+.cv-stage.cv-set-porch { background: #efe6cf; }
+.cv-stage.cv-set-video .cv-face { border-radius: 10px; box-shadow: 0 0 0 3px #283048; }
+.cv-stage.frozen .cv-face { filter: grayscale(1) contrast(1.4) blur(1.5px); }
+.cv-stage.frozen .cv-speech { filter: blur(1.2px); opacity: .7; }
+.cv-interrupt { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 14; width: min(420px, 92%); background: var(--navy); color: var(--parch); border-radius: 10px; padding: 8px 12px; font-size: 0.9rem; font-style: italic; text-align: center; animation: rise .2s ease-out; box-shadow: 0 8px 18px -10px rgba(0, 0, 0, .6); }
+.cv-interrupt small { display: block; font-style: normal; font-size: 0.68rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7; margin-top: 2px; }
+.cv-act .cv-short { display: none; }
+
+/* ---------- Fact find: containers ---------- */
+.dd-card.photo { background: #f4f1ea; box-shadow: 0 0 0 1.5px var(--ink), 0 0 0 6px #fff, 0 0 0 7.5px rgba(74, 44, 18, .35), 0 10px 18px -12px rgba(0, 0, 0, .5); transform: translateX(-50%) rotate(-1.2deg); }
+.dd-card.photo .doc-icon { filter: blur(.6px); }
+
+/* ---------- Calendar: new block types ---------- */
+.cal-block .cb-s { display: none; }
+.cal-block.b-team { background: #d9dfe6; }
+.cal-block.b-lunch { background: #f6e3a8; }
+.cal-block.b-joint { background: #cfe6dc; }
+.cal-block.b-urgent { background: #f6c9bd; box-shadow: 0 0 0 2px var(--red); }
+.cal-block.falling { opacity: .92; }
+.cal-dayhead.today { color: var(--red); }
+.cal-dayhead.today::after { content: " · today"; font-weight: 400; font-size: 0.7rem; }
+.cal-controls .btn { min-height: 40px; }
+
+/* ---------- Life Happens: streets and homes ---------- */
+.lh-town.lh-main { background-image: linear-gradient(transparent 0 47%, #d8c6aa 47% 55%, transparent 55%), linear-gradient(90deg, transparent 0 48%, var(--parch-2) 48% 51%, transparent 51%); background-color: #dfe8c6; }
+.lh-town.lh-lane { background-image: radial-gradient(ellipse 60% 30% at 30% 50%, transparent 70%, var(--parch-2) 71% 78%, transparent 79%), radial-gradient(ellipse 60% 30% at 80% 50%, transparent 70%, var(--parch-2) 71% 78%, transparent 79%); }
+.lh-town.lh-culdesac { background-image: radial-gradient(circle at 50% 52%, var(--parch-2) 0 17%, transparent 17.5%), linear-gradient(transparent 0 50%, transparent 50%), linear-gradient(90deg, transparent 0 47%, var(--parch-2) 47% 53%, transparent 53%); background-size: 100% 100%, 100% 100%, 100% 48%; background-position: 0 0, 0 0, 0 100%; background-repeat: no-repeat; }
+.lh-town.lh-harbor { background-color: #dfe8c6; background-image: linear-gradient(transparent 0 88%, var(--water) 88%), linear-gradient(transparent 0 46%, var(--parch-2) 46% 52%, transparent 52%); }
+.lh-house .lh-name { text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.lh-house .lh-name small { display: block; font-weight: 400; font-size: 0.62rem; color: var(--ink-2); }
+.lh-badge { min-height: 40px; }
+.lh-badge small { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: .07em; color: var(--green); }
+.lh-badge.chained { background: #e6f0d6; }
+.lh-pick .btn { min-height: 40px; justify-content: center; }
+
+/* ======================================================================
+ * Phones. Everything below keeps the games inside a 375px-wide screen:
+ * tighter chrome, compact HUDs, 40px touch targets, nothing overlapping.
+ * ====================================================================== */
+@media (max-width: 480px) {
+  /* Give the game the whole width of the overlay. */
+  .overlay:has(.mg-stage) { padding: 6px; align-items: start; }
+  .overlay-card > .scene.mg-stage { padding: 10px; border-width: 2px; }
+  .scene.mg-stage { padding: 10px; }
+  .mg { gap: 7px; }
+  .mg-head { gap: 6px; align-items: flex-start; }
+  .mg-head .eyebrow { font-size: 0.6rem; line-height: 1.2; }
+  .mg-title { font-size: 1.15rem; line-height: 1.15; }
+  .mg-head-right { gap: 6px; flex-direction: column-reverse; align-items: flex-end; }
+  .fx-sound { font-size: 0.64rem; padding: 1px 7px; }
+  .mg-scene { font-size: 0.74rem; padding: 4px 8px; gap: 0 8px; }
+  .mg-scene span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mg-hud { gap: 4px 12px; }
+  .fx-counter { font-size: 0.58rem; gap: 4px; }
+  .fx-counter strong { font-size: 1.05rem; }
+  .fx-meter { grid-template-columns: auto minmax(50px, 1fr) auto; gap: 6px; font-size: 0.58rem; flex: 1 1 100%; }
+  .fx-meter-num { font-size: 0.8rem; min-width: 3em; }
+  .mg-instr { font-size: 0.74rem; line-height: 1.3; }
+  .mg-feedback { font-size: 0.84rem; }
+  .mg-body { gap: 7px; }
+  .fx-stamp { font-size: 1.2rem; padding: 2px 10px; max-width: 92%; white-space: normal; text-align: center; }
+  .fx-pop { font-size: 0.95rem; }
+  .fx-pop.k-great { font-size: 1.05rem; }
+  .chip-btn { min-height: 40px; padding: 4px 12px; font-size: 0.82rem; }
+  .btn.small { min-height: 40px; }
+  .mg-summary .btn { min-height: 44px; }
+  .mg-score { font-size: 1.6rem; flex-wrap: wrap; }
+  .mg-review { max-height: 40vh; }
+
+  /* Shared four-button action grid (conversation, inbox) */
+  .cv-acts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .cv-act { padding: 8px 4px 6px; font-size: 0.82rem; min-height: 56px; gap: 2px; }
+  .cv-act .dd-icon { width: 22px; height: 22px; }
+  .cv-act kbd { display: none; }
+
+  /* Call-a-thon: caller, answers, then the week as a strip */
+  .ct-stage.ct-narrow { display: block; min-height: 0; }
+  .ct-phone { padding: 10px 10px 12px; gap: 3px; border-radius: 12px; }
+  .ct-handset { left: 10px; top: 10px; width: 22px; height: 22px; }
+  .ct-face { width: 66px; height: 66px; }
+  .ct-dialing { width: 56px; height: 56px; font-size: 1.1rem; }
+  .ct-who { font-size: 0.98rem; }
+  .ct-state { font-size: 0.78rem; }
+  .ct-bubble { font-size: 0.92rem; padding: 6px 10px; }
+  .ct-answers { min-height: 0; gap: 5px; }
+  .ct-answer { font-size: 0.86rem; padding: 7px 10px; line-height: 1.25; }
+  .ct-cal { padding: 8px; gap: 5px; }
+  .ct-cal-head { font-size: 0.8rem; }
+  .ct-slots { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .ct-slot { min-height: 30px; font-size: 0.56rem; padding: 1px 3px; }
+  .ct-note { font-size: 0.56rem; inset: 2px; line-height: 1.05; text-align: center; overflow: hidden; padding: 1px; }
+  .ct-note.flying { width: 80px; height: 26px; }
+
+  /* Mixer: a 3 x 3 room and a bottom sheet for conversations */
+  .mx-room { height: 500px; }
+  .mx-room .mx-banner { white-space: normal; text-align: center; width: 88%; font-size: 0.78rem; top: 6px; line-height: 1.2; }
+  .mx-guest { width: 30%; max-width: 104px; height: 126px; }
+  .mx-guest .art-figure { height: 70px; width: 48px; }
+  .mx-tag { font-size: 0.58rem; max-width: 100%; padding: 1px 4px; }
+  .mx-tag b { font-size: 0.74rem; }
+  .mx-tag span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mx-table { width: 56px; height: 56px; }
+  .mx-room.v-potluck .mx-table { width: 70px; height: 36px; }
+  .mx-bubble.sheet { left: 6px; right: 6px; bottom: 6px; top: auto; width: auto; font-size: 0.86rem; padding: 10px; z-index: 15; }
+  .mx-bubble.sheet .mx-choices { display: grid; grid-template-columns: 1fr; gap: 6px; }
+  .mx-holder { width: 58px; height: 44px; right: 8px; bottom: 8px; }
+  .mx-leave { left: 8px; bottom: 8px; }
+
+  /* Market: narrower tents, smaller walkers, a full-width chat sheet */
+  .mk-lane { height: 340px; }
+  .mk-lane.mk-narrow .mk-tent.mine { left: 2%; width: 40%; }
+  .mk-lane.mk-narrow .mk-tent.rival { width: 30%; font-size: 0.66rem; }
+  .mk-lane.mk-narrow .mk-clip { right: 32%; width: 50px; height: 66px; font-size: 0.6rem; top: 6px; }
+  .mk-lane.mk-narrow .mk-gim.g-wheel { width: 40px; height: 40px; bottom: -48px; }
+  .mk-lane.mk-narrow .mk-gim.g-dog { width: 50px; height: 34px; bottom: -38px; left: 10%; }
+  .mk-walker { width: 66px; height: 116px; }
+  .mk-walker .art-figure { height: 70px; width: 48px; }
+  .mk-label { font-size: 0.56rem; max-width: 76px; text-align: center; }
+  .mk-lane.mk-narrow .mk-bubble { left: 6px; right: 6px; top: 6px; max-width: none; font-size: 0.84rem; }
+  .mk-bubble .mx-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  /* Conversation */
+  .cv-stage { gap: 8px; min-height: 0; padding: 8px; }
+  .cv-portrait { grid-template-columns: 64px minmax(0, 1fr); padding-right: 70px; }
+  .cv-face { width: 64px; height: 64px; }
+  .cv-portrait strong { font-size: 1rem; }
+  .cv-speech { min-height: 0; font-size: 0.98rem; padding: 10px 12px; }
+  .cv-notebook { width: 60px; height: 46px; top: 8px; right: 8px; font-size: 0.62rem; }
+  .cv-notebook b { font-size: 1.05rem; }
+  .cv-tag { font-size: 0.78rem; }
+  .cv-fact { left: 8%; max-width: 84%; font-size: 0.86rem; }
+  .cv-interrupt { font-size: 0.82rem; bottom: 6px; }
+
+  /* Fact find: desk sized so trays are on screen */
+  .dd-desk { height: 430px; }
+  .dd-desk .ff-box { width: 92px !important; left: calc(50% - 46px) !important; top: 2px !important; }
+  .dd-pile { top: 50%; font-size: 0.64rem; }
+  .dd-card { width: 90%; padding: 8px 10px; gap: 8px; }
+  .doc-icon { width: 24px; height: 30px; }
+  .doc-name { font-size: 0.9rem; }
+  .doc-meta { font-size: 0.78rem; }
+  .dd-card.clue .doc-meta { font-size: 0.9rem; }
+  .dd-trays { left: 6px; right: 6px; bottom: 6px; gap: 6px; }
+  .dd-tray { height: 70px; font-size: 0.78rem; line-height: 1.15; text-align: center; padding: 0 4px; }
+  .dd-tray .dd-icon { width: 20px; height: 20px; }
+  .dd-tray kbd { display: none; }
+
+  /* Inbox: phone fits the width, short action labels */
+  .ff-stage { min-height: 0; }
+  .ff-phone { height: 270px; border-radius: 20px; padding: 22px 8px 8px; }
+  .ff-notch { top: 7px; width: 54px; height: 8px; }
+  .ff-msg { padding: 6px 8px; }
+  .ff-body { font-size: 0.86rem; line-height: 1.3; }
+  .ff-calling { inset: 22px 8px 8px; font-size: 0.86rem; padding: 10px; text-align: center; }
+  .cv-act .cv-long { display: none; }
+  .cv-act .cv-short { display: inline; }
+
+  /* Calendar: five day columns, abbreviated labels, controls right below */
+  .cal-stage { gap: 8px; }
+  .cal-grid.cal-narrow { grid-template-columns: 20px repeat(5, minmax(0, 1fr)); padding: 4px 3px; }
+  .cal-narrow .cal-dayhead { font-size: 0.72rem; padding: 2px 0 4px; }
+  .cal-narrow .cal-dayhead.today::after { content: "•"; margin-left: 2px; }
+  .cal-narrow .cal-hour { font-size: 0.6rem; padding-right: 3px; }
+  .cal-narrow .cal-block { font-size: 0.58rem; padding: 1px 2px; left: 1px; right: 1px; line-height: 1.05; border-radius: 4px; word-break: break-word; }
+  .cal-narrow .cal-block .cb-l, .cal-narrow .cal-block small { display: none; }
+  .cal-narrow .cal-block .cb-s { display: block; }
+  .cal-side { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .cal-next { padding: 6px; gap: 3px; }
+  .cal-next .eyebrow { font-size: 0.56rem; }
+  .cal-next .cal-block { font-size: 0.72rem; }
+  .cal-next .cal-block .cb-s { display: none; }
+  .cal-next .cal-block small { display: block; }
+  .cal-controls { flex-wrap: nowrap; }
+  .cal-controls .btn { min-width: 44px; justify-content: center; }
+  .cal-rules { grid-column: 1 / -1; font-size: 0.7rem; gap: 1px; line-height: 1.3; }
+
+  /* Life Happens: a 2 x 3 street, badges kept inside */
+  .lh-town { height: 470px; }
+  .lh-town.lh-narrow { background-image: linear-gradient(90deg, transparent 0 47%, var(--parch-2) 47% 52%, transparent 52%), linear-gradient(transparent 0 37%, var(--parch-2) 37% 40%, transparent 40% 68%, var(--parch-2) 68% 71%, transparent 71%); }
+  .lh-town.lh-narrow.lh-harbor { background-color: #dfe8c6; }
+  .lh-house { width: 41%; }
+  .lh-house svg { width: 52px; height: 46px; }
+  .lh-house .lh-name { font-size: 0.68rem; }
+  .lh-badge { bottom: 66px; min-width: 0; width: max-content; max-width: 150px; font-size: 0.7rem; padding: 4px 7px; }
+  .lh-pick { min-width: 0; width: 190px; }
+  .lh-pick p { font-size: 0.76rem; }
+}
+@media (max-width: 480px) {
+  .mx-guest { align-content: start; gap: 2px; }
+}
+.mx-room .mx-table { width: 56px; height: 56px; }
+.mx-room.v-potluck .mx-table { width: 70px; height: 36px; }
+@media (max-width: 480px) {
+  .mx-room.mx-narrow .mx-table { display: none; }
+}
+/* Falling blocks enter from above the grid; keep them from drawing over the text above. */
+.cal-col { overflow: hidden; }
+.lh-badge.below { bottom: auto; top: calc(100% + 4px); }
+.lh-badge.below::after { bottom: auto; top: -7px; border-top: 0; border-bottom: 6px solid var(--ink); }
+@media (max-width: 480px) {
+  .lh-town { height: 490px; }
+}
+@media (max-width: 480px) {
+  /* Floating feedback wraps instead of running off the edge of the screen. */
+  .mg-stage-area .fx-pop { white-space: normal; width: max-content; max-width: 110px; text-align: center; line-height: 1.1; }
+}

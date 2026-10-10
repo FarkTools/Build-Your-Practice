@@ -1,4 +1,4 @@
-"""Bundle index.html + css + js into one self-contained file.
+"""Bundle the player page (index.html) + css + js into one self-contained file.
 
   python3 tools/bundle.py            -> dist/port-prospect.html (full single-file game)
   python3 tools/bundle.py --fragment -> dist/fragment.html (no <html>/<head>/<body> wrapper,
@@ -7,8 +7,7 @@
 import re, sys, pathlib
 root = pathlib.Path(__file__).resolve().parent.parent
 html = (root / 'index.html').read_text()
-css = (root / 'css/style.css').read_text()
-html = html.replace('<link rel="stylesheet" href="css/style.css">', '<style>\n' + css + '\n</style>')
+html = re.sub(r'<link rel="stylesheet" href="(css/[^"]+)">', lambda m: '<style>\n' + (root / m.group(1)).read_text() + '\n</style>', html)
 def inline(m):
     src = (root / m.group(1)).read_text()
     return '<script>\n' + src.replace('</script', '<\\/script') + '\n</script>'

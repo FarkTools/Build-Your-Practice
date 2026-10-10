@@ -77,7 +77,10 @@
     joint_plan: { name: 'Two-Signature Shore', blurb: 'A plan built with everyone who actually has to agree to it.' },
     referral: { name: 'Referral Rock', blurb: "Part of this belongs with someone better suited. You hand it over well and stay in the client's corner." },
     simple_start: { name: 'The Simple Start', blurb: 'One small, useful thing that fits the reality of the client\'s week.' },
-    partner_plan: { name: 'Partner Pass', blurb: 'Deal with the thing that changes everything first: who will still be running the business.' }
+    partner_plan: { name: 'Partner Pass', blurb: 'Deal with the thing that changes everything first: who will still be running the business.' },
+    steady_ground: { name: 'Steady Ground', blurb: 'Nothing big for now. Cover the next few months, keep every door open, and decide when the dust has settled.' },
+    gap_check: { name: 'The Gap Check', blurb: 'Find out exactly what is already in place, then fill only the gap that is really there.' },
+    buffer_first: { name: 'Cushion Cove', blurb: 'Build a cushion for the lean months first. Everything else can wait until the ground stops moving.' }
   };
 
   /* Risk debt catalogue. Each shortcut tag has a check that resurfaces later. */

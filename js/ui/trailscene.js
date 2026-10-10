@@ -69,7 +69,12 @@
     destroy() { this.dead = true; cancelAnimationFrame(this.raf); window.removeEventListener('resize', this._onResize); }
     resize() {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
-      this.cv.width = W * dpr; this.cv.height = H * dpr;
+      // Phones get a narrower window onto the same 960-wide scene, centred on the hikers.
+      this.vw = window.innerWidth < 600 ? 560 : W;
+      this.ox = (W - this.vw) / 2;
+      this.lmx = this.vw < W ? 640 : 760;
+      this.cv.width = this.vw * dpr; this.cv.height = H * dpr;
+      this.cv.classList.toggle('narrow', this.vw < W);
       this.c.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     setTerrain(k) { if (T[k]) this.terrain = k; }
@@ -97,6 +102,7 @@
       const darkCut = cs && (cs.key === 'emails' || cs.key === 'debt');
       const terr = T[this.terrain];
       c.save();
+      c.translate(-this.ox, 0);
       if (cs && (cs.key === 'debt' || cs.key === 'stampede' || cs.key === 'breakdown') && cutP < 0.5 && !this.reduced) c.translate((rnd(Math.floor(t * 30)) - 0.5) * 6, (rnd(Math.floor(t * 30), 2) - 0.5) * 4);
 
       // Sky
@@ -124,7 +130,7 @@
       for (let x = -(this.off % 16); x < W + 16; x += 16) { c.beginPath(); c.arc(x, 270, 2.6, 0, Math.PI * 2); c.fill(); }
 
       // Landmark when stopped at one
-      if (this.landmark && !(cs && cs.key === 'arrive')) this.drawLandmark(this.landmark, 760, GROUND, 1, t);
+      if (this.landmark && !(cs && cs.key === 'arrive')) this.drawLandmark(this.landmark, this.lmx, GROUND, 1, t);
 
       // Cut-scene background art (behind the hikers)
       if (cs) this.cutBack(cs, cutP, t);
@@ -147,7 +153,7 @@
     }
 
     compass() {
-      const c = this.c, x = 880, y = 64;
+      const c = this.c, x = this.ox + this.vw - 80, y = 64;
       ink(c, 1.4); c.fillStyle = FOG;
       c.beginPath(); c.arc(x, y, 26, 0, Math.PI * 2); c.fill(); c.stroke();
       c.beginPath(); c.arc(x, y, 20, 0, Math.PI * 2); c.setLineDash([1.5, 3]); c.stroke(); c.setLineDash([]);
@@ -480,9 +486,9 @@
       const c = this.c;
       const k = cs.key;
       const ease = 1 - Math.pow(1 - Math.min(1, p * 1.8), 3);
-      if (k === 'arrive' && cs.opts.kind) this.drawLandmark(cs.opts.kind, 1100 - ease * 340, GROUND, 0.7 + ease * 0.35, t);
+      if (k === 'arrive' && cs.opts.kind) this.drawLandmark(cs.opts.kind, 1100 - ease * (1100 - this.lmx), GROUND, 0.7 + ease * 0.35, t);
       const lm = { sirens: 'wreck', fog: 'fog', loop: 'loop', cliffs: 'cliffs', swamp: 'swamp', phones: 'snakepit', caves: 'caves', summit: 'summit', isles: 'isles', bridge: 'toll', finale: 'clients', depart: 'port' }[k];
-      if (lm) this.drawLandmark(lm, k === 'depart' ? 120 - ease * 200 : 1100 - ease * 340, GROUND, 0.75 + ease * 0.3, t);
+      if (lm) this.drawLandmark(lm, k === 'depart' ? 120 - ease * 200 : 1100 - ease * (1100 - this.lmx), GROUND, 0.75 + ease * 0.3, t);
       if (k === 'dragon') {
         c.fillStyle = '#cfe3f7'; c.fillRect(-10, GROUND - 70, W + 20, 70);
         const x0 = 1000 - p * 1300;
@@ -549,7 +555,7 @@
     }
 
     banner(cs, p) {
-      const c = this.c;
+      const c = this.c, W = this.vw;
       const a = Math.min(1, p * 5, (1 - p) * 6 + 0.4);
       // Vignette
       const g = c.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, W * 0.7);

@@ -88,6 +88,7 @@
       if (c.item) PP.useItem(s, c.item);
       if (skeptic) { s.skepticActive = false; }
       s.seenEvents[ev.id] = true;
+      if (s.career) { s.career.evSeen = s.career.evSeen || {}; s.career.evSeen[ev.id] = (s.career.evSeen[ev.id] || 0) + 1; }
       const before = Object.assign({}, s.res);
 
       if (ev.debt) return resolveDebt(c, before);

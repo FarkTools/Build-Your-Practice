@@ -2,7 +2,7 @@
 
 A light adventure game about building a client practice. You start as a new agent at **Port Prospect**, the home area, with some savings and a lot to learn. Find prospects, guide them through wild terrain to a plan that actually suits them, look after the clients you have, and grow a practice that pays the bills before the money runs out.
 
-This repo is a **playable concept prototype**, plus an Element Lab where each mechanic can be tried on its own.
+This repo is a **playable concept prototype**. Players get the game only; the Element Lab and roadmap live on a separate, unlinked admin page.
 
 **Play:** open `index.html` in a browser, or host it on GitHub Pages (below).
 
@@ -44,7 +44,7 @@ This repo is a **playable concept prototype**, plus an Element Lab where each me
 Plain HTML, CSS and JavaScript: no framework, no build step, no server. Scripts load in order from `index.html` and share one global, `PP`.
 
 ```
-index.html            app shell + roadmap page
+index.html            the player page (play only)
 css/style.css         all styling
 js/core.js            state, effects, risk debt
 js/content/*.js       the game's data: edit these to change the game
@@ -66,7 +66,7 @@ tools/bundle.py       optional: build a single-file version into dist/
 2. In the repo, go to **Settings → Pages**. Under Source choose **Deploy from a branch**, then `main` and `/ (root)`.
 3. After a minute it's live at `https://<your-username>.github.io/<repo-name>/`.
 
-Deep links: `#play`, `#lab`, `#roadmap`.
+
 
 ## Playtesting
 
