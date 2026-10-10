@@ -98,52 +98,67 @@
     thump: [[110, 0, 0.12, 'sine', 0.25]],
     whoosh: [[300, 0, 0.15, 'triangle', 0.05], [600, 0.04, 0.12, 'triangle', 0.04]]
   };
-  /* Audio on phones needs three things the old code never did:
-   *  1. The audio context must be created and resumed inside a real tap, not a timer.
-   *  2. iPhone treats Web Audio as "ambient", so the ring/silent switch mutes it.
-   *     Asking for the 'playback' audio session (Safari 17+) makes it behave like a game.
-   *  3. A context that the browser suspends later (backgrounding, calls) has to be resumed. */
-  function ctx() {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return null;
-    if (!fx.ac) {
-      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
-      fx.ac = new AC();
-      fx.master = fx.ac.createGain();
-      fx.master.gain.value = 1.8; // phone speakers are small; the raw levels were very quiet
-      fx.master.connect(fx.ac.destination);
+  /* ---------- Sound engine ----------
+   * Every effect is rendered once into a small WAV file and played with ordinary
+   * <audio> elements. That is the most reliable path on iPhone (including inside
+   * embedded pages and with AirPods), where Web Audio often stays silently suspended.
+   * Each audio element is "unlocked" by playing it muted inside the first real tap;
+   * after that the game can play it from timers too. */
+  const RATE = 22050, GAIN = 2.2;
+  function wav(seq) {
+    const len = Math.ceil((Math.max(...seq.map(([, st, d]) => st + d)) + 0.04) * RATE);
+    const buf = new Float32Array(len);
+    seq.forEach(([f, st, d, type, vol]) => {
+      const a = Math.floor(st * RATE), n = Math.floor(d * RATE), att = Math.max(1, Math.floor(0.008 * RATE));
+      for (let i = 0; i < n && a + i < len; i++) {
+        const t = i / RATE, ph = (f * t) % 1;
+        const w = type === 'square' ? (ph < 0.5 ? 1 : -1) : type === 'sawtooth' ? 2 * ph - 1 : type === 'triangle' ? 1 - 4 * Math.abs(ph - 0.5) : Math.sin(2 * Math.PI * ph);
+        const env = i < att ? i / att : Math.pow(0.0008, (i - att) / Math.max(1, n - att));
+        buf[a + i] += w * env * (vol || 0.1) * GAIN;
+      }
+    });
+    const out = new DataView(new ArrayBuffer(44 + len * 2));
+    const str = (o, s2) => [...s2].forEach((ch, i) => out.setUint8(o + i, ch.charCodeAt(0)));
+    str(0, 'RIFF'); out.setUint32(4, 36 + len * 2, true); str(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
+    out.setUint32(24, RATE, true); out.setUint32(28, RATE * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); str(36, 'data'); out.setUint32(40, len * 2, true);
+    for (let i = 0; i < len; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, buf[i])) * 32767, true);
+    return URL.createObjectURL(new Blob([out], { type: 'audio/wav' }));
+  }
+  const POOL = {}, PER = 3;
+  fx.audio = { engine: 'html', unlocked: false, played: 0, errors: 0, last: '' };
+  function pool(name) {
+    if (!POOL[name]) {
+      const url = wav(SFX[name]);
+      POOL[name] = { i: 0, els: Array.from({ length: PER }, () => { const a = new Audio(url); a.preload = 'auto'; a.setAttribute('playsinline', ''); return a; }) };
     }
-    if (fx.ac.state === 'suspended' || fx.ac.state === 'interrupted') fx.ac.resume().catch(() => {});
-    return fx.ac;
+    return POOL[name];
   }
   function unlock() {
-    const ac = ctx();
-    if (!ac) return;
-    try { // a silent one-sample buffer, played inside the tap, unlocks output on iOS
-      const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();
-      src.buffer = b; src.connect(ac.destination); src.start(0);
-    } catch (e) { /* ignore */ }
-    if (ac.state === 'running') ['pointerdown', 'touchend', 'keydown', 'click'].forEach((t) => document.removeEventListener(t, unlock, true));
+    if (fx.audio.unlocked) return;
+    fx.audio.unlocked = true;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
+    Object.keys(SFX).forEach((name) => pool(name).els.forEach((a) => {
+      a.muted = true;
+      const p = a.play();
+      const done = () => { if (!a._wanted) { a.pause(); a.currentTime = 0; } a.muted = false; };
+      if (p && p.then) p.then(done).catch((e) => { a.muted = false; fx.audio.errors++; fx.audio.last = String(e && e.name || e); fx.audio.unlocked = false; });
+      else done();
+    }));
+    ['touchend', 'click', 'keydown'].forEach((t) => document.removeEventListener(t, unlock, true));
   }
-  ['pointerdown', 'touchend', 'keydown', 'click'].forEach((t) => document.addEventListener(t, unlock, true));
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && fx.ac) fx.ac.resume().catch(() => {}); });
+  ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, unlock, true));
 
   fx.sfx = (name) => {
     if (!fx.sound || !SFX[name]) return;
     try {
-      const ac = ctx();
-      if (!ac) return;
-      const t0 = ac.currentTime + 0.01;
-      SFX[name].forEach(([f, st, d, type, vol]) => {
-        const o = ac.createOscillator(), g = ac.createGain();
-        o.type = type || 'sine'; o.frequency.value = f;
-        g.gain.setValueAtTime(0.0001, t0 + st);
-        g.gain.exponentialRampToValueAtTime(vol || 0.1, t0 + st + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + st + d);
-        o.connect(g).connect(fx.master);
-        o.start(t0 + st); o.stop(t0 + st + d + 0.02);
-      });
-    } catch (e) { /* audio unavailable */ }
+      const pl = pool(name), a = pl.els[pl.i++ % PER];
+      a._wanted = true;
+      a.muted = false;
+      a.currentTime = 0;
+      const p = a.play();
+      fx.audio.played++;
+      if (p && p.catch) p.catch((e) => { fx.audio.errors++; fx.audio.last = String(e && e.name || e); });
+    } catch (e) { fx.audio.errors++; fx.audio.last = String(e && e.message || e); }
   };
   fx.soundToggle = () => {
     const b = h('button', { class: 'fx-sound', 'aria-pressed': String(fx.sound), title: 'Sound effects', onclick: () => { fx.sound = !fx.sound; PP.store.set('sound', fx.sound); document.querySelectorAll('.fx-sound').forEach((x) => { x.setAttribute('aria-pressed', String(fx.sound)); x.textContent = fx.sound ? 'Sound on' : 'Sound off'; }); if (fx.sound) fx.sfx('ding'); } }, fx.sound ? 'Sound on' : 'Sound off');

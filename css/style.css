@@ -932,3 +932,9 @@ input, select, textarea { font-size: 16px; }
 .boats-art svg { max-height: 90px; }
 .topbar .fx-sound { margin-left: auto; background: transparent; color: var(--parch); border-color: rgba(245, 221, 187, .6); }
 .topbar .fx-sound[aria-pressed="false"] { opacity: .7; }
+.site-foot { display: flex; justify-content: center; padding: 14px 0 calc(18px + env(safe-area-inset-bottom, 0px)); }
+.foot-link { background: none; border: 0; color: #aab3e6; font: 600 0.78rem var(--sans); cursor: pointer; padding: 8px 12px; letter-spacing: .02em; }
+.foot-link:hover { color: var(--parch); text-decoration: underline; }
+.about-card { width: min(460px, 100%); }
+.about-card .scene { display: grid; gap: 8px; }
+.about-changes { margin: 0; padding-left: 18px; font-size: 0.88rem; display: grid; gap: 3px; }
