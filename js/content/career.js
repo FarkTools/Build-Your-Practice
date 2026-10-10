@@ -55,7 +55,7 @@
       notes: { name: 'Note-taking system', mark: 'fog', cost: 400, blurb: 'Never lose a detail again. A new option in the Fog of Forgotten Info.' },
       crm: { name: 'Client database (CRM)', mark: 'loop', cost: 900, blurb: 'Enter it once. The Loop of Endless Data Entry trails take a day less, with a clean way out.', shortens: 'loop' },
       planning: { name: 'Planning software', mark: 'swamp', cost: 1200, blurb: 'Builds a boardwalk across Spreadsheet Swamp: its trails take a day less, with a better option inside.', shortens: 'swamp' },
-      focus: { name: 'Focus routine', mark: 'sands', cost: 300, blurb: 'A filter for every new initiative. New options in the Shifting Sands.' },
+      focus: { name: 'Focus routine', mark: 'sands', cost: 300, blurb: 'A simple rule for weighing every incentive against what the client actually needs. New options in the Shifting Sands of Incentives.' },
       specialist: { name: 'Specialist partnership', mark: 'summit', cost: 800, blurb: 'A standing relationship with the Summit. Its trails take a day less; handoffs go smoothly.', shortens: 'summit' },
       tech: { name: 'Tech setup', mark: 'isles', cost: 600, blurb: 'Logins, portals and e-signatures that just work. New options in the Login Isles.' },
       review: { name: 'Review process', mark: 'toll', cost: 600, blurb: 'Files always current. Sail through the Annual Review Toll Bridge.' }
@@ -186,7 +186,7 @@
         if (!pool.length) return;
         const lc = PP.pick(pool);
         c.followUps.push({ id: PP.uid('f'), bookId: b.id, change: lc.id, title: lc.title, expires: c.days + 20 });
-        note(`${b.name} called: ${lc.title.toLowerCase()}. They'd like to meet. (A follow-up journey is waiting at the Docks.)`, 'good', 'followup');
+        note(`${b.name} called: ${lc.title.toLowerCase()}. They'd like to meet. (A follow-up journey is waiting at the Trailhead.)`, 'good', 'followup');
       });
       // Pipeline
       c.pipeline = c.pipeline.filter((p) => {

@@ -20,11 +20,11 @@
     fog: [{ who: 'A traveler who has been here a while', line: '"What was I saying? Oh, right. Write down dates. Write down everything."', eff: { insight: 1 } }],
     loop: [{ who: 'A clerk on lap 14', line: '"I\'ve typed this same address since spring. Tip: check it once, properly, and you only do it once."', eff: { insight: 1 } }],
     swamp: [{ who: 'A frog in a green visor', line: '"Ribbit." (You\'re fairly sure that means: ask what the spreadsheet is FOR.)' }],
-    sands: [{ who: 'A nomad wearing nine lanyards', line: '"Every initiative is the most important one. For about a week."', eff: { insight: 1 } }],
+    sands: [{ who: 'A nomad wearing nine contest lanyards', line: '"Won a trip every year for a decade. Lost a client every year too. The trips were nice. I don\'t remember them."', eff: { insight: 1 } }],
+    caves: [{ who: 'An old miner with a lantern', line: '"Folks think there are monsters down here. It\'s just the questions nobody wanted to ask. Go slow, bring a light, and let them lead."', eff: { insight: 1 } }],
     summit: [{ who: 'The Specialist\'s assistant', line: '"Bring context. The Specialist hates \'see below.\'"' }],
     isles: [{ who: 'A ferryman', line: '"Password hint? It\'s always the pet\'s name. Always."' }],
-    toll: [{ who: 'The troll, off duty', line: '"I\'m not mean. I just like tidy files. You\'d be amazed how few people keep tidy files."' }],
-    backchannel: [{ who: 'Nobody', line: 'It is very quiet here. That\'s the point of a back channel.' }]
+    toll: [{ who: 'The troll, off duty', line: '"I\'m not mean. I just like tidy files. You\'d be amazed how few people keep tidy files."' }]
   };
 
   const T = (PP.trail = {});
@@ -386,6 +386,7 @@
   }
 
   /* ---------- Arriving ---------- */
+  PP.ui.trailDebug = { arrive: (id) => arrive(id), state: () => T.s }; // for automated tests
   async function arrive(id) {
     const s = T.s;
     const node = PP.content.nodes[id];

@@ -3,7 +3,7 @@
 (function (PP) {
   const NS = 'http://www.w3.org/2000/svg';
   const INK = '#4a2c12', NAVY = '#000a62', ORANGE = '#f39c12';
-  const W = 360, H = 400;
+  const W = 360, H = 440;
   const el = (tag, attrs, ...kids) => {
     const e = document.createElementNS(NS, tag);
     for (const k in attrs || {}) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
@@ -14,6 +14,7 @@
 
   /* Little buildings, each drawn around (0,0) = the place's anchor. */
   const ICON = {
+    trailhead: () => [p('M0,16 v-36', 'ink thick'), p('M0,-18 h22 l6,5 l-6,5 h-22z', 'fill-orange'), p('M0,-6 h-20 l-6,5 l6,5 h20z', 'fill-fog'), p('M-30,16 q30,-8 60,0', 'ink thin'), el('circle', { cx: 18, cy: 8, r: 6, class: 'fill-tan' }), p('M14,4 h8', 'ink thin')],
     docks: () => [
       p('M-34,8 h68 M-28,8 v14 M-10,8 v14 M8,8 v14 M26,8 v14', 'ink thick'),
       el('g', { class: 't-boat' }, p('M-60,24 h30 l-6,9 h-18z', 'fill-fog'), p('M-46,24 v-20 l14,17z', 'fill-orange')),
@@ -36,22 +37,23 @@
     // Land, water, coast
     svg.append(
       el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: 4, class: 'land' }),
-      el('path', { d: `M2,318 C60,300 110,330 150,312 C200,292 240,318 290,300 C320,290 340,296 358,288 V398 H2z`, class: 'sea' }),
-      ...[0, 1, 2].map((r) => el('path', { d: `M${14 + r * 30},${352 + r * 14} q10,-6 20,0 t20,0 M${210 + r * 40},${345 + r * 16} q10,-6 20,0 t20,0`, class: 'wave' })),
-      el('text', { x: 300, y: 384, class: 't-sea' }, 'to the trail →')
+      el('path', { d: `M2,352 C50,340 100,358 150,346 C200,334 240,356 278,362 C310,368 340,372 358,366 V438 H2z`, class: 'sea' }),
+      ...[0, 1, 2].map((r) => el('path', { d: `M${14 + r * 30},${392 + r * 12} q10,-6 20,0 t20,0 M${220 + r * 40},${394 + r * 12} q10,-6 20,0 t20,0`, class: 'wave' })),
+      el('path', { d: 'M330,318 C344,312 350,300 358,296', class: 'road' }),
+      el('text', { x: 346, y: 352, class: 't-sea t-small' }, 'trail →')
     );
     // Roads (dotted, like the trail map)
-    const roads = ['M78,150 C120,170 150,190 178,214', 'M178,214 C220,200 250,170 282,140', 'M178,214 C230,225 260,232 300,236', 'M178,214 C185,260 190,295 196,318', 'M56,262 C100,250 140,232 178,214',
+    const roads = ['M78,150 C120,170 150,190 178,214', 'M178,214 C220,200 250,170 282,140', 'M178,214 C230,225 260,232 300,236', 'M178,214 C170,270 160,320 150,352', 'M178,214 C230,250 280,290 312,318', 'M56,262 C100,250 140,232 178,214',
       'M170,62 C175,120 176,170 178,214', 'M170,62 C220,58 250,54 292,52', 'M58,62 C100,60 130,62 170,62', 'M78,150 C70,110 62,85 58,62', 'M282,140 C288,110 290,80 292,52'];
     roads.forEach((d) => svg.appendChild(el('path', { d, class: 'road' })));
     // Scenery: trees and grass
-    [[120, 110], [236, 96], [22, 200], [128, 270], [330, 180], [250, 270], [26, 120], [334, 100]].forEach(([x, y], i) =>
+    [[120, 110], [236, 96], [22, 200], [118, 300], [330, 180], [246, 300], [26, 120], [334, 100], [60, 330], [228, 336], [96, 322]].forEach(([x, y], i) =>
       svg.appendChild(i % 2 ? el('path', { d: `M${x - 5},${y} l5,-10 l5,10`, class: 'grass' }) : el('g', null, el('circle', { cx: x, cy: y - 8, r: 7, class: 'fill-tree' }), el('path', { d: `M${x},${y - 1} v6`, class: 'ink thin' }))));
     // Compass
     svg.appendChild(el('g', { transform: 'translate(330 30)', class: 't-compass' }, el('circle', { r: 13, class: 'fill-fog' }), el('path', { d: 'M0,-16 L3,-3 L0,0 L-3,-3z', class: 'fill-orange' }), el('path', { d: 'M0,16 L3,3 L0,0 L-3,3z', class: 'fill-navy' }), el('text', { y: -19, class: 't-n' }, 'N')));
 
     const badges = {
-      docks: c.pipeline.length + (c.followUps || []).length ? { n: c.pipeline.length + (c.followUps || []).length, cls: 'b-go', title: 'ready to set out' } : null,
+      trailhead: c.pipeline.length + (c.followUps || []).length ? { n: c.pipeline.length + (c.followUps || []).length, cls: 'b-go', title: 'ready to set out' } : null,
       homes: (() => { const act = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)); const un = act.filter((b) => b.sat < 5).length + (c.followUps || []).length; return un ? { n: '!', cls: 'b-warn', title: 'clients need you' } : act.length ? { n: act.length, cls: 'b-ok', title: 'clients' } : null; })()
     };
     Object.entries(T.places).forEach(([id, pl]) => {

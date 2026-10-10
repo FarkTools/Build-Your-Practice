@@ -11,9 +11,14 @@
   PP.content.town = {
     places: {
       docks: {
-        name: 'The Docks', short: 'Docks', x: 196, y: 330,
-        blurb: 'Where the trail begins, and where the boats come in. New faces step off every day, and sailors carry news from out on the trail.',
-        activities: [], npcs: ['marge', 'gus'], sections: ['boats', 'pipeline']
+        name: 'The Docks', short: 'Docks', x: 150, y: 372,
+        blurb: 'Where the boats come in. New faces step off every day, and sailors carry news from out on the trail.',
+        activities: [], npcs: ['marge', 'gus'], sections: ['boats']
+      },
+      trailhead: {
+        name: 'The Trailhead', short: 'Trailhead', x: 312, y: 318,
+        blurb: 'The signpost at the edge of town where every journey starts. Prospects and clients who are ready to set out meet you here.',
+        activities: [], npcs: [], sections: ['pipeline']
       },
       square: {
         name: 'Market Square', short: 'Market', x: 178, y: 214,
@@ -58,7 +63,7 @@
     },
 
     /* Old tab names still used around the code, mapped to a place. */
-    tabPlace: { prospect: 'office', pipeline: 'docks', book: 'homes', build: 'street', people: 'office' },
+    tabPlace: { prospect: 'office', pipeline: 'trailhead', book: 'homes', build: 'street', people: 'office' },
 
     school: {
       courses: [

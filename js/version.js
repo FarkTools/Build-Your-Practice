@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.10.2';
+  PP.VERSION = '0.11.0';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.11.0', 'The trail follows the relationship: stage tracker, hidden passages at every obstacle, follow-up journeys when clients\' lives change, a Trailhead in town, and place-specific sounds'],
     ['0.10.2', 'Music keeps playing when you tap: effects and music now share one mixer'],
     ['0.10.1', 'Music fix for iPhone: unlocks with sound on your first tap and restarts on any tap if it stopped'],
     ['0.10.0', 'Music and ambience: sounds for every place in town and every landmark, travel music that follows the mood'],

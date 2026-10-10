@@ -308,7 +308,8 @@ kbd { font-family: var(--mono); font-size: 0.68rem; border: 1px solid currentCol
 @keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 .scene-title { font-size: 1.5rem; font-weight: 700; color: var(--navy); }
 .scene-text { font-size: 1.04rem; max-width: 64ch; }
-.scene-sub { font-size: 0.86rem; color: var(--red); font-style: italic; }
+.scene-sub { font-size: 0.86rem; color: var(--ink-2); font-style: italic; }
+.scene-debt .scene-sub { color: var(--red); }
 .scene-debt .scene-title { color: var(--red); }
 .skeptic-note { background: var(--ink); color: var(--parch); padding: 8px 12px; border-radius: 6px; font-size: 0.92rem; }
 .choices { display: grid; gap: 8px; counter-reset: ch; }
@@ -974,6 +975,10 @@ input, select, textarea { font-size: 16px; }
 .stage-strip li.done::before { content: "✓ "; }
 .stage-strip li.current { border-color: var(--orange); background: var(--orange-2); color: var(--ink); }
 .ledger .stage-strip { flex-basis: 100%; }
+.stages-end li.done strong { color: var(--green); font-weight: 600; font-size: 0.85rem; text-align: right; }
+.stages-end li.missed strong { color: var(--ink-3); }
+.prospect-card.followup { box-shadow: inset 4px 0 0 var(--orange); }
+.town-map .t-small { font-size: 9px; }
 
 </style>
 <style>
@@ -1376,7 +1381,7 @@ window.PP = window.PP || {};
   };
 
   PP.skill = (s, id) => s.skills[id] || 0;
-  PP.knows = (s, fact) => !!s.facts[fact];
+  PP.knows = (s, fact) => !!fact && s.facts[fact] != null;
   PP.hasItem = (s, id) => s.pack.includes(id) && !s.usedItems[id];
   PP.useItem = (s, id) => { s.usedItems[id] = true; };
   PP.contactSlots = (s) => 2 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0);
@@ -1500,9 +1505,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.10.2';
+  PP.VERSION = '0.11.0';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.11.0', 'The trail follows the relationship: stage tracker, hidden passages at every obstacle, follow-up journeys when clients\' lives change, a Trailhead in town, and place-specific sounds'],
     ['0.10.2', 'Music keeps playing when you tap: effects and music now share one mixer'],
     ['0.10.1', 'Music fix for iPhone: unlocks with sound on your first tap and restarts on any tap if it stopped'],
     ['0.10.0', 'Music and ambience: sounds for every place in town and every landmark, travel music that follows the mood'],
@@ -1767,8 +1773,8 @@ window.PP = window.PP || {};
      * with a single line: show: (s) => PP.contactReady(s, '<id>'). */
     regular: { name: 'The Old Hand', who: 'Bernie', ability: 'Talks you down when you are running on empty. Restores Energy and steadies your nerve once per journey.', when: 'Appears as an option at campfires, Cold Feet, and other low-energy moments.',
       assist: { label: 'Call Bernie from the coffee cart', at: ['travel'], eff: { energy: 3, momentum: 1 }, result: 'Bernie: "Kid, I once lost a client because I was tired and said yes to everything. Sleep. Then decide." You do. It helps.' } },
-    expediter: { name: 'The Expediter', who: 'Fatima Noor', ability: 'Gets one stuck approval moving. Turns a long wait into a short one.', when: 'Appears as an option at the Specialist Summit, the Toll Bridge, and the Nobody-Remembers-Why Caves.',
-      assist: { label: 'Ask Fatima to escalate it', at: ['summit', 'toll', 'caves'], eff: { momentum: 2 }, result: 'Fatima sends one email with a subject line in capitals. The 3-5 business days become this afternoon.' } },
+    expediter: { name: 'The Expediter', who: 'Fatima Noor', ability: 'Gets one stuck approval moving. Turns a long wait into a short one.', when: 'Appears as an option at the Specialist Summit, the Toll Bridge, and the Login Isles.',
+      assist: { label: 'Ask Fatima to escalate it', at: ['summit', 'toll', 'isles'], eff: { momentum: 2 }, result: 'Fatima sends one email with a subject line in capitals. The 3-5 business days become this afternoon.' } },
     compliance: { name: 'The Compliance Officer', who: 'Harold Pike', ability: 'Tells you plainly whether a shortcut will come back to bite, and quietly fixes one that already has.', when: 'Appears as an option at the Sirens of the Quick Close, Product-First Cliffs, and when a risk debt comes due.',
       assist: { label: 'Run it past Harold first', at: ['wreck', 'cliffs'], eff: { insight: 1, clearDebt: 'premature_pitch' }, result: 'Harold reads it twice, sighs, and rewrites one sentence. "Now it is true. True is easier to defend." He almost smiles.' } },
     producer: { name: 'The Top Producer', who: 'Lance Stirling', ability: 'Lends you his unreasonable confidence when everything has stalled. Big Momentum, a little Trust risk.', when: 'Appears as an option in Dead in the Water, Phone Tag, and stalled moments.',
@@ -2464,14 +2470,203 @@ window.PP = window.PP || {};
  */
 (function (PP) {
   const C = (s) => PP.clientName(s);
+  /* Small helpers so every passage reads well for any client archetype. */
+  const facts = (s) => (s.client && s.client.facts) || {};
+  const lbl = (s, f) => (f && facts(s)[f] ? facts(s)[f].label.toLowerCase() : 'what matters most to them');
+  const keyLbl = (s) => lbl(s, s.client && s.client.keyFact);
+  const stake = (s) => (s.client && s.client.shortStake) || 'everyone else who has a say';
+  const worryFact = (s) => { const w = s.client && s.client.checkin && s.client.checkin.worry; return (w && w.fact) || (s.client && s.client.keyFact); };
+  const unknownFact = (s) => Object.keys(facts(s)).find((f) => !PP.knows(s, f)) || null;
+  const missedFact = (s) => Object.keys(s.missed || {}).find((f) => facts(s)[f] && !PP.knows(s, f)) || null;
+
   PP.content.passages = {
+    /* ---------------- Rapport ---------------- */
+    meadows: [
+      { id: 'meadows_guide', name: 'The questions that open the gate', key: { system: 'discovery' },
+        text: (s) => `You don't wing it. Your discovery guide starts with the easy questions and reaches the real ones by the third bench. ${C(s)} talks for an hour, then says, "Nobody's ever asked me that."`,
+        eff: (s) => ({ insight: 2, trust: 1, fact: s.client.stakeholderFact }) },
+      { id: 'meadows_bev', name: 'Bev\'s introduction', key: { contact: 'organizer' },
+        text: (s) => `You mention that Bev sent you. ${C(s)} visibly unclenches. "Bev? Okay. Then I'll skip the version I tell salespeople."`,
+        eff: { trust: 2, insight: 1 } },
+      { id: 'meadows_again', name: 'The same bench as last time', key: { followup: true },
+        text: (s) => `You sit on the bench you sat on the first time. ${C(s)} doesn't need warming up. They start right in on what changed, and what it actually means for them.`,
+        eff: { trust: 1, insight: 2 } },
+      { id: 'meadows_known', name: 'The path you wore last time', key: { visits: 2 },
+        text: 'You know this meadow now: which bench gets the shade, which questions land best before lunch. Less time finding your feet, more time listening.',
+        eff: { insight: 1, energy: 1 } }
+    ],
+    lighthouse: [
+      { id: 'lighthouse_marge', name: 'Marge at the lamp', key: { contact: 'veteran' },
+        text: '"That one," Marge says, tapping a page of your notes by lamplight. A corner you cut, or a question you never asked. Either way you deal with it tonight, instead of finding out later.',
+        eff: (s) => (s.debt.length ? { clearDebt: s.debt[0].tag, insight: 1 } : { insight: 2 }) },
+      { id: 'lighthouse_bernie', name: 'Bernie on the phone', key: { contact: 'regular' },
+        text: 'You call Bernie from the bottom of the stairs. "The keeper\'s going to tell you to slow down, kid. Save yourself the climb: slow down." You sleep well and wake up knowing what to ask.',
+        eff: { energy: 2, insight: 1 } },
+      { id: 'lighthouse_stair', name: 'The back channel: the service stair', key: { password: true },
+        text: 'Steve\'s cousin keeps the lamp. He lets you up the service stair, past the queue for tea, to the window with the best view of the trail ahead. "Steve says you\'re all right. Don\'t tell the keeper."',
+        eff: { reveal: true, momentum: 1, insight: 1 } },
+      { id: 'lighthouse_known', name: 'A regular at the keeper\'s table', key: { visits: 2 },
+        text: (s) => `The keeper pours your tea before you ask. "Back again? Good. Means the last one went well enough to need a next one." She skips the lecture. ${C(s)} notices she knows you.`,
+        eff: { insight: 1, trust: 1 } }
+    ],
+    wreck: [
+      { id: 'wreck_harold', name: 'Harold\'s earplugs', key: { contact: 'compliance' },
+        text: (s) => `Harold hands you two wax earplugs and one sentence: "Say only what's true, and say it after they've told you what they need." The sirens sing their hearts out. ${C(s)} watches you not move.`,
+        eff: { trust: 1, insight: 1, clearDebt: 'premature_pitch' } },
+      { id: 'wreck_unhurried', name: 'A client in no hurry', key: { trust: 7 },
+        text: (s) => `The sirens start up: "Close it to-day!" ${C(s)} laughs. "Do they think we're in a rush? I'd rather get it right." Trust like that works better than earplugs.`,
+        eff: { momentum: 2, trust: 1 } },
+      { id: 'wreck_mast', name: 'Lashed to the mast', key: { skill: 'judgment', level: 2 },
+        text: (s) => `You can hear the song now without following it. You let it play, point at the wreck, and tell ${C(s)} the honest version: what quick decisions have cost people. They lean in.`,
+        eff: { trust: 2, insight: 1 } },
+      { id: 'wreck_known', name: 'Salvage from last time', key: { visits: 2 },
+        text: 'You know this wreck. The soggy agent waves: he has dried out and is doing better. You pull one useful lesson off the rocks and leave the song behind.',
+        eff: { insight: 1, momentum: 1 } }
+    ],
+
+    /* ---------------- Fact find ---------------- */
+    fog: [
+      { id: 'fog_notes', name: 'Notes, dated and searchable', key: { system: 'notes' },
+        text: (s) => `The fog rolls in and you don't mind. "Next month," your notes say, with the date ${C(s)} said it and their exact words. The fog has nothing left to take.`,
+        eff: { insight: 1, momentum: 1, clearDebt: 'timeline' } },
+      { id: 'fog_notebook', name: 'The battered notebook', key: { item: 'notebook' },
+        text: (s) => `In the grey you flip to a page you forgot you wrote: half a sentence ${C(s)} said weeks ago, underlined twice. You ask about it. Their eyebrows go up. "You remembered that?"`,
+        eff: (s) => ({ insight: 1, trust: 1, fact: missedFact(s) || s.client.stakeholderFact }) },
+      { id: 'fog_fieldnotes', name: 'Field notes in the margin', key: { any: [{ perk: 'scout' }, { skill: 'navigation', level: 2 }] },
+        text: 'Your field habits pay off: every detail sorted by date, every "we\'ll see" flagged as a question to come back to. You walk the fog like a hallway with the lights on.',
+        eff: { insight: 2 } },
+      { id: 'fog_known', name: 'The questions you ask before the fog', key: { visits: 2 },
+        text: (s) => `You've been lost in here before, so now you ask the date questions at the trailhead, before the fog arrives. ${C(s)} answers every one of them.`,
+        eff: { momentum: 1, insight: 1 } }
+    ],
+    loop: [
+      { id: 'loop_once', name: 'Enter it once', key: { system: 'crm' },
+        text: 'The sign asks you to re-enter everything. Your client database already has it, checked and current. One button, and the loop unwinds into a straight line.',
+        eff: { momentum: 2, insight: 1 } },
+      { id: 'loop_clerk', name: 'Someone who knows the clerk', key: { any: [{ contact: 'connector' }, { skill: 'resourcefulness', level: 1 }] },
+        text: 'You know someone who knows the clerk who maintains the loop. One friendly call later, there is a gate in the fence. It was always there. Nobody had asked.',
+        eff: { momentum: 2, energy: 1 } },
+      { id: 'loop_words', name: 'Their story, in their words', key: { facts: 2 },
+        text: (s) => `Instead of retyping the form, you read back what ${C(s)} has told you so far, in their own words. "That's right," they say, "except..." The "except" is worth more than the whole form.`,
+        eff: (s) => ({ insight: 1, trust: 1, fact: unknownFact(s) }) },
+      { id: 'loop_known', name: 'Where the loop doubles back', key: { visits: 2 },
+        text: 'You have done enough laps to know where the loop doubles back on itself. You check the address once, properly, and step off at the right spot.',
+        eff: { momentum: 1, energy: 1 } }
+    ],
+    cliffs: [
+      { id: 'cliffs_ask', name: 'The question before the brochure', key: { skill: 'curiosity', level: 1 },
+        text: (s) => `Agents rush past, brochures flapping. You sit down well back from the edge and ask ${C(s)} what they'd want a plan to do for them if no product existed at all. The answer isn't in any brochure.`,
+        eff: { insight: 2, trust: 1 } },
+      { id: 'cliffs_reason', name: 'Lead with their reason', key: { fact: 'key' },
+        text: (s) => `A brochure blows past and you let it go. You already know what matters here: ${keyLbl(s)}. Every option gets measured against that, out loud. ${C(s)} relaxes. You are clearly not here to sell them a brochure.`,
+        eff: { trust: 2, momentum: 1 } },
+      { id: 'cliffs_goats', name: 'The back channel: the goat path', key: { password: true },
+        text: 'Steve\'s cousin keeps goats up here. "Goats never run off edges," he says, leading you along a slow path across the top. "They look first. Steve says you should too."',
+        eff: { momentum: 1, insight: 1, energy: 1 } },
+      { id: 'cliffs_known', name: 'You have watched them fall', key: { visits: 2 },
+        text: (s) => `You have stood at this edge before and watched enough agents go over. This time you point it out to ${C(s)}: "That's what I'm trying not to do to you." They laugh, and then trust you a little more.`,
+        eff: { trust: 1, insight: 1 } }
+    ],
+
+    /* ---------------- Risks ---------------- */
     swamp: [
       { id: 'swamp_boardwalk', name: 'The boardwalk', key: { system: 'planning' },
         text: (s) => `Your planning software lays a clean boardwalk across the cells. ${C(s)} watches the numbers line up and, for once, relaxes.`, eff: { momentum: 2, insight: 1 } },
       { id: 'swamp_their_model', name: 'Their own spreadsheet', key: { fact: 'any' },
         text: (s) => `Instead of fighting ${C(s)}'s spreadsheet, you ask them to walk you through it. Tab 7 is where the real worry lives.`, eff: (s) => ({ insight: 2, trust: 1, fact: s.client.spreadsheetFact }) },
+      { id: 'swamp_second_eyes', name: 'A second pair of eyes', key: { any: [{ contact: 'cpa' }, { contact: 'banker' }] },
+        text: 'You send the spreadsheet to someone at the port who reads numbers for a living. Four minutes later: "Ignore tabs 3 to 12. Look at when the money comes in and when it goes out." That one line drains half the swamp.',
+        eff: { insight: 2, clearDebt: 'spreadsheet_assumptions' } },
       { id: 'swamp_local', name: 'Your old path through the reeds', key: { visits: 2 },
         text: 'You have crossed this swamp before. You know which cells hold weight and which are just formatting.', eff: { momentum: 1, energy: 1 } }
+    ],
+    caves: [
+      { id: 'caves_lantern', name: 'A lantern made of what you know', key: { any: [{ facts: 3 }, { insight: 7 }] },
+        text: (s) => `You know enough about ${C(s)} to light the way: which what-ifs are only scary, and which one is real for them. You go to that one first, gently. They tell you the rest themselves.`,
+        eff: (s) => ({ trust: 1, insight: 1, fact: worryFact(s) }) },
+      { id: 'caves_gentle', name: 'One what-if at a time', key: { any: [{ skill: 'communication', level: 2 }, { contact: 'librarian' }] },
+        text: (s) => `Plain words, slow pace: "What if work stopped for six months? Let's just look at it." Then the next one, and the next. Nothing jumps out of the dark. ${C(s)} says it is the first money talk that didn't make their stomach hurt.`,
+        eff: { trust: 2, insight: 1 } },
+      { id: 'caves_together', name: 'You came in here together before', key: { followup: true },
+        text: (s) => `Last time, you walked ${C(s)} through these tunnels and talked about what might happen. Now one of those things has. They remember that you went in with them, and this time they lead.`,
+        eff: (s) => ({ trust: 1, insight: 2, fact: worryFact(s) }) },
+      { id: 'caves_known', name: 'Your chalk marks on the wall', key: { visits: 2 },
+        text: 'Your chalk marks from earlier trips are still on the walls: job loss this way, illness that way, the long-life tunnel at the back. You know which ones are dead ends and which ones go somewhere.',
+        eff: { insight: 2 } }
+    ],
+
+    /* ---------------- Solutions ---------------- */
+    sands: [
+      { id: 'sands_filter', name: 'Your focus filter', key: { system: 'focus' },
+        text: (s) => `Every banner gets the same question from your focus routine: does this help ${C(s)}, or does it help my quarter? Most of the banners go quiet. The sand under your boots firms up.`,
+        eff: { insight: 1, momentum: 1, trust: 1 } },
+      { id: 'sands_anchor', name: 'Anchored to what they need', key: { fact: 'key' },
+        text: (s) => `The dunes slide toward this quarter's featured product. You stand still, because you know what this plan has to handle: ${keyLbl(s)}. No contest prize is shaped like that. ${C(s)} watches you walk past the banners and says nothing, but they noticed.`,
+        eff: { trust: 2, insight: 1 } },
+      { id: 'sands_judge', name: 'The back channel: the old contest judge', key: { password: true },
+        text: 'Steve\'s cousin used to judge the sales contests, until he noticed the winners\' clients kept leaving. He shows you where the firm ground runs between the banners. "Pick the plan you\'d defend in five years. The trip only lasts a week."',
+        eff: { momentum: 1, insight: 1, energy: 1 } },
+      { id: 'sands_known', name: 'Same contest, new font', key: { visits: 2 },
+        text: 'You have crossed these dunes before. You recognize the banners: last year\'s contest with a new font and a different beach. The ground only shifts if you step where the prize is.',
+        eff: { momentum: 1, insight: 1 } }
+    ],
+    summit: [
+      { id: 'summit_standing', name: 'The standing appointment', key: { system: 'specialist' },
+        text: 'You have a standing slot with the Summit. Your handoff arrives before you do, with context, so the Specialist has read it over coffee and is already working when you reach the top.',
+        eff: { insight: 1, momentum: 2 } },
+      { id: 'summit_friend', name: 'A friend at the top', key: { any: [{ contact: 'specialist' }, { contact: 'expediter' }] },
+        text: (s) => `Someone at the port owes you one. A short message goes up the mountain, and the "allow 3-5 business days" sign is quietly turned to "this afternoon." ${C(s)} is impressed that you know people.`,
+        eff: { momentum: 2, trust: 1 } },
+      { id: 'summit_answer', name: 'The answer before the question', key: { fact: 'key' },
+        text: (s) => `The Specialist opens their mouth to ask the big question. You hand over the answer first: ${keyLbl(s)}. Something rare happens on the Summit. Someone says, "Oh, good."`,
+        eff: { momentum: 2, insight: 1 } },
+      { id: 'summit_known', name: 'The switchbacks you know', key: { visits: 3 },
+        text: 'Your fourth time up this mountain. You know where the trail is steep, where it is only slow, and which forms to send ahead. You barely break a sweat.',
+        eff: { energy: 2, momentum: 1 } }
+    ],
+
+    /* ---------------- Follow-through ---------------- */
+    snakepit: [
+      { id: 'snakepit_sloane', name: 'Sloane takes the overflow', key: { contact: 'peer' },
+        text: 'Sloane picks up half the ringing phones while you take the rest. "You owe me lunch. Also, one of yours just had twins." You call that one yourself.',
+        eff: { momentum: 1, trust: 1, clearDebt: 'missed_message' } },
+      { id: 'snakepit_batch', name: 'Calls, in one calm batch', key: { any: [{ skill: 'preparation', level: 1 }, { perk: 'stamina' }] },
+        text: 'You don\'t dive in. You sort first: hard news gets a call today, good news gets a card, everything else gets a time. An hour later the pit is quiet, and you still have something left in the tank.',
+        eff: { momentum: 1, energy: 1, insight: 1 } },
+      { id: 'snakepit_history', name: 'Clients who know you call back', key: { followup: true },
+        text: (s) => `${C(s)} has been your client long enough to know you call back, and so have the others ringing down here. Nobody is panicking. They are just keeping you posted. ${C(s)} watches you handle it and looks quietly pleased to be one of them.`,
+        eff: { trust: 2, momentum: 1 } },
+      { id: 'snakepit_known', name: 'You know which ones bite', key: { visits: 2 },
+        text: 'You have been down here before. You can tell a "just checking in" ring from a "something happened" ring, and you answer the right three first.',
+        eff: { momentum: 1, trust: 1 } }
+    ],
+    isles: [
+      { id: 'isles_setup', name: 'Bridges that just work', key: { system: 'tech' },
+        text: (s) => `Your tech setup has the e-signature ready and the right portal open before ${C(s)} has found their glasses. Two taps, one code, done. "That's it? I took the afternoon off for this."`,
+        eff: { momentum: 2, trust: 1 } },
+      { id: 'isles_kenji', name: 'Kenji\'s ferry', key: { contact: 'whisperer' },
+        text: (s) => `Kenji ferries you between the islands, muttering about password managers. On the way he spots one login request that did not come from ${C(s)}. "Delete that. Don't click it. You're welcome."`,
+        eff: { momentum: 1, trust: 1, clearDebt: 'fraud' } },
+      { id: 'isles_mailboat', name: 'The back channel: the mail boat', key: { password: true },
+        text: 'Steve\'s cousin runs the mail boat, and the mail boat has never once asked for a password. Signed paper forms, carried by hand between the islands, delivered the same day. Old technology, fast result.',
+        eff: { momentum: 2, energy: 1 } },
+      { id: 'isles_known', name: 'You know each island\'s moods', key: { visits: 2 },
+        text: (s) => `You have crossed the Isles enough to know which one wants the code by text, which wants it by email, and which one times out if you blink. ${C(s)} gets through without a single reset.`,
+        eff: { momentum: 1, trust: 1 } }
+    ],
+    toll: [
+      { id: 'toll_file', name: 'The tidy file', key: { system: 'review' },
+        text: 'Your review process kept the file current long before you got here. The troll reads it, stamps it, and says something you have never heard him say: "Nothing to add."',
+        eff: { trust: 1, momentum: 2 } },
+      { id: 'toll_both', name: 'Everyone who has to agree, agreed', key: { fact: 'stakeholder' },
+        text: (s) => `The troll wants to know who else needs to sign off. You already know: ${stake(s)} has seen the plan and had their say. The troll ticks a box with visible satisfaction.`,
+        eff: { trust: 1, momentum: 1, clearDebt: 'unknown_stakeholder' } },
+      { id: 'toll_olu', name: 'Olu\'s way across', key: { any: [{ item: 'checklist' }, { contact: 'operator' }] },
+        text: 'Olu\'s checklist (or Olu himself, on the phone) has already caught the one thing that was out of date. You fix it at the booth. The troll nods. "Someone\'s been talking to Olu."',
+        eff: (s) => (s.debt.length ? { momentum: 1, clearDebt: s.debt[0].tag } : { momentum: 1, insight: 1 }) },
+      { id: 'toll_known', name: 'The troll knows your face', key: { visits: 2 },
+        text: 'The troll waves from the booth. "You again. Your files are always tidy. Go on." It took a few trips to earn that wave.',
+        eff: { momentum: 1, energy: 1 } }
     ]
   };
 
@@ -2529,6 +2724,255 @@ window.PP = window.PP || {};
 
 </script>
 <script>
+/* Life changes: why an existing client calls you again, starting a follow-up journey.
+ *
+ *  { id, title,                      short, e.g. 'A baby on the way'
+ *    segs: ['family', ...],          optional: which client segments this can happen to (omit = anyone)
+ *    call: '...',                    the message they leave you (use {c} for their name)
+ *    need: '...',                    the hidden detail that decides the right destination (a fact label)
+ *    line: '"..."',                  a subtle line in conversation that hints at the need
+ *    reveal: '"..."',                what they say when you ask about worries with enough Curiosity
+ *    guarded: '...',                 the guarded version when you don't have it yet
+ *    goal: '"..."',                  their answer to "what would make this go well?"
+ *    right: 'destinationId',         the destination that fits once you know the need
+ *    ok: ['destinationId', ...],     acceptable alternatives
+ *    help: '...'                     "how else can you help": a line shown at the end of a good lap
+ *  }
+ *  Destinations: see PP.content.destinations in world.js.
+ *
+ *  The title says what happened. The need says what it actually means for this
+ *  person, and that is what decides the destination. Several titles look like
+ *  they point somewhere obvious and don't.
+ */
+(function (PP) {
+  PP.content.lifeChanges = [
+    /* ---------------- Family ---------------- */
+    { id: 'lc_baby', title: 'A baby on the way', segs: ['family', 'early', 'changes'],
+      call: '{c} calls, half laughing, half panicking: "So... we\'re having a baby. Does anything need to change?"',
+      need: 'Has some coverage through work, has never looked at how much, and is quietly scared it isn\'t enough',
+      line: '"Work gives us something if, you know. Something happens. I think? There was a packet."',
+      reveal: '"Honestly? I keep thinking, what happens to them if I\'m not here? Work has something, but I\'ve never read it. I don\'t even know what I\'d be adding to."',
+      guarded: '"It\'s all good! Just... a lot." {c} laughs a little too quickly.',
+      goal: '"Knowing the baby\'s okay. No matter what. Without buying three of everything."',
+      right: 'gap_check', ok: ['joint_plan', 'simple_start'],
+      help: '{c} mentions their sister is expecting too. "Can I give her your number? I\'ll tell her you don\'t make it weird."' },
+
+    { id: 'lc_married', title: 'Getting married', segs: ['early', 'numbers', 'changes', 'windfall'],
+      call: '{c} sends a photo of a ring and then, a minute later: "Okay, practical question. What do we do about... all of it?"',
+      need: 'Assumes they\'ll keep their money separate; their partner assumes the opposite, and neither has said it out loud',
+      line: '"We haven\'t really talked numbers. We figured that part would just... sort itself out."',
+      reveal: '"Okay, here\'s the thing. I always pictured keeping things separate. Last week they said \'our account\' and I nodded. I don\'t know what I agreed to."',
+      guarded: '"We\'re totally on the same page." {c} glances at their phone like it might disagree.',
+      goal: '"Starting this without a fight we could have had now."',
+      right: 'joint_plan', ok: ['gap_check', 'not_now'],
+      help: 'At the wedding, {c}\'s best friend corners you by the cake: "So you\'re the one who got them to actually talk about money."' },
+
+    { id: 'lc_divorce', title: 'Going through a divorce', segs: ['family', 'numbers', 'changes', 'caregiver'],
+      call: '{c} writes: "We\'re separating. It\'s amicable. Mostly. My lawyer said to talk to you, but also not to change anything? I\'m confused."',
+      need: 'The lawyer needs the accounts properly valued by someone qualified before anything is divided',
+      line: '"The lawyer keeps asking what everything is \'worth.\' I keep saying \'I don\'t know, a lot of stress?\'"',
+      reveal: '"The lawyer needs a proper valuation of everything before they can split it. I thought that was you. Is that you? I don\'t think that\'s you."',
+      guarded: '"It\'s fine. It\'s just paperwork." {c} has clearly not slept.',
+      goal: '"Coming out of this with something fair, and without hating anyone."',
+      right: 'referral', ok: ['steady_ground', 'not_now'],
+      help: 'A few months later, {c} sends a short note: "Thank you for not making me decide anything while I was a mess."' },
+
+    { id: 'lc_parent_care', title: 'A parent needs care', segs: ['caregiver', 'family', 'numbers', 'owner', 'changes'],
+      call: '{c} calls from a hospital parking lot: "Mom fell. She\'s okay, but she can\'t live alone anymore. I think it\'s going to be me."',
+      need: 'Is about to cut back to part-time to do the caregiving, and hasn\'t worked out what that does to the month',
+      line: '"I talked to my boss about going part-time. Just for a while. It\'ll be fine. Probably."',
+      reveal: '"I\'m dropping to three days a week. I said yes before I did any math. I\'m scared to do the math."',
+      guarded: '"We\'ll manage. We always manage." {c} is rubbing their temples.',
+      goal: '"Being there for her without everything else falling apart."',
+      right: 'buffer_first', ok: ['joint_plan', 'steady_ground'],
+      help: '{c} asks if you would talk to their brother too. "He thinks he can\'t help. I think he just doesn\'t know how."' },
+
+    { id: 'lc_parent_passed', title: 'Lost a parent',
+      call: 'A short message from {c}: "Dad passed last week. I\'m the executor, apparently. People keep handing me forms."',
+      need: 'Grieving, newly named executor, and terrified of signing the wrong thing; nothing needs deciding for months',
+      line: '"Everyone keeps saying \'no rush,\' and then handing me something that says URGENT on it."',
+      reveal: '"I don\'t want to decide anything. I just want someone to tell me what can wait. I think almost all of it can wait?"',
+      guarded: '"I\'m handling it." {c} has three folders and none of them are labeled.',
+      goal: '"Not making a big decision while I\'m like this."',
+      right: 'not_now', ok: ['referral', 'steady_ground'],
+      help: 'Months later, {c} calls when they\'re ready. "You said the door would be open. Is it?" It is.' },
+
+    { id: 'lc_inheritance', title: 'An inheritance',
+      call: '{c} calls, sounding strange: "My aunt left me her house. I didn\'t even know she liked me that much."',
+      need: 'The inheritance is a house that costs money to keep, and they can\'t yet decide whether to sell it or keep it',
+      line: '"It needs a new roof. And the garden is basically a forest. But she loved that garden."',
+      reveal: '"Everyone keeps saying \'congratulations, sell it.\' But it\'s her house. And it costs money every month just to stand there. I don\'t know yet. Is it okay not to know yet?"',
+      guarded: '"It\'s a good problem to have!" {c} says, as if reading from a card.',
+      goal: '"Not being rushed into deciding what her house is for."',
+      right: 'steady_ground', ok: ['not_now', 'gap_check'],
+      help: '{c} sends you a photo of the garden, now slightly less of a forest. "Still deciding. Thanks for letting me."' },
+
+    { id: 'lc_college', title: 'A kid heading to college', segs: ['family', 'caregiver', 'numbers', 'changes'],
+      call: '{c} sends a voice memo: "The acceptance letter came! We\'re so proud! Also, how does anyone pay for this?"',
+      need: 'A grandparent opened an education fund years ago, and nobody has looked at what\'s in it',
+      line: '"Grandpa always said he\'d \'taken care of something\' for the kids. We never asked what."',
+      reveal: '"There\'s an account. Grandpa set it up when they were born. I have a statement from... a while ago. I\'ve been too nervous to open the new ones."',
+      guarded: '"We\'ll figure it out. Loans, I guess? Everyone has loans." {c} sounds unsure.',
+      goal: '"Getting them through school without wrecking our own future."',
+      right: 'gap_check', ok: ['buffer_first', 'joint_plan'],
+      help: '{c}\'s kid, home for the holidays, asks if they can "do the money talk" with you too. A future client, maybe.' },
+
+    { id: 'lc_boomerang', title: 'A grown kid moved back home', segs: ['retiree', 'caregiver', 'family', 'changes'],
+      call: '{c} calls: "So our son is back. With a futon. And, it turns out, quite a lot of debt."',
+      need: 'Is thinking of quietly paying off their kid\'s debt out of their own retirement savings',
+      line: '"I could just make it go away for him. It\'s only money. It\'s only our money."',
+      reveal: '"I\'ve been looking at what I\'d have to take out of our savings to clear his debt. I haven\'t told anyone. He\'d never ask. That\'s why I want to."',
+      guarded: '"He\'ll be on his feet in no time." {c} says it like a hope, not a fact.',
+      goal: '"Helping him without sinking us."',
+      right: 'referral', ok: ['not_now', 'simple_start'],
+      help: 'Six weeks later, {c}\'s son emails you himself: "Mom said you\'re the one who said I should talk to someone. I did. Thanks."' },
+
+    { id: 'lc_empty_nest', title: 'The kids have all moved out', segs: ['family', 'retiree', 'caregiver', 'numbers'],
+      call: '{c} calls on a very quiet Tuesday: "The house is silent. We keep cooking for five. What happens now?"',
+      need: 'One of them wants to sell up and travel, the other wants to stay put, and they haven\'t said it to each other',
+      line: '"I\'ve been looking at little places by the sea. Just looking! They\'d never move. I think."',
+      reveal: '"Can I be honest? I want to sell the house and see the world. I\'m almost sure they want to stay here and wait for grandkids. We\'ve both been very polite about it."',
+      guarded: '"We\'re just enjoying the peace and quiet!" A pause. "So much peace. So much quiet."',
+      goal: '"A next chapter we both actually want."',
+      right: 'joint_plan', ok: ['not_now', 'gap_check'],
+      help: '{c} sends a postcard. It is from a seaside town. On the back: "Compromise. Two weeks a year. Thank you."' },
+
+    { id: 'lc_spouse_work', title: 'A spouse going back to work', segs: ['family', 'retiree', 'numbers'],
+      call: '{c} leaves an excited message: "Big news! My other half is going back to work after eight years. Two incomes! What do we do with two incomes?"',
+      need: 'With two incomes again, the big plan they shelved years ago is finally affordable, and they both want it',
+      line: '"We had this whole plan, years ago, before the kids. We put it in a drawer. I still know which drawer."',
+      reveal: '"Okay, honestly? We want the whole thing. The one we couldn\'t afford back then. We talked about it last night and we were both grinning like idiots."',
+      guarded: '"Probably just pay some things off, be sensible." {c} doesn\'t sound like they mean it.',
+      goal: '"Finally doing it properly. The whole thing."',
+      right: 'grand_plan', ok: ['gap_check', 'joint_plan'],
+      help: '{c}\'s spouse asks, a little shyly, if you could also look at the benefits from the new job. "I\'ve never had to choose before."' },
+
+    { id: 'lc_grandchild', title: 'Raising a grandchild', segs: ['retiree', 'changes', 'caregiver'],
+      call: '{c} calls, sounding tired and fierce: "My granddaughter is living with me now. It\'s complicated. It might be for a long time."',
+      need: 'The grandchild\'s parent may come back at any time, so anything they set up has to work with the parent, not around them',
+      line: '"Her mom is getting help. She might come back. I want her to come back. I just don\'t know when."',
+      reveal: '"Whatever I do, it can\'t shut her mom out. If she gets well, she\'s her mother. Everything has to have room for that."',
+      guarded: '"I\'m just happy to have her." {c} means it, and is also clearly exhausted.',
+      goal: '"Keeping her safe, and keeping the door open for her mom."',
+      right: 'joint_plan', ok: ['referral', 'steady_ground'],
+      help: '{c} mentions a support group for grandparents raising grandkids. "Half of them have nobody to ask about money. Could I mention you?"' },
+
+    /* ---------------- Work and money ---------------- */
+    { id: 'lc_layoff', title: 'Lost their job', segs: ['family', 'numbers', 'early', 'caregiver', 'changes', 'windfall', 'retiree'],
+      call: '{c} leaves a short voicemail: "I got laid off on Friday. Can we talk? I don\'t know what to touch and what not to touch."',
+      need: 'Has a severance deadline in three weeks they haven\'t mentioned',
+      line: '"HR gave me a folder. I haven\'t opened it. There\'s a date on the front."',
+      reveal: '"Okay. The folder. There\'s a severance offer and I have to decide by the 30th. I\'ve been avoiding it."',
+      guarded: '"I\'m fine. I\'ve got savings. Mostly." You sense there is a deadline somewhere.',
+      goal: '"Not making it worse while I figure out what\'s next."',
+      right: 'steady_ground', ok: ['bridge_plan', 'not_now'],
+      help: 'Later, {c} sends a former coworker your way: "She got laid off too. You were calm when I wasn\'t."' },
+
+    { id: 'lc_newjob', title: 'Started a new job', segs: ['early', 'family', 'numbers', 'changes', 'caregiver'],
+      call: '{c} texts a string of exclamation marks, then: "Got the job!! Starting Monday. Should I be doing something?"',
+      need: 'The new job is a two-year contract, and they are treating it as permanent',
+      line: '"It\'s technically a contract. But everyone says they always renew. Basically always."',
+      reveal: '"Fine. It\'s two years. They \'usually\' extend it. I\'ve already started looking at bigger apartments, which is maybe insane."',
+      guarded: '"It\'s a great company. Very stable." {c} says "very" a bit too firmly.',
+      goal: '"Making the most of it without betting everything on it."',
+      right: 'bridge_plan', ok: ['steady_ground', 'simple_start'],
+      help: '{c} forwards your number to a friend at the new job: "She\'s on the same contract and hasn\'t thought about it at all."' },
+
+    { id: 'lc_raise', title: 'A big raise', segs: ['early', 'numbers', 'family', 'caregiver'],
+      call: '{c} calls, giddy: "I got the raise! The big one! I want to be smart about it before I am, you know, not smart about it."',
+      need: 'Knows from experience that extra money vanishes within weeks unless something automatic catches it first',
+      line: '"Last time I got a raise, I don\'t know where it went. Takeout, I think. A lot of takeout."',
+      reveal: '"I know myself. If it lands in my account, it\'s gone. I need it caught before I ever see it. One thing. Automatic. Please."',
+      guarded: '"I\'ve got a few ideas!" {c} lists four, including a boat.',
+      goal: '"Six months from now, actually having something to show for it."',
+      right: 'simple_start', ok: ['gap_check', 'buffer_first'],
+      help: '{c} brings it up with a coworker who also got a raise. "They asked what I did. I said \'I called someone first.\'"' },
+
+    { id: 'lc_windfall', title: 'An unexpected windfall',
+      call: '{c} calls, whispering for some reason: "So. A scratch card. Not a giant one. But not nothing. Also my whole family already knows."',
+      need: 'Every relative has a plan for the money, and they want permission to keep a cushion before anyone else gets any',
+      line: '"My cousin has already sent me a link to a jet ski. I didn\'t ask for a jet ski."',
+      reveal: '"I\'ve never had a cushion. Not once. I want to keep this, all of it, for a rainy day, and I feel horribly selfish saying that."',
+      guarded: '"I\'ll probably share it around. That\'s what you do, right?" {c} looks unhappy about it.',
+      goal: '"For once, not being one bad month away from trouble."',
+      right: 'buffer_first', ok: ['simple_start', 'not_now'],
+      help: '{c} laughs: "My cousin wants your number now. He says it\'s about the jet ski. It is not about the jet ski."' },
+
+    { id: 'lc_health', title: 'A health scare',
+      call: '{c} calls from home: "I\'m okay. Really. But they kept me in for three days, and I\'m off work for a while. It made me think."',
+      need: 'Will be on reduced pay for a few months while they recover, and hasn\'t told anyone how tight that will be',
+      line: '"The doctor said six to eight weeks off. HR said something about \'partial pay.\' I didn\'t ask what partial meant."',
+      reveal: '"Partial pay is about half. For three months, maybe more. I haven\'t told my family because they\'ll worry, and I\'m the one who\'s meant to be worrying."',
+      guarded: '"Just a wake-up call, that\'s all." {c} shifts in their chair, carefully.',
+      goal: '"Getting better without worrying about bills the whole time."',
+      right: 'buffer_first', ok: ['steady_ground', 'simple_start'],
+      help: '{c}\'s friend from the ward asks for your card. "She\'s in the same boat and nobody\'s asked her the questions you asked me."' },
+
+    { id: 'lc_retire_early', title: 'Retiring early', segs: ['retiree', 'numbers', 'owner'],
+      call: '{c} calls, unusually breezy: "I\'m doing it! Retiring early. They offered a package and I said yes before I could chicken out."',
+      need: 'Their health coverage ends the day they leave, years before anything else starts',
+      line: '"The package is generous. Benefits stop when I go, but that\'s normal. Isn\'t it?"',
+      reveal: '"I read the small print last night. Coverage ends my last day. Everything else doesn\'t start for years. I had a little moment in the kitchen."',
+      guarded: '"It\'s all worked out!" {c} says, as if worked out were a single afternoon.',
+      goal: '"Enjoying it, instead of spending the first year terrified."',
+      right: 'bridge_plan', ok: ['steady_ground', 'gap_check'],
+      help: '{c} sends a photo from a fishing trip with a coworker who also took the package. "He has questions. Can I give him your number?"' },
+
+    { id: 'lc_house', title: 'Buying a home', segs: ['early', 'family', 'numbers', 'changes'],
+      call: '{c} sends a photo of a front door with a SOLD sticker: "We got it! Now the paperwork is eating us alive."',
+      need: 'Between the mortgage, the move and the repairs, they have no attention left; they need one small thing that runs on its own',
+      line: '"Every night it\'s another form, another box, another thing broken in the bathroom. I can\'t think past Friday."',
+      reveal: '"I know I should do something big. I just can\'t right now. If you gave me one thing, one, that I didn\'t have to think about, I\'d cry with gratitude."',
+      guarded: '"We\'re thrilled. Just busy." {c} has paint in their hair.',
+      goal: '"One less thing to think about. Seriously, just one."',
+      right: 'simple_start', ok: ['buffer_first', 'bridge_plan'],
+      help: '{c}\'s new neighbor comes over to say hello and, within minutes, asks who "helped them with all that." {c} points at you.' },
+
+    { id: 'lc_moving', title: 'Moving away',
+      call: '{c} calls: "We\'re moving. Across the country. Maybe. Probably. Do I have to find a new you?"',
+      need: 'Isn\'t sure the move will stick and wants to see if it works before changing anything',
+      line: '"We\'re renting at first. Just to see. If we hate it we can always come back. Can\'t we?"',
+      reveal: '"Truthfully? It might not last. It\'s a trial. I don\'t want to rebuild everything and then move back in a year."',
+      guarded: '"It\'s exciting! Fresh start!" {c} has been saying "fresh start" a lot.',
+      goal: '"Trying it out without burning anything down behind us."',
+      right: 'not_now', ok: ['steady_ground', 'bridge_plan'],
+      help: '{c} calls from the new place: "We\'re staying. And I told our new neighbors you work remotely. You do work remotely, right?"' },
+
+    /* ---------------- Business owners ---------------- */
+    { id: 'lc_start_biz', title: 'Starting a business', segs: ['early', 'numbers', 'changes', 'windfall'],
+      call: '{c} calls, buzzing: "I quit! I\'m starting my own thing with my old roommate. We have a logo already. It\'s very good."',
+      need: 'Their co-founder is their old college roommate, and nothing about who owns what has been agreed in writing',
+      line: '"We don\'t need contracts. We lived together for four years. We know each other."',
+      reveal: '"Okay, we never wrote anything down. Who owns what, what happens if one of us wants out... we said we\'d \'figure it out as we go.\' That sounded better out loud."',
+      guarded: '"It\'s going to be great. We\'re on the same wavelength." {c} doesn\'t mention any details.',
+      goal: '"Still being friends with them in five years. And still having a business."',
+      right: 'partner_plan', ok: ['buffer_first', 'referral'],
+      help: '{c}\'s co-founder shakes your hand: "I hated the paperwork. I\'m glad we did it." Then asks about their own situation.' },
+
+    { id: 'lc_sell_biz', title: 'Selling the business', segs: ['owner'],
+      call: '{c} calls: "Someone wants to buy the shop. A real offer. I think I\'m going to say yes?"',
+      need: 'The buyer wants them to stay on and train a successor for two years, so the "retirement" is really a slow handover',
+      line: '"They want me to stay on for a bit. To help with the transition. A bit is two years, technically."',
+      reveal: '"It\'s not really selling and walking away. It\'s two years of teaching someone else to run my shop. I don\'t know who that person is yet, and that\'s what keeps me up."',
+      guarded: '"Time to put my feet up!" {c} says, and immediately starts reorganizing your desk.',
+      goal: '"Handing it over to someone who\'ll look after it."',
+      right: 'partner_plan', ok: ['bridge_plan', 'steady_ground'],
+      help: 'A local baker who knows {c} rings you: "I hear you helped with the handover. I might need one of those in a few years."' },
+
+    { id: 'lc_partner_leaves', title: 'A business partner is leaving', segs: ['owner'],
+      call: '{c} calls, flat: "My partner wants out. We\'re talking about a buyout. Lawyers are involved. I need to know what this means."',
+      need: 'The buyout terms will take months to negotiate, and nothing should move until they\'re signed',
+      line: '"The lawyers say it\'ll take \'a while.\' Every time I ask how long, they bill me for the question."',
+      reveal: '"Nothing\'s agreed. Could be three months, could be eight. If I rearrange everything now and the terms change, I\'ve made a mess of it twice."',
+      guarded: '"I\'ve got it under control." {c} has written the same sum on four sticky notes.',
+      goal: '"Getting through the next few months without making it worse."',
+      right: 'steady_ground', ok: ['partner_plan', 'referral'],
+      help: '{c} mentions another shop owner on the same street going through something similar. "I told her to call you before her lawyer does."' }
+  ];
+})(window.PP);
+
+</script>
+<script>
 /* Event deck. Each event is data:
  *
  *  id, title
@@ -2558,6 +3002,10 @@ window.PP = window.PP || {};
     const t = Object.values(ci).find((x) => x.fact === s.client.keyFact);
     return t ? t.text : '"There\'s something I haven\'t told you."';
   };
+  const R = {}; // remembers what an eff decided, so result() can describe it
+  const ciWorry = (s) => (s.client.checkin && s.client.checkin.worry) || null;
+  const worryOpen = (s) => PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6;
+  const worryText = (s) => { const w = ciWorry(s); return w ? (worryOpen(s) ? w.text : (w.guarded || w.text)) : '"I don\'t even know which one scares me most."'; };
 
   PP.content.events = [
     /* ================= LANDMARKS ================= */
@@ -2687,40 +3135,41 @@ window.PP = window.PP || {};
       ]
     },
 
-    /* ---- Shifting Sands of Initiatives ---- */
+    /* ---- Shifting Sands of Incentives ---- */
     {
-      id: 'sands_change', title: 'Change of mind', at: ['sands'], first: true,
-      text: (s) => `The dunes shift under your boots. So does ${C(s)}. ${s.client.changeOfMind}`,
+      id: 'sands_change', title: 'The contest banner', at: ['sands'], first: true,
+      text: (s) => `The dunes are plastered with banners. This quarter's sales contest: place enough of the featured product and win a week at a beach resort. Your manager has circled your name on the leaderboard. ${C(s)} is reading the banner too. "Is that... something I should have?"`,
       choices: [
-        { label: 'Defend the current plan', kind: 'through', hint: 'Sunk cost feels like commitment.', eff: { momentum: 1, trust: -2, debt: { tag: 'ignored_change', sev: 2 } }, result: '"The plan is still solid," you say. The client sounds unconvinced.' },
-        { label: 'Ask what changed, and why', kind: 'prepare', eff: (s) => ({ momentum: -1, insight: 2, trust: 1, fact: s.client.keyFact }), result: 'It turns out this was coming for a while. Now the picture is clearer.' },
-        { label: 'Restart discovery from scratch', kind: 'around', hint: 'Thorough. Expensive.', eff: (s) => ({ momentum: -3, days: 2, insight: 3, trust: 1, fact: Object.keys(s.client.facts) }), result: 'Two long days of conversation. Everything is on the table now.' },
-        { label: 'Note it and carry on', kind: 'through', eff: { debt: { tag: 'ignored_change', sev: 2 }, style: { avoid: 1 } }, result: 'Noted. Carrying on.' }
+        { label: 'Steer them toward the featured product', kind: 'through', hint: 'A bonus now. Is it right for them, or right for the leaderboard?', eff: { cash: 400, momentum: 1, trust: -2, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `You climb two places on the leaderboard. ${C(s)} goes along with it, but keeps glancing back at the banner like it might explain itself.` },
+        { label: '"Honestly? Maybe not. Let\'s find out what fits you first."', kind: 'prepare', hint: 'No trip. A client who remembers you said it.', eff: (s) => (worryOpen(s) ? { trust: 2, insight: 1, momentum: -1, fact: s.client.keyFact } : { trust: 2, momentum: -1 }), preview: 'With Curiosity or Trust 6+, they tell you what they actually need.', result: (s) => `${C(s)} blinks. "You'd say that with a beach on the line?" ` + (PP.knows(s, s.client.keyFact) ? `Then, more quietly, they tell you what is really going on: ${s.client.facts[s.client.keyFact].label.toLowerCase()}.` : 'They don\'t say much more today, but they remember it.') },
+        { label: 'Tell them about the contest, openly, then talk about fit', kind: 'around', hint: 'Awkward to say. Easier to defend.', eff: (s) => ({ trust: PP.skill(s, 'communication') > 0 ? 2 : 1, insight: 1 }), result: '"Full disclosure: I\'d win a trip if you bought that. Here\'s why it might not be for you." It is the strangest sentence you have said all week. It works.' },
+        { label: 'Walk past the banners without a word', kind: 'around', eff: { momentum: 1 }, result: (s) => `${C(s)} keeps looking back at the beach on the banner. You never explain. They wonder about it later.` }
       ]
     },
     {
-      id: 'sands_initiative', title: 'A new initiative!', at: ['sands'],
-      text: 'A memo blows across the dunes: there is a new priority, effective immediately. Everyone is very excited about it. It has a logo.',
+      id: 'sands_initiative', title: 'Two short of quota', at: ['sands'],
+      text: (s) => `Your phone buzzes. Your manager: "You're two sales short of quota this month, and this month's featured product is a great fit for ${C(s)}, isn't it?" You haven't finished understanding ${C(s)} yet.`,
       choices: [
-        { label: 'Pivot the client toward it', kind: 'through', hint: 'Is it right for this client, or just new?', eff: { momentum: -1, energy: -1, trust: -1, style: { chase: 1 } }, result: 'The client is confused about why everything changed.' },
-        { label: 'Ask whether it fits this client', kind: 'prepare', eff: { insight: 1 }, result: 'It does not, really. Good to know.' },
-        { label: 'Ignore the memo', kind: 'around', eff: { momentum: 1 }, result: 'The memo is followed by another memo. You ignore that too.' }
+        { label: 'Push it to make quota', kind: 'through', hint: 'Your manager will be happy until the client is not.', eff: { cash: 250, momentum: 1, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `Quota made. ${C(s)} asks, twice, why this came up so suddenly.` },
+        { label: 'Tell your manager it isn\'t a fit yet', kind: 'prepare', hint: 'Short-term pain. Long-term reputation.', eff: { energy: -1, insight: 1, trust: 1 }, result: 'Your manager sighs down the phone. "Fine. But next month..." You hang up and get back to the actual client, who overheard your half of the call.' },
+        { label: 'Ask your manager what would make it a fit', kind: 'prepare', eff: { insight: 1 }, result: '"I mean, if they needed it, I guess." A pause. "Do they?" You don\'t know yet. Now you both know that.' }
       ]
     },
 
-    /* ---- Nobody-Remembers-Why Caves (side trail) ---- */
+    /* ---- Caves of What-Ifs (side trail) ---- */
     {
-      id: 'caves_process', title: 'Form 27-B, in triplicate', at: ['caves'], first: true, cut: 'caves',
-      text: 'Deep in the cave, a stone tablet: "ALL CLIENTS MUST COMPLETE FORM 27-B IN TRIPLICATE." Nobody remembers why. There are cobwebs on the in-tray.',
+      id: 'caves_process', title: 'The Caves of What-Ifs', at: ['caves'], first: true, cut: 'caves',
+      text: (s) => `The cave mouth is cold, and somewhere inside a voice keeps asking, "...but what if?" ${C(s)} hangs back. "Do we have to go in there? I'd honestly rather not think about the bad stuff."`,
       choices: [
-        { label: 'Fill it out, all three copies', kind: 'through', eff: { energy: -2, momentum: -1 }, result: 'Three copies. Perfect penmanship. Your hand will never be the same.' },
-        { label: 'Find out why it exists', kind: 'prepare', hint: 'Curiosity pays off in caves.',
-          then: { text: 'You follow the cobwebs to a dusty memo from years ago. Form 27-B exists because someone once changed a client\'s details based on a single phone call from a stranger.',
+        { label: 'March through every scary scenario at once', kind: 'through', hint: 'Thorough on paper. A lot to hear in ten minutes.', eff: { insight: 1, trust: -2, energy: -1, debt: { tag: 'confused_client', sev: 1 } }, result: (s) => `Job loss, illness, a long life, a parent needing care: all of it, in ten minutes, with charts. ${C(s)} goes pale and stops asking questions.` },
+        { label: 'Go in slowly, one what-if at a time', kind: 'prepare', hint: 'Slower. The real worry is usually a few tunnels in.',
+          then: { text: (s) => `"What if work changed suddenly?" ${C(s)} thinks about it. "What if you were sick for a few months?" Each one gets smaller once it is said out loud. At the third, they stop and say: ${worryText(s)}`,
             choices: [
-              { label: 'Apply that lesson to your own file', kind: 'prepare', eff: (s) => (s.debt.some((d) => d.tag === 'fraud' || d.tag === 'unverified_details') ? { clearDebt: s.debt.find((d) => d.tag === 'fraud' || d.tag === 'unverified_details').tag, insight: 1 } : { insight: 2 }), result: 'You double-check something you had taken on faith. Good thing.' },
-              { label: 'Fill out one copy and leave', kind: 'around', eff: { energy: -1, insight: 1 }, result: 'One copy, filled in thoughtfully this time.' }
+              { label: '"Is that the one that keeps you up at night?"', kind: 'prepare', preview: 'With Curiosity or Trust 6+, they tell you the whole thing.', eff: (s) => { const w = ciWorry(s); R.cave = worryOpen(s) && !!(w && w.fact); return R.cave ? { trust: 2, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; }, result: () => (R.cave ? `They nod. You spend the rest of the afternoon in that tunnel, together, and it turns out to be where the plan has to start.` : 'They shrug. "Maybe." The door is open a crack. You will come back to it.') },
+              { label: 'Write the what-ifs down for next time', kind: 'around', eff: { insight: 1, trust: 1 }, result: 'A short list, in their handwriting. Less scary on paper than in the dark.' }
             ] } },
-        { label: 'Skip it. Nobody will check.', kind: 'through', eff: { momentum: 1, debt: { tag: 'defaults', sev: 2 } }, result: 'Nobody checks. Today.' }
+        { label: 'Sit at the cave mouth and just let them talk', kind: 'prepare', minigame: 'conversation', hint: 'Listen for the worry under the words.', eff: { energy: -1 }, result: 'By the time the lantern burns low, you know more about what scares them than any form could tell you.' },
+        { label: 'Skip the cave and keep things upbeat', kind: 'around', hint: 'Everyone feels better today.', eff: (s) => ({ momentum: 1, debt: { tag: 'guessed_key', sev: 2 }, missed: s.client.keyFact, style: { avoid: 1 } }), result: 'Everyone is relieved. The plan now has a blind spot exactly the shape of whatever was in that cave.' }
       ]
     },
 
@@ -2790,17 +3239,18 @@ window.PP = window.PP || {};
       ]
     },
 
-    /* ---- Back-Channel Bridge (Secret Shortcut) ---- */
+    /* ================= ON THE TRAIL ================= */
     {
-      id: 'backchannel_arrive', title: 'The Back-Channel Bridge', at: ['backchannel'], first: true,
-      text: (s) => `You took Steve's secret shortcut. Four quiet days and here you are, almost at Clients for Life. You skipped the Meadows, the Swamp, the Summit... and everything they would have taught you about ${C(s)}.`,
+      id: 'road_change_of_mind', title: 'Change of mind', at: ['travel'],
+      when: (s) => s.day >= 5 && !K(s, s.client.keyFact),
+      text: (s) => `The trail shifts under your boots. So does ${C(s)}. ${s.client.changeOfMind}`,
       choices: [
-        { label: 'Press on, you\'re nearly there', kind: 'through', eff: { momentum: 1 }, result: 'The X is in sight.' },
-        { label: 'Stop on the bridge and really talk', kind: 'prepare', minigame: 'conversation', eff: { energy: -1 }, result: 'Better late than never.' }
+        { label: 'Defend the current plan', kind: 'through', hint: 'Sunk cost feels like commitment.', eff: { momentum: 1, trust: -2, debt: { tag: 'ignored_change', sev: 2 } }, result: '"The plan is still solid," you say. The client sounds unconvinced.' },
+        { label: 'Ask what changed, and why', kind: 'prepare', eff: (s) => ({ momentum: -1, insight: 2, trust: 1, fact: s.client.keyFact }), result: 'It turns out this was coming for a while. Now the picture is clearer.' },
+        { label: 'Restart discovery from scratch', kind: 'around', hint: 'Thorough. Expensive.', eff: (s) => ({ momentum: -3, days: 2, insight: 3, trust: 1, fact: Object.keys(s.client.facts) }), result: 'Two long days of conversation. Everything is on the table now.' },
+        { label: 'Note it and carry on', kind: 'through', eff: { debt: { tag: 'ignored_change', sev: 2 }, style: { avoid: 1 } }, result: 'Noted. Carrying on.' }
       ]
     },
-
-    /* ================= ON THE TRAIL ================= */
     {
       id: 'enc_rick', title: 'Slick Rick, top producer', at: ['travel'],
       text: 'A hiker in very expensive boots strides up. "Slick Rick, top producer! Where you headed, kid? Closed four deals this week. Want to know my secret?"',
@@ -2864,10 +3314,10 @@ window.PP = window.PP || {};
         { label: 'Ask what he\'s fishing for', kind: 'prepare',
           then: { text: '"Nothing. It\'s about the waiting." He looks at you sideways. "You seem all right. Want to know something nobody else knows?"',
             choices: [
-              { label: '"Yes."', kind: 'prepare', eff: { password: true, insight: 1 }, result: '"There\'s a Secret Shortcut from Port Prospect. Password\'s password1." He winks. "Shame you already left. Next time." (The Secret Shortcut is now unlocked on future runs.)' },
+              { label: '"Yes."', kind: 'prepare', eff: { password: true, insight: 1 }, result: '"Back channels," he says. "Every obstacle out there has a quiet way around it, if you know who to ask. My cousin keeps the lighthouse lamp. Another one runs the mail boat in the Login Isles. There\'s one with goats." He winks. "I have a lot of cousins." (Steve\'s back channels are open to you: new hidden passages at several landmarks, from now on.)' },
               { label: '"I\'m good, thanks."', kind: 'around', result: 'Steve shrugs and casts again.' }
             ] } },
-        { label: 'Offer him some coffee', kind: 'help', item: 'thermos', show: (s) => PP.hasItem(s, 'thermos'), eff: { password: true, trust: 1 }, result: 'Steve sips. "Good coffee. Here\'s a secret: there\'s a shortcut out of Port Prospect. Password is password1." (The Secret Shortcut is now unlocked on future runs.)' },
+        { label: 'Offer him some coffee', kind: 'help', item: 'thermos', show: (s) => PP.hasItem(s, 'thermos'), eff: { password: true, trust: 1 }, result: 'Steve sips. "Good coffee. Tell you what: at the lighthouse, the cliffs, the dunes and the Isles, ask for my cousins. Say Steve sent you. They know the quiet ways around." (Steve\'s back channels are open to you: new hidden passages at several landmarks, from now on.)' },
         { label: 'Leave him to it', kind: 'around', result: 'Steve does not notice you leave.' }
       ]
     },
@@ -2934,11 +3384,11 @@ window.PP = window.PP || {};
     {
       id: 'enc_stampede', title: 'Stampede!', at: ['travel'], cut: 'stampede',
       when: (s) => s.map.visited.swamp || s.style.chase > 0,
-      text: 'A herd of New Initiatives thunders across the trail, each one waving a slide deck. The ground shakes. One of them looks at your client meaningfully.',
+      text: 'A herd of sales contests thunders across the trail, each one trailing a banner: BONUS TRIP! DOUBLE POINTS! PRODUCT OF THE MONTH! The ground shakes. One of them looks at your client meaningfully.',
       choices: [
-        { label: 'Wait for the herd to pass', kind: 'around', eff: { days: 1, momentum: -1 }, result: 'A day later, the dust settles. Most of the initiatives have already been renamed.' },
-        { label: 'Grab one and run along with it', kind: 'through', hint: 'Exciting. Is it going your way?', eff: { momentum: 1, energy: -1, style: { chase: 1 } }, result: 'Wheee! It takes you somewhere. Not necessarily where you were going.' },
-        { label: 'Ask which one actually matters for this client', kind: 'prepare', eff: { insight: 1 }, result: 'One of them does, a little. You make a note. The rest gallop off.' }
+        { label: 'Wait for the herd to pass', kind: 'around', eff: { days: 1, momentum: -1 }, result: 'A day later, the dust settles. Most of the contests have already been replaced by new ones.' },
+        { label: 'Grab one and ride it', kind: 'through', hint: 'Exciting. Is it going where your client needs to go?', eff: { momentum: 1, energy: -1, style: { chase: 1 } }, result: 'Wheee! It takes you somewhere. Mostly toward a prize.' },
+        { label: 'Ask which one, if any, actually helps this client', kind: 'prepare', eff: { insight: 1 }, result: 'One of them might, a little. You make a note. The rest gallop off toward someone else\'s client.' }
       ]
     },
     {
@@ -3133,8 +3583,9 @@ window.PP = window.PP || {};
   add('fog_forgot', { label: 'Check your note-taking system', show: has('notes'), eff: { insight: 1, momentum: 1 }, result: 'It is all there, dated and searchable. The fog thins.' });
   add('loop_reentry', { label: 'Pull everything from your CRM', show: has('crm'), eff: { momentum: 1, insight: 1 }, result: 'Entered once, used forever. The loop straightens into a line.' });
   add('swamp_sheet', { label: 'Run it through your planning software', show: has('planning'), eff: (s) => ({ insight: 2, fact: s.client.spreadsheetFact }), result: 'You cross on your own boardwalk. The software flags the one assumption that matters.' });
-  add('sands_initiative', { label: 'Check it against your focus routine', show: has('focus'), eff: { insight: 1, momentum: 1 }, result: 'Not relevant to this client. Filed, ignored, done.' });
-  add('sands_change', { label: 'Use your focus routine to sort what really changed', show: has('focus'), eff: (s) => ({ insight: 2, fact: s.client.keyFact }), result: 'You separate the signal from the noise together.' });
+  add('sands_initiative', { label: 'Check it against your focus routine', show: has('focus'), eff: { insight: 1, momentum: 1 }, result: 'Your routine asks one question: would you sell this if there were no quota? Not to this client, not yet. You tell your manager so, with reasons. Done.' });
+  add('sands_change', { label: 'Run the banner through your focus routine', show: has('focus'), eff: (s) => ({ insight: 2, trust: 1, fact: s.client.keyFact }), result: 'Client first, prize second. You talk about what they need instead, and the real reason they came comes out.' });
+  add('road_change_of_mind', { label: 'Use your focus routine to sort what really changed', show: has('focus'), eff: (s) => ({ insight: 2, fact: s.client.keyFact }), result: 'You separate the signal from the noise together.' });
   add('summit_handoff', { label: 'Send it to your specialist partner', show: has('specialist'), eff: { insight: 2, momentum: 1 }, result: 'They know how you work. The handoff takes ten minutes.' });
   add('isles_locked', { label: 'Your tech setup handles it', show: has('tech'), eff: { momentum: 1, trust: 1 }, result: 'One tap, a code, and you are in.' });
   add('isles_message', { label: 'Let your tech setup screen them', show: has('tech'), eff: { insight: 1 }, result: 'The fakes are flagged before you even see them.' });
@@ -3168,6 +3619,8 @@ window.PP = window.PP || {};
   const hasSys = (s, id) => !!(PP.career && s.career && PP.career.hasSystem(s.career, id));
   const stake = (s) => s.client.shortStake || 'someone close to them';
   const ready = (id) => (s) => PP.contactReady(s, id);
+  /* A fact the client would share when asked about a check-in topic, if they are ready to (force = a contact gets it out of them). */
+  const topicFact = (s, topic, force) => { const a = s.client.checkin && s.client.checkin[topic]; if (!a || !a.fact) return null; const ok = force || ((!a.minTrust || s.res.trust >= a.minTrust) && (!a.curious || curious(s))); return ok ? a.fact : null; };
   const holding = (id) => (s) => PP.hasItem(s, id);
 
   PP.content.events.push(
@@ -3624,131 +4077,121 @@ window.PP = window.PP || {};
       ]
     },
 
-    /* ================= Shifting Sands of Initiatives ================= */
+    /* ================= Shifting Sands of Incentives ================= */
     {
-      id: 'sands_priority_list', title: 'This week\'s top priority', at: ['sands'],
-      text: (s) => `On Monday, ${C(s)}'s top priority was one thing. By Wednesday it was another. Today, standing on a dune that wasn't here yesterday, it is a third thing. They seem completely sure each time.`,
+      id: 'sands_priority_list', title: 'The recruiter', at: ['sands'],
+      text: (s) => `A recruiter in a very clean jacket finds you between two dunes. "Big signing bonus at our firm. All you'd need to do is bring your clients over. ${C(s)} too, obviously. Their plan would just need... redoing. From scratch. Small thing."`,
       choices: [
-        { label: 'Rebuild the plan around today\'s priority', kind: 'through', hint: 'They feel heard. The plan keeps moving with the sand.', eff: { trust: 1, energy: -1, style: { chase: 1 } }, result: 'New plan. Again. It is a very good plan, for today.' },
-        { label: 'Ask what changed since Monday', kind: 'prepare',
-          then: { text: (s) => `${C(s)} sits down in the sand. "Honestly? Nothing changed. I just keep reading things. And then something else seems more urgent."`,
+        { label: 'Take the bonus and move everyone', kind: 'through', hint: 'Real money now. Every client starts their paperwork over.', eff: { cash: 1500, trust: -2, momentum: -1, debt: { tag: 'assumed_goal', sev: 2 } }, result: (s) => `The money is real. So is ${C(s)}'s face when you explain that everything starts over, again, for reasons that are mostly about you.` },
+        { label: 'Ask what happens to clients who move', kind: 'prepare',
+          then: { text: '"Happens?" The recruiter checks his phone. "They move. Some of them. The ones who don\'t, well, there are always more clients." He smiles. It does not reach his eyes.',
             choices: [
-              { label: 'Ask what they would protect if they could only pick one', kind: 'prepare', preview: 'With Curiosity or Trust 6+, the real priority comes out.',
-                eff: (s) => { R.pl = open(s); return R.pl ? { insight: 2, trust: 1, fact: s.client.keyFact } : { insight: 1 }; },
-                result: (s) => (R.pl ? `A long pause. Then the real answer, the one that has been under all three: ${label(s, s.client.keyFact)}.` : '"All of them?" they say. You will get there.') },
-              { label: 'Agree on a "parking lot" for new ideas', kind: 'around', eff: { momentum: 1, style: { chase: -1 } }, result: 'New ideas go in the parking lot. You look at it together once a month. The dunes settle a little.' }
+              { label: 'Turn it down', kind: 'prepare', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 }, trust: 1 } : { trust: 1, insight: 1 }), result: (s) => `"Thanks, but no." ${C(s)} was close enough to hear, and pretends very hard that they weren't.` },
+              { label: 'Take his card, just in case', kind: 'around', eff: { insight: 1 }, result: 'The card is heavy and has embossed lettering. You put it somewhere you will find it on a bad day.' }
             ] } },
-        { label: 'Hold firm on Monday\'s plan', kind: 'around', eff: { momentum: 1, trust: -1, debt: { tag: 'ignored_change', sev: 1 } }, result: '"We agreed on Monday," you say. True. Not entirely helpful.' },
-        { label: 'Run it through your focus routine', kind: 'help', show: (s) => hasSys(s, 'focus'), eff: { insight: 1, momentum: 1, style: { chase: -1 } }, result: 'Two of the three priorities turn out to be the same thing wearing different hats.' }
+        { label: 'Say no on the spot', kind: 'around', eff: { trust: 1, momentum: 1 }, result: 'Short and polite. The recruiter is already walking toward the next agent. Your client noticed you did not even think about it.' },
+        { label: 'Run it through your focus routine', kind: 'help', show: (s) => hasSys(s, 'focus'), eff: { insight: 1, momentum: 1, trust: 1 }, result: 'Your routine asks: five years from now, which choice do you want to have made? It is not close.' }
       ]
     },
     {
-      id: 'sands_new_platform', title: 'The new platform', at: ['sands'], cut: 'stampede',
-      text: 'A notice flaps across the dunes: Operations is moving to a new planning platform, effective now. It is called Horizon. Everything must be re-entered. The training video is ninety minutes long and has a mascot.',
+      id: 'sands_new_platform', title: 'The free lunch', at: ['sands'],
+      text: 'A rep from an outside company has set up a lunch tent in the dunes: good sandwiches, a slideshow about their product, and a points card. Every sale earns points toward a trip. The cookies are excellent.',
       choices: [
-        { label: 'Watch the video and re-enter everything now', kind: 'prepare', eff: { energy: -2, days: 1, insight: 1 }, result: 'The mascot is a cheerful compass. You now dream about it. Everything is re-entered, correctly.' },
-        { label: 'Keep using the old system until someone makes you', kind: 'through', eff: { momentum: 1, debt: { tag: 'stale_info', sev: 1 } }, result: 'The old system still works. For now. Probably.' },
-        { label: 'Re-enter only what this client needs', kind: 'around', preview: '60% fine. 40% the new platform quietly fills in a few blanks for you.',
-          eff: () => (roll('plat', 0.6) ? { energy: -1 } : { energy: -1, debt: { tag: 'defaults', sev: 1 } }),
-          result: 'The bare minimum, entered. The rest can wait for the next initiative.' },
-        { label: 'Ask Olu which parts actually matter', kind: 'help', contact: 'operator', show: ready('operator'), eff: { momentum: 1, insight: 1 }, result: '"Three fields," says Olu. "The rest is for a dashboard nobody opens." Done in ten minutes.' }
+        { label: 'Eat, collect points, pitch their product to your client', kind: 'through', hint: 'Good cookies. Whose interest is the pitch in?', eff: { cash: 300, energy: 1, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `You bring it up with ${C(s)} that afternoon, still holding a cookie. "Is this... from the lunch?" They have seen the tent.` },
+        { label: 'Eat the sandwich, keep your judgment', kind: 'prepare', eff: { energy: 2, insight: 1 }, result: 'You learn how the product works, ask two hard questions the rep cannot answer, and leave the points card on the table. A free sandwich is not a contract.' },
+        { label: 'Skip the lunch and keep walking', kind: 'around', eff: { momentum: 1 }, result: 'You hear the slideshow through the tent wall for a while. Something about "unlocking value." The dunes sound better.' },
+        { label: 'Run it past Harold first', kind: 'help', contact: 'compliance', show: ready('compliance'), eff: { insight: 1, clearDebt: 'premature_pitch' }, result: 'Harold reads the points card twice. "You can eat the sandwich. Recommend what fits the client, and write down why." He takes a cookie. For the file.' }
       ]
     },
     {
-      id: 'sands_mirage', title: 'A mirage', at: ['sands'],
-      text: (s) => `On the horizon, shimmering: THE PERFECT TIME TO DECIDE. ${C(s)} stares at it. "Maybe we should wait until then? When things settle down?"`,
+      id: 'sands_mirage', title: 'The next bonus tier', at: ['sands'],
+      text: (s) => `On the horizon, shimmering: THE NEXT BONUS TIER. Your payout rate jumps if you reach it this quarter, and you are one decent-sized sale away. ${C(s)}'s plan could be a little bigger than it needs to be. Nobody would ever know. Probably.`,
       choices: [
-        { label: 'Walk toward the mirage together', kind: 'around', hint: 'Patient and kind. Mirages do not get closer.', eff: { days: 2, momentum: -2, trust: 1 }, result: 'Two days of walking. It stays exactly as far away. "Huh," says your client.' },
-        { label: '"There\'s no perfect time. What would make now okay?"', kind: 'prepare', preview: 'Likely to land with Communication or Trust 6+. Otherwise it can sound like pressure.',
-          eff: (s) => (roll('mir', comm(s) || s.res.trust >= 6 ? 0.8 : 0.45) ? { trust: 1, momentum: 1, insight: 1 } : { trust: -1, insight: 1 }),
-          result: (s) => (R.mir ? `${C(s)} thinks about it. "Smaller. If it was smaller, now would be okay."` : '"So you\'re saying I should hurry up." That is not what you meant. It is what they heard.') },
-        { label: 'Agree to wait, and check back later', kind: 'through', eff: { momentum: -1, energy: 1, debt: { tag: 'timeline', sev: 1 } }, result: '"Later" is penciled in. The mirage shimmers, pleased with itself.' },
-        { label: 'Offer one small step that works either way', kind: 'prepare', show: (s) => PP.skill(s, 'judgment') > 0 || s.res.insight >= 5, hint: 'Judgment or good Insight: a step that does not need perfect timing.', eff: { momentum: 2, trust: 1 }, result: 'Small, reversible, useful in every version of the future. They say yes before the mirage can object.' }
+        { label: 'Size the plan up, just a little', kind: 'through', hint: 'A bigger plan than they need. Clients sometimes notice.', preview: '50% the client never notices. 50% they ask why it got bigger.',
+          eff: () => (roll('tier', 0.5) ? { cash: 300, momentum: 1, debt: { tag: 'premature_pitch', sev: 1 } } : { cash: 300, trust: -2, debt: { tag: 'premature_pitch', sev: 2 } }),
+          result: (s) => (R.tier ? 'Nobody asks. The mirage gets closer. You feel slightly worse than you expected to.' : `${C(s)} reads the numbers. "This is bigger than what we talked about. Why?" You do not have a good answer.`) },
+        { label: 'Size it to what they actually need', kind: 'prepare', eff: { trust: 1, insight: 1 }, result: 'The mirage stays exactly as far away. The plan fits. That will matter longer than a quarter does.' },
+        { label: 'Ask what size feels right to them', kind: 'prepare', preview: 'Likely to land with Communication or Trust 6+.',
+          eff: (s) => (roll('mir', comm(s) || s.res.trust >= 6 ? 0.8 : 0.45) ? { trust: 2, insight: 1 } : { trust: 1 }),
+          result: (s) => (R.mir ? `${C(s)} thinks. "Smaller than I expected you to say. Is that allowed?" It is. They trust you a good deal more for it.` : '"I don\'t know. What do you think?" You tell them honestly. It is a start.') },
+        { label: 'Think about what the tier costs you long-term', kind: 'prepare', show: (s) => PP.skill(s, 'judgment') > 0, hint: 'Judgment: the payout is one quarter; the reputation is the whole career.', eff: { momentum: 1, trust: 1 }, result: 'One quarter of a better payout, against twenty years of referrals from a client who trusts your numbers. The mirage fades.' }
       ]
     },
     {
-      id: 'sands_stake_pivot', title: 'Somebody else\'s new priority', at: ['sands'],
+      id: 'sands_stake_pivot', title: 'They saw the banner too', at: ['sands'],
       when: (s) => K(s, s.client.stakeholderFact),
-      text: (s) => `A message from ${stake(s)}: they have been thinking, and now there is a new priority. ${C(s)} reads it aloud, frowning. "This is the first I'm hearing of this."`,
+      text: (s) => `A message from ${stake(s)}: they saw the "product of the month" advertised and want to know why ${C(s)} isn't getting "the thing everyone's talking about." ${C(s)} reads it aloud, frowning. "Should I be?"`,
       choices: [
         { label: 'Get them both on a call', kind: 'prepare', eff: { energy: -1, momentum: -1 },
-          then: { text: (s) => `${stake(s)} explains. ${C(s)} explains back. Both of them are right about something, and both of them are getting louder.`,
+          then: { text: (s) => `${stake(s)} explains what they read. ${C(s)} explains what they told you. Both of them are right about something, and both of them are getting louder.`,
             choices: [
-              { label: 'Name what they both want', kind: 'prepare', preview: 'With Communication: likely to settle it. Otherwise a coin flip.',
+              { label: 'Explain honestly why it\'s featured, and whether it fits', kind: 'prepare', preview: 'With Communication: likely to settle it. Otherwise a coin flip.',
                 eff: (s) => { R.sp = comm(s) || PP.chance(0.5); return R.sp ? { trust: 2, insight: 2 } : { trust: -1, insight: 1 }; },
-                result: () => (R.sp ? '"It sounds like you both want this to feel safe, just on different timelines." Silence. Then, "...yes." Progress.' : 'You try to summarize. Both of them correct your summary. At least they agree on that.') },
-              { label: 'Suggest they talk it through without you', kind: 'around', eff: { days: 1, trust: 1 }, result: 'A day later they come back with one priority. It is a new one. It is a better one.' },
+                result: () => (R.sp ? '"It\'s featured because the company is promoting it this month. Here\'s what you actually need, and why." Silence. Then, "...that\'s refreshingly honest." Progress.' : 'You try to explain. Both of them correct your explanation. At least they agree on that.') },
+              { label: 'Suggest they talk it through without you', kind: 'around', eff: { days: 1, trust: 1 }, result: 'A day later they come back with one question instead of two opinions. It is a better question.' },
               { label: 'Side with your client', kind: 'through', eff: { trust: 1, debt: { tag: 'unknown_stakeholder', sev: 2 } }, result: (s) => `${C(s)} looks grateful. ${stake(s)} hangs up. That will come up again.` }
             ] } },
-        { label: 'Quietly adjust the plan to the new priority', kind: 'through', eff: { momentum: 1, trust: -1, style: { chase: 1 } }, result: (s) => `The plan now fits ${stake(s)}'s message. ${C(s)} notices you changed it without asking them.` },
-        { label: 'Tell your client to ignore it for now', kind: 'around', eff: { momentum: 1, debt: { tag: 'ignored_change', sev: 2 } }, result: '"We\'ll come back to it." Famous last words, written in sand.' }
+        { label: 'Just give them the featured product', kind: 'through', hint: 'Everyone stops asking. For now.', eff: { cash: 300, momentum: 1, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `Easy. ${stake(s)} is satisfied. ${C(s)} has a product nobody checked against their actual life.` },
+        { label: 'Tell your client to ignore it', kind: 'around', eff: { momentum: 1, debt: { tag: 'unknown_stakeholder', sev: 1 } }, result: '"We\'ll come back to it." Famous last words, written in sand.' }
       ]
     },
 
-    /* ================= Nobody-Remembers-Why Caves ================= */
+    /* ================= Caves of What-Ifs ================= */
     {
-      id: 'caves_wet_ink', title: 'Wet ink only', at: ['caves'],
-      text: (s) => `Carved over the cave door: "ALL SIGNATURES IN BLUE INK, IN PERSON." ${C(s)} is three days away, visiting family. The e-signature button is right there, glowing gently.`,
+      id: 'caves_wet_ink', title: 'What if the paycheck stops?', at: ['caves'],
+      text: (s) => `A side tunnel is marked WHAT IF THE PAYCHECK STOPS? ${C(s)} peers in and steps back. "I try really hard not to think about that one."`,
       choices: [
-        { label: 'Use the e-signature anyway', kind: 'through', hint: 'Probably fine. The carving disagrees.', eff: { momentum: 2, debt: { tag: 'defaults', sev: 2 } }, result: 'Click. Signed. The carving seems to frown.' },
-        { label: 'Ask Operations if the rule still applies', kind: 'prepare',
-          then: { text: 'Operations takes a while to reply. "Good question. The person who wrote that rule retired years ago. We think it was about one specific form. We are not sure which."',
-            choices: [
-              { label: 'Ask for a written exception', kind: 'prepare', preview: '60%: approved in a day. 40%: it goes to a committee.',
-                eff: () => (roll('ink', 0.6) ? { days: 1, insight: 1, momentum: 1 } : { days: 2, momentum: -1 }),
-                result: () => (R.ink ? 'Approved. You even get the rule rewritten to say which form. Future agents will never know your name, but they will thank you.' : 'Your request is now being reviewed by a committee that meets monthly.') },
-              { label: 'Follow the rule, just in case', kind: 'around', eff: { days: 2, energy: -1, trust: 1 }, result: (s) => `You mail the papers. ${C(s)} signs in blue ink at a relative's kitchen table and sends a photo. Charming. Slow.` },
-              { label: 'Decide it obviously doesn\'t apply', kind: 'through', eff: { momentum: 1, debt: { tag: 'defaults', sev: 1 } }, result: 'Obviously. Probably. You e-sign.' }
-            ] } },
-        { label: 'Take the papers to the client yourself', kind: 'around', eff: (s) => ({ energy: -2, days: 1, trust: 1, fact: s.client.stakeholderFact }), result: (s) => `${C(s)}'s family insists you stay for dinner. You learn more at that table than in three meetings, mostly about ${stake(s)}.` }
+        { label: 'Assume their income is safe and move on', kind: 'through', hint: 'Comfortable. It is also a guess.', eff: { momentum: 1, debt: { tag: 'guessed_key', sev: 1 }, style: { avoid: 1 } }, result: '"You\'ll be fine," you say. You both want it to be true.' },
+        { label: 'Walk it through: how many months could they manage?', kind: 'prepare', hint: 'Gently, with real numbers.',
+          eff: (s) => { R.pay = topicFact(s, 'money') || topicFact(s, 'work'); return Object.assign({ insight: 2, energy: -1 }, R.pay ? { fact: R.pay, trust: 1 } : {}); },
+          result: (s) => (R.pay ? `You count it out together on the back of an envelope. Somewhere around month three, ${C(s)} tells you something that matters: ${label(s, R.pay)}.` : `You count it out together. It is fewer months than ${C(s)} hoped, and more than they feared. They look steadier. They are clearly holding something back, though.`) },
+        { label: 'Lay out the worst case in full detail', kind: 'through', hint: 'Accurate. Possibly terrifying.', eff: (s) => (comm(s) ? { insight: 1, trust: 1 } : { insight: 1, trust: -2, debt: { tag: 'confused_client', sev: 1 } }), result: (s) => (comm(s) ? 'You say the hard version plainly and kindly. They thank you for not sugarcoating it.' : `${C(s)} stares at the cave floor for a long time. You may have gone a little fast.`) },
+        { label: 'Call Ray: "What do the lean months look like?"', kind: 'help', contact: 'banker', show: ready('banker'), eff: (s) => ({ insight: 2, fact: topicFact(s, 'money', true) }), result: 'Ray asks one question: "What month do you dread?" Everyone has an answer, and theirs explains a lot.' }
       ]
     },
     {
-      id: 'caves_fax', title: 'The fax machine', at: ['caves'],
-      text: 'In a dripping alcove sits a fax machine, humming. A sign: "FORM 12 MUST BE FAXED. NO EXCEPTIONS." Around it is a small shrine of jammed paper.',
+      id: 'caves_fax', title: 'What if you get sick?', at: ['caves'],
+      text: (s) => `Water drips in a tunnel marked WHAT IF YOU COULDN'T WORK FOR A WHILE? ${C(s)} laughs nervously. "I never get sick. Well. Almost never."`,
       choices: [
-        { label: 'Feed it the form', kind: 'through', preview: '50% it goes through. 50% it jams, and a day goes with it.',
-          eff: () => (roll('fax', 0.5) ? { energy: -1, momentum: 1 } : { energy: -1, days: 1 }),
-          result: () => (R.fax ? 'Screech, warble, beep. It went through. You feel like a time traveler.' : 'It jams on page two. And again. And again. You add your form to the shrine and try tomorrow.') },
-        { label: 'Find out why it has to be faxed', kind: 'prepare',
-          then: { text: 'A very old sticky note inside the lid: "Fax only, because email got spoofed once. A fake \'client\' asked us to change where the money goes." So it was never about the machine. It was about checking who is asking.',
-            choices: [
-              { label: 'Apply that to your file: confirm recent requests by phone', kind: 'prepare', eff: (s) => { const t = hasDebt(s, 'fraud', 'unverified_details'); return t ? { clearDebt: t.tag, energy: -1, insight: 1 } : { insight: 2, energy: -1 }; }, result: (s) => `You call ${C(s)} on the number you already trust and go through the recent requests together. All real. Now you know it, instead of hoping it.` },
-              { label: 'Fax it, now that you know why', kind: 'around', eff: { energy: -1, insight: 1 }, result: 'It jams once, out of principle. Then it goes through.' }
-            ] } },
-        { label: 'Scan and email it instead', kind: 'around', eff: { momentum: 1, debt: { tag: 'defaults', sev: 1 } }, result: 'Sent. It is the twenty-first century. The fax machine hums disapprovingly.' },
-        { label: 'Call Olu', kind: 'help', contact: 'operator', show: ready('operator'), eff: { momentum: 1, insight: 1 }, result: 'Olu arrives, thumps the machine once in exactly the right spot, and leaves without a word.' }
+        { label: 'Joke along and move on', kind: 'around', eff: { trust: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: '"Iron constitution!" you agree. The tunnel stays unexplored, which is exactly where it can surprise you later.' },
+        { label: 'Ask who would step in if they were laid up', kind: 'prepare', hint: 'Turns a scary question into a practical one.',
+          eff: (s) => ({ insight: 2, trust: 1, energy: -1, fact: s.client.stakeholderFact }),
+          result: (s) => `"Who'd handle things? Huh." ${C(s)} thinks out loud, and ${s.client.stakeholder} comes up fast. It turns out a lot depends on them.` },
+        { label: 'Talk through it gently, step by step', kind: 'prepare', preview: 'With Communication or Trust 6+, it lands softly. Otherwise it can feel heavy.',
+          eff: (s) => { R.sick = comm(s) || s.res.trust >= 6; return R.sick ? { trust: 2, insight: 1 } : { trust: -1, insight: 1 }; },
+          result: (s) => (R.sick ? `You go slow. Three months, then six. What would carry on, what would stop. ${C(s)} breathes out. "That's less scary than I thought."` : `It is a lot, all at once. ${C(s)} goes quiet.`) },
+        { label: 'Bring Dev in to explain what usually protects an income', kind: 'help', contact: 'specialist', show: ready('specialist'), eff: { insight: 2, trust: 1 }, result: 'Dev explains the general idea in four sentences, without one acronym. Your client asks good questions. You take notes for later.' }
       ]
     },
     {
-      id: 'caves_bob', title: 'Step 17: Confirm with Bob', at: ['caves'], cut: 'caves',
-      text: 'The cave\'s process checklist has forty steps. Step 17 says "Confirm with Bob." Nobody named Bob has worked here in years. Steps 18 to 40 all assume Bob said yes.',
+      id: 'caves_bob', title: 'What if the money runs out first?', at: ['caves'], cut: 'caves',
+      text: (s) => `Deep in the cave there is a ledge with a sign: AGE 95. ${C(s)} laughs. "I'm not going to live that long." A pause. "Am I?"`,
       choices: [
-        { label: 'Skip step 17', kind: 'through', eff: { momentum: 1, debt: { tag: 'unverified_details', sev: 2 } }, result: 'Bob, wherever you are, we assume you said yes.' },
-        { label: 'Find out what Bob used to check', kind: 'prepare',
-          then: { text: 'A retired colleague, reached by phone, laughs. "Bob? Bob called the client before anything was finalized. Just to ask if anything had changed, and whether anyone else should be in the room. Took him five minutes."',
+        { label: 'Plan to an age that feels comfortable', kind: 'through', hint: 'A tidy number. People keep outliving tidy numbers.', eff: { momentum: 1, debt: { tag: 'guessed_key', sev: 1 } }, result: 'You pick a reasonable-sounding age. The plan looks lovely, right up to the edge of the page.' },
+        { label: 'Show them the long version, gently', kind: 'prepare', eff: (s) => (comm(s) || PP.skill(s, 'judgment') > 0 ? { insight: 2, trust: 1 } : { insight: 2, trust: -1 }), result: (s) => (comm(s) || PP.skill(s, 'judgment') > 0 ? `You walk to the ledge together. "Good news: you might get a long life. Let's make sure the money gets one too." ${C(s)} smiles at that.` : `The numbers are right, but they land like a lecture. ${C(s)} looks tired.`) },
+        { label: 'Ask what a long life would look like for them', kind: 'prepare',
+          then: { text: (s) => { const g = s.client.checkin && s.client.checkin.goal; return `${C(s)} sits on the ledge. ` + (g ? g.text : '"I don\'t know. Being useful? Not being a burden?"'); },
             choices: [
-              { label: 'Do what Bob did: call and ask', kind: 'prepare', eff: (s) => { R.bob = K(s, s.client.stakeholderFact) ? s.client.keyFact : s.client.stakeholderFact; return { energy: -1, trust: 1, insight: 1, fact: R.bob }; }, result: (s) => `Five minutes, like Bob said. ${C(s)} mentions something that matters: ${label(s, R.bob)}.` },
-              { label: 'Rename step 17 "Confirm with the client" and move on', kind: 'around', eff: { insight: 1 }, result: 'A small fix for every agent after you. You do not actually make the call today.' }
+              { label: '"Then that is what we plan for."', kind: 'prepare', eff: (s) => { const g = s.client.checkin && s.client.checkin.goal; return Object.assign({ trust: 2, insight: 1 }, g && g.fact ? { fact: g.fact } : {}); }, result: 'It is the first time the plan sounds like their life instead of a spreadsheet.' },
+              { label: 'Write it down and keep walking', kind: 'around', eff: { insight: 1 }, result: 'One line in your notes. You will come back to it.' }
             ] } },
-        { label: 'Do all forty steps exactly as written', kind: 'around', eff: { energy: -2, days: 1 }, result: 'You do all forty steps, including leaving a voicemail for Bob at a number that now belongs to a bakery.' },
-        { label: 'Check Olu\'s checklist', kind: 'help', item: 'checklist', show: holding('checklist'), eff: (s) => ({ insight: 1, momentum: 1, clearDebt: oldestDebt(s) }), result: 'Olu\'s version has step 17 crossed out and "CALL THE CLIENT" written in. Of course it does.' }
+        { label: 'Check Olu\'s checklist', kind: 'help', item: 'checklist', show: holding('checklist'), eff: (s) => ({ insight: 1, momentum: 1, clearDebt: oldestDebt(s) }), result: 'Line 12 of Olu\'s checklist: "Did you plan for a long life? Longer than that?" You fix the one thing you had glossed over.' }
       ]
     },
     {
-      id: 'caves_family_way', title: '"That\'s how we\'ve always done it"', at: ['caves'],
-      text: (s) => `${C(s)} mentions, almost in passing, that they have always handled money a certain way "because that's how my family did it." When you ask why their family did it that way, they look genuinely puzzled. "I... don't know, actually."`,
+      id: 'caves_family_way', title: 'What if someone needs you?', at: ['caves'],
+      text: (s) => `The tunnel narrows into what looks like a kitchen: a parent at the table, a pill organizer, a calendar full of appointments. A sign reads WHAT IF SOMEONE YOU LOVE NEEDS CARE? ${C(s)} goes quiet.`,
       choices: [
-        { label: 'Explain why it may not fit anymore', kind: 'through', hint: 'Maybe right. It is also their family.', eff: (s) => (comm(s) ? { trust: 1, insight: 1 } : { trust: -2, insight: 1 }), result: (s) => (comm(s) ? 'You say it carefully. They hear it.' : `"My family did fine, thanks." ${C(s)} folds their arms.`) },
-        { label: 'Ask for the story behind it', kind: 'prepare',
-          then: { text: (s) => `${C(s)} tells you about a parent, a hard year, and a rule that came out of it. "I guess it was about never getting caught out again." They sound surprised to hear themselves say it.`,
+        { label: 'Explain what care costs, with numbers', kind: 'through', hint: 'Useful. Possibly too much, too soon.', eff: (s) => (comm(s) ? { trust: 1, insight: 1 } : { trust: -2, insight: 1 }), result: (s) => (comm(s) ? 'You keep it short and human. They take it in.' : `${C(s)} folds their arms. "Can we not do this part right now?"`) },
+        { label: 'Ask about the people in their life', kind: 'prepare',
+          then: { text: (s) => `${C(s)} talks about family: who looks after whom, who never calls, who would drop everything. ` + (worry(s) ? `Then, almost to themselves: ${open(s) ? worry(s).text : (worry(s).guarded || worry(s).text)}` : '"I suppose I\'ve never really thought about it."'),
             choices: [
-              { label: '"What would feeling safe look like now?"', kind: 'prepare', preview: 'With Curiosity or Trust 6+, they connect it to what is happening now.',
-                eff: (s) => { const w = worry(s); R.fam = open(s) && !!(w && w.fact); return R.fam ? { trust: 2, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; },
-                result: (s) => (R.fam ? `They make the connection themselves: ${label(s, worry(s).fact)}.` : 'They think about it. "I\'ll get back to you on that." You believe them.') },
-              { label: 'Keep the rule, build the plan around it', kind: 'around', eff: { trust: 1, momentum: 1 }, result: 'It costs a little efficiency. It buys a lot of sleep. Fair trade.' }
+              { label: '"Thank you for telling me that."', kind: 'prepare', preview: 'With Curiosity or Trust 6+, you learn what is really on their mind.',
+                eff: (s) => { const w = worry(s); R.fam = open(s) && !!(w && w.fact); return R.fam ? { trust: 2, insight: 2, fact: w.fact } : { trust: 1, insight: 1, fact: s.client.stakeholderFact }; },
+                result: (s) => (R.fam ? `Now you know what this plan really has to handle: ${label(s, worry(s).fact)}.` : `You learn who matters most here: ${s.client.stakeholder}. The rest can wait for another day.`) },
+              { label: 'Keep it light and move on', kind: 'around', eff: { trust: 1 }, result: 'They seem relieved to step back into the light.' }
             ] } },
-        { label: 'Go along with it, it\'s not your business', kind: 'around', eff: { trust: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: 'Easy. Pleasant. The rule stays, unexamined, holding up more than it should.' }
+        { label: 'Leave that tunnel for another day', kind: 'around', eff: { trust: 1, debt: { tag: 'guessed_key', sev: 1 }, style: { avoid: 1 } }, result: 'Easier today. The tunnel will still be there, and so will whatever is in it.' }
       ]
     },
 
@@ -3894,10 +4337,13 @@ window.PP = window.PP || {};
       ]
     },
 
-    /* ================= Back-Channel Bridge ================= */
+    /* ================= Back channels, on the trail =================
+     * The Back-Channel Bridge is gone; Steve's back channels are now hidden passages
+     * around obstacles (see passages.js). These moments happen between landmarks. */
     {
-      id: 'backchannel_nobody_asked', title: 'Nobody asked', at: ['backchannel'],
-      text: (s) => `Halfway across the quiet bridge, ${C(s)} leans on the railing. "You know, it's funny. You never asked who else is involved in all this." They say it lightly. They do not mean it lightly.`,
+      id: 'backchannel_nobody_asked', title: 'Nobody asked', at: ['travel'],
+      when: (s) => s.day >= 5 && !K(s, s.client.stakeholderFact),
+      text: (s) => `Halfway across a quiet footbridge, ${C(s)} leans on the railing. "You know, it's funny. You never asked who else is involved in all this." They say it lightly. They do not mean it lightly.`,
       choices: [
         { label: 'Ask now', kind: 'prepare', eff: (s) => ({ momentum: -1, insight: 2, trust: 1, fact: s.client.stakeholderFact }), result: (s) => `It turns out ${s.client.stakeholder} matters a great deal. Good thing there is still time.` },
         { label: '"We\'ll get to that"', kind: 'through', eff: (s) => ({ momentum: 1, debt: { tag: 'unknown_stakeholder', sev: 2 }, missed: s.client.stakeholderFact }), result: '"Sure," they say. The river keeps moving underneath.' },
@@ -3905,22 +4351,13 @@ window.PP = window.PP || {};
       ]
     },
     {
-      id: 'backchannel_no_toll', title: 'No toll here', at: ['backchannel'],
-      text: 'There is no toll booth on this bridge. No troll, no review, nobody checking the file. Just a quiet stone arch and the sound of water.',
-      choices: [
-        { label: 'Enjoy it and keep moving', kind: 'through', eff: { momentum: 2, debt: { tag: 'stale_info', sev: 1 } }, result: 'Nobody checks. It is very peaceful, not being checked.' },
-        { label: 'Review the file yourself, on the railing', kind: 'prepare', eff: (s) => (s.debt.length ? { energy: -2, clearDebt: oldestDebt(s), insight: 1 } : { energy: -1, insight: 2 }), result: 'You go through the file line by line. You find one thing you would have liked to know earlier, and fix it.' },
-        { label: 'Ask the client to go through it with you', kind: 'around', eff: { days: 1, trust: 1, insight: 1 }, result: (s) => `${C(s)} corrects two small things and one not-so-small thing. Worth the day.` },
-        { label: 'Ask Olu to check the file remotely', kind: 'help', contact: 'operator', show: ready('operator'), eff: { insight: 1, momentum: 1 }, result: '"Two things are out of date," says Olu. "I fixed one. You fix the other." Fair.' }
-      ]
-    },
-    {
-      id: 'backchannel_cousin', title: 'Steve\'s cousin', at: ['backchannel'], cut: 'steve',
-      text: 'A man in a cardigan is fishing off the bridge. He looks a lot like Steve. "Steve\'s cousin," he says, without looking up. "There\'s an even shorter way from here. Straight across the water to the X. Skips the last bit entirely."',
+      id: 'backchannel_cousin', title: 'Steve\'s cousin', at: ['travel'], cut: 'steve', weight: 0.7,
+      when: (s) => s.password && s.day >= 3,
+      text: 'A man in a cardigan is fishing off a footbridge. He looks a lot like Steve. "Steve\'s cousin," he says, without looking up. "Steve\'s back channels get you around things. Mine skips the next landmark entirely. Straight across the water."',
       choices: [
         { label: 'Take the even shorter way', kind: 'through', hint: 'You are already short on what you know.', eff: { momentum: 3, debt: [{ tag: 'rushed_pace', sev: 2 }, { tag: 'guessed_key', sev: 1 }] }, result: 'You hop across the stepping stones. Fast. Very fast. Your client is a little out of breath and a lot unsure.' },
         { label: '"What usually happens at the end of it?"', kind: 'prepare',
-          then: { text: 'He reels in nothing. "People get to the X quick. Then the client asks them something, and they don\'t know the answer. Then they walk all the way back." He casts again. "Steve thinks that\'s funny."',
+          then: { text: 'He reels in nothing. "People get across quick. Then the client asks them something, and they don\'t know the answer. Then they walk all the way back." He casts again. "Steve thinks that\'s funny."',
             choices: [
               { label: 'Thank him and take the proper way', kind: 'prepare', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 } } : { insight: 1 }), result: 'He nods. "Smart. Steve would\'ve taken it."' },
               { label: 'Take it anyway, you\'ll figure it out', kind: 'through', eff: { momentum: 2, debt: { tag: 'guessed_key', sev: 2 } }, result: 'You figure you will figure it out. That is a plan, technically.' }
@@ -3929,16 +4366,17 @@ window.PP = window.PP || {};
       ]
     },
     {
-      id: 'backchannel_too_fast', title: '"Was that too fast?"', at: ['backchannel'],
-      text: (s) => `${C(s)} watches the water for a while. "That was quicker than I expected. Is that... good? It feels like we skipped some things."`,
+      id: 'backchannel_too_fast', title: '"Was that too fast?"', at: ['travel'],
+      when: (s) => s.pace !== 'steady' && s.day >= 4,
+      text: (s) => `${C(s)} stops to catch their breath and watches a stream for a while. "That was quicker than I expected. Is that... good? It feels like we skipped some things."`,
       choices: [
-        { label: '"It\'s good! We\'re nearly there."', kind: 'through', eff: { momentum: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: (s) => `${C(s)} nods, a little unsure. You both look at the X.` },
+        { label: '"It\'s good! We\'re nearly there."', kind: 'through', eff: { momentum: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: (s) => `${C(s)} nods, a little unsure. You both keep walking.` },
         { label: '"Honestly, we did. Let\'s slow down."', kind: 'prepare', eff: { trust: 2, momentum: -2, pace: 'steady', insight: 1 }, result: 'Saying it out loud is a relief for both of you. The X can wait a few days.' },
         { label: '"What do you think we skipped?"', kind: 'prepare', eff: (s) => { R.tf = open(s); return { energy: -1 }; },
           then: { text: (s) => { const w = worry(s); if (!w) return `${C(s)} counts on their fingers. "Well, you never really asked what I'm worried about."`; return `${C(s)} hesitates, then: ` + (R.tf ? w.text : (w.guarded || w.text)); },
             choices: [
-              { label: 'Thank them, and really listen', kind: 'prepare', eff: (s) => { const w = worry(s); return R.tf && w && w.fact ? { trust: 1, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; }, result: () => (R.tf ? 'Everything the shortcut skipped, in one honest minute. The bridge was worth it after all.' : 'They do not tell you everything. But now you know there is more, and they know you will ask.') },
-              { label: 'Promise to cover it all at the end', kind: 'through', eff: { momentum: 1, debt: { tag: 'assumed_goal', sev: 1 } }, result: '"At the end." They nod. The end is very close.' }
+              { label: 'Thank them, and really listen', kind: 'prepare', eff: (s) => { const w = worry(s); return R.tf && w && w.fact ? { trust: 1, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; }, result: () => (R.tf ? 'Everything the hurry skipped, in one honest minute. Worth slowing down for.' : 'They do not tell you everything. But now you know there is more, and they know you will ask.') },
+              { label: 'Promise to cover it all at the end', kind: 'through', eff: { momentum: 1, debt: { tag: 'assumed_goal', sev: 1 } }, result: '"At the end." They nod. The end keeps getting closer.' }
             ] } }
       ]
     }
@@ -4603,6 +5041,336 @@ window.PP = window.PP || {};
 
 </script>
 <script>
+/* Follow-up journeys: events that only happen when you walk the trail again with an existing client.
+ *
+ * The client already trusts you, some facts carry over from last time, and life has
+ * just changed (s.followUp.title). These beats are about the relationship itself:
+ * picking up where you left off, not copying last time's plan, the people around
+ * the client, and "how else can I help?"
+ * Everything about the client comes from s.client and s.followUp, so these work for any archetype.
+ */
+(function (PP) {
+  const C = (s) => PP.clientName(s);
+  const F = (s) => !!s.followUp;
+  const K = PP.knows;
+  let roll = false;
+
+  /* ---------- helpers ---------- */
+  const S = (s) => (s.client && s.client.shortStake) || 'someone close to them';
+  const lap = (s) => (s.followUp && s.followUp.lap) || 2;
+  const nth = (n) => ({ 2: 'second', 3: 'third', 4: 'fourth', 5: 'fifth' }[n] || n + 'th');
+  const change = (s) => ((s.followUp && s.followUp.title) || 'a change').toLowerCase();
+  const opens = (s) => PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6;
+  const comm = (s) => PP.skill(s, 'communication') > 0;
+  const needKnown = (s) => K(s, 'change_need');
+  const seg = (s) => (s.client && PP.content.clients[s.client.id] && PP.content.clients[s.client.id].segment) || 'family';
+  const bias = (s) => ({ [seg(s)]: 2 });
+  /* Facts carried over from last time (known, still true, not this lap's need). */
+  const carried = (s) => Object.keys(s.facts || {}).filter((k) => k !== 'change_need' && s.client && s.client.facts[k]);
+  const oldFact = (s) => { const k = carried(s)[0]; return k ? s.client.facts[k].label.toLowerCase() : null; };
+  const bookEntry = (s) => s.career && s.followUp && (s.career.book || []).find((b) => b.id === s.followUp.bookId);
+  const lastPlan = (s) => { const b = bookEntry(s); const h = b && s.career && (s.career.history || []).find((x) => x.journey === b.journey); return h && h.outcome && PP.content.destinations ? h.outcome : 'last time\'s plan'; };
+  const hasNotes = (s) => PP.hasItem(s, 'notebook') || (s.career && PP.career && PP.career.hasSystem && PP.career.hasSystem(s.career, 'notes'));
+
+  PP.content.events.push(
+
+    /* ================= ON THE ROAD ================= */
+
+    {
+      id: 'fu_remembered', title: '"You remembered"', at: ['travel'], weight: 2,
+      when: (s) => F(s),
+      text: (s) => `Half a day out, ${C(s)} goes quiet, then says, "I wasn't sure you'd remember me." You do. ${oldFact(s) ? `You remember that ${oldFact(s)}.` : 'You remember the name of their dog, how they take their coffee, and that they hate being called "folks."'} It's lap ${lap(s)} of this relationship, and it shows.`,
+      choices: [
+        { label: 'Say what you remember, and ask how things are really going', kind: 'prepare', hint: 'Warm. Opens a door. Takes a little time.',
+          eff: { trust: 1, momentum: -1 },
+          then: { text: (s) => `${C(s)} smiles properly for the first time since the call. "Okay. Since you asked. The ${change(s)} thing is... bigger than I made it sound on the phone."`,
+            choices: [
+              { label: 'Ask what "bigger" means', kind: 'prepare', hint: 'They might not be ready.',
+                eff: (s) => (opens(s) ? { fact: 'change_need', insight: 1 } : { insight: 1 }),
+                result: (s) => (opens(s) ? `It comes out in a rush. ${C(s)} looks lighter for having said it.` : `"I'll get there. Give me a day." Fair enough. You have time.`) },
+              { label: '"Whenever you\'re ready. I\'m not going anywhere."', kind: 'around', eff: { trust: 1 }, result: (s) => `${C(s)} nods. "That's why I called you and not the number on the internet."` }
+            ] } },
+        { label: 'Skip the catch-up: you know them, get straight to it', kind: 'through', hint: 'Efficient. Familiarity can feel like assuming.',
+          eff: { momentum: 2, debt: { tag: 'assumed_goal', sev: 1 } },
+          result: (s) => `You launch into what you think the ${change(s)} means for them. ${C(s)} nods along. They haven't told you anything yet, you realize later.` },
+        { label: 'Flip back through your notes from last time', kind: 'help', show: hasNotes, hint: 'Past you, writing things down. Hero.',
+          eff: { insight: 1, trust: 1 },
+          result: (s) => `There, in the margin: a detail you'd forgotten you knew. You mention it. ${C(s)} actually gasps. "You WROTE that down?"` }
+      ]
+    },
+
+    {
+      id: 'fu_stake_opinions', title: 'Someone has opinions', at: ['travel'],
+      when: (s) => F(s) && !!s.client.shortStake,
+      text: (s) => `${C(s)}'s phone buzzes for the fourth time in an hour. "Sorry. It's ${S(s)}. They heard about the ${change(s)}. They have thoughts. A lot of thoughts. One of them is in all capitals."`,
+      choices: [
+        { label: `Suggest bringing them into the next conversation`, kind: 'prepare', hint: 'Slower. Everyone who matters is in the room.',
+          eff: (s) => ({ momentum: -1, trust: 1, insight: 1, fact: s.client.stakeholderFact }),
+          then: { text: (s) => `${S(s)} joins by video, slightly too close to the camera. "I just want to know someone's actually thinking about this properly." They look at you. "Are you?"`,
+            choices: [
+              { label: 'Ask what worries them most', kind: 'prepare', eff: (s) => (comm(s) || s.res.trust >= 6 ? { trust: 1, insight: 1, fact: 'change_need' } : { insight: 1 }),
+                result: (s) => `${S(s)} says the thing ${C(s)} hasn't been able to. ${C(s)} doesn't argue. Sometimes the people around a client know things first.` },
+              { label: 'Walk them through what you did last time', kind: 'around', eff: { trust: 1, momentum: 1 },
+                result: (s) => `${S(s)} listens, arms folded, then unfolds them. "Okay. That was sensible." High praise, apparently.` }
+            ] } },
+        { label: 'Let the client handle them and keep moving', kind: 'through', hint: 'Fast. You will hear their opinions later, secondhand.',
+          eff: (s) => ({ momentum: 1, debt: { tag: 'unknown_stakeholder', sev: 2 } }),
+          result: (s) => `${C(s)} types "I've got it handled" and puts the phone face-down. It keeps buzzing, face-down.` },
+        { label: 'Offer to write a short note they can forward', kind: 'help', show: comm, hint: 'Communication: one clear page beats twelve texts.',
+          eff: { energy: -1, trust: 1, momentum: 1 },
+          result: (s) => `Five plain sentences, no jargon. ${C(s)} forwards it. The reply: "fine. thank you. who IS this person?"` }
+      ]
+    },
+
+    {
+      id: 'fu_rival_noticed', title: 'A rival noticed', at: ['travel'],
+      when: (s) => F(s),
+      text: (s) => `${C(s)} hands you a glossy card that arrived yesterday. "CONGRATULATIONS ON YOUR NEW CHAPTER! Let's talk about your future." It's from an agent across town. "How did he even know?" ${C(s)} asks. "I only told about six people. And the internet."`,
+      choices: [
+        { label: 'Ask what, if anything, appealed about it', kind: 'prepare', hint: 'Humbling, maybe. Useful, definitely.',
+          eff: { insight: 1, momentum: -1 },
+          then: { text: (s) => `${C(s)} thinks. "Honestly? He got in touch first. I called you. He just... showed up." They don't sound accusing. They sound like they're telling you something.`,
+            choices: [
+              { label: 'Promise to check in before the next change, not after', kind: 'prepare', eff: { trust: 2, energy: -1 }, result: (s) => `You put a date in your calendar while ${C(s)} watches. "Huh," they say. "Okay."` },
+              { label: '"Fair. That\'s on me."', kind: 'around', eff: { trust: 1 }, result: 'Owning it costs nothing and buys a lot.' }
+            ] } },
+        { label: 'Make a joke about the font and move on', kind: 'around', hint: 'Light. Doesn\'t address why it stung.',
+          eff: { momentum: 1 }, result: (s) => `${C(s)} laughs. The card goes in your pocket, not the bin. You notice that.` },
+        { label: 'Out-pitch him: lay out everything you could do right now', kind: 'through', hint: 'Fights the rival, not the problem.',
+          eff: { momentum: 2, trust: -1, debt: { tag: 'premature_pitch', sev: 2 } },
+          result: (s) => `It's an impressive list. ${C(s)} says, "That's a lot," which is not the same as "yes."` }
+      ]
+    },
+
+    {
+      id: 'fu_phone_call', title: 'The call they had to take', at: ['travel'],
+      when: (s) => F(s),
+      text: (s) => `${C(s)} steps away to take a call. Something about the ${change(s)}: you catch "today?" and "no, I understand" and a long silence. They come back pale and say, "Sorry. Where were we?"`,
+      choices: [
+        { label: 'Stop for the day. Nothing here can\'t wait until tomorrow', kind: 'prepare', hint: 'A day lost. A person looked after.',
+          eff: { days: 1, trust: 2, energy: 1, momentum: -1 },
+          result: (s) => `You find a bench and a terrible vending-machine tea. ${C(s)} talks for a while, not about money at all. Tomorrow they're steadier.` },
+        { label: 'Ask, gently, what the call was about', kind: 'help', hint: 'Only if they want to say.',
+          eff: (s) => (s.res.trust >= 6 ? { fact: 'change_need', trust: 1 } : { insight: 1 }),
+          result: (s) => (s.res.trust >= 6 ? `They tell you. It's exactly the thing that matters, and they hadn't said it until now.` : `"Just... admin," ${C(s)} says. It obviously wasn't. Maybe once they trust you a bit more.`) },
+        { label: 'Pick up exactly where you left off', kind: 'through', hint: 'Keeps the pace. Reads a bit cold.',
+          eff: { momentum: 1, trust: -1 },
+          result: (s) => `You pick up mid-sentence. ${C(s)} nods at the right moments and doesn't hear a word.` }
+      ]
+    },
+
+    {
+      id: 'fu_we_did_this', title: '"We already did all this"', at: ['travel'],
+      when: (s) => F(s) && lap(s) >= 2,
+      text: (s) => `You start on the usual questions. ${C(s)} waves a hand. "We did all this last time. Same address, same job, same everything. Well. Except the ${change(s)}, obviously."`,
+      choices: [
+        { label: 'Skip it. They\'d know, wouldn\'t they?', kind: 'through', hint: 'Saves a day. Things change quietly too.',
+          eff: { momentum: 2, debt: { tag: 'unverified_details', sev: 2 } },
+          result: 'You skip ahead. It feels like trust. It might also be a gap.' },
+        { label: 'Run through it quickly anyway', kind: 'prepare', hint: 'A little tedious. A little safer.',
+          eff: { energy: -1, insight: 1 },
+          result: (s) => `Halfway through, ${C(s)} says, "Oh. Actually, that's changed." Of course it has.` },
+        { label: 'Explain why it matters after a big change', kind: 'help', show: comm, hint: 'Communication: turns a chore into care.',
+          eff: { insight: 1, trust: 1 },
+          result: (s) => `"When one big thing moves, little things move with it." ${C(s)} sighs, then hands over their phone to check. Two little things had moved.` }
+      ]
+    },
+
+    {
+      id: 'fu_how_else', title: '"How else can I help?"', at: ['travel', 'sands', 'summit'],
+      when: (s) => F(s) && s.res.trust >= 4,
+      text: (s) => `It's a good day on the trail. The ${change(s)} feels a bit more manageable. ${C(s)} says, "Thanks for coming back out with me. Seriously." There's a pause where you could say "of course" and leave it there.`,
+      choices: [
+        { label: 'Ask, "Is there anything else going on I should know about?"', kind: 'prepare', hint: 'The best question you\'ll ask all week.',
+          eff: { insight: 1 },
+          then: { text: (s) => `${C(s)} hesitates. "Well... it's not about me. A friend of mine has been going through something too. I didn't know if that was a thing you... did."`,
+            choices: [
+              { label: '"It\'s exactly a thing I do. Would they want to talk?"', kind: 'help', eff: (s) => ({ trust: 1, prospect: { temp: 'warm', source: `a friend of ${C(s)}`, bias: bias(s), event: true } }),
+                result: (s) => `${C(s)} texts them right there. A thumbs-up comes back almost immediately. (New prospect in your pipeline.)` },
+              { label: 'Ask how it\'s affecting the client', kind: 'prepare', eff: (s) => (opens(s) ? { fact: 'change_need', insight: 1 } : { insight: 1, trust: 1 }),
+                result: (s) => (opens(s) ? `It turns out it's tangled up with their own situation more than they'd said. That changes the picture.` : `"Not much, really." But they're glad you asked about them first.`) }
+            ] } },
+        { label: '"Of course." Keep walking.', kind: 'around', eff: { momentum: 1 }, result: 'A nice moment. Just a moment.' },
+        { label: 'Ask straight out who else they could refer', kind: 'through', hint: 'Direct. Can feel transactional mid-crisis.',
+          eff: (s) => (comm(s) ? { prospect: { temp: 'warm', source: `a referral from ${C(s)}`, bias: bias(s), event: true } } : { trust: -1, prospect: { temp: 'cold', source: `a name ${C(s)} gave you`, event: true } }),
+          result: (s) => (comm(s) ? `You ask lightly, and well. ${C(s)} gives you a name without thinking twice. (New prospect in your pipeline.)` : `${C(s)} gives you a name, a little stiffly. "Right now? Okay." (New prospect in your pipeline.)`) }
+      ]
+    },
+
+    {
+      id: 'fu_thank_you', title: 'A thank-you for last time', at: ['travel', 'meadows'],
+      when: (s) => F(s),
+      text: (s) => `${C(s)} digs in their bag and hands you something wrapped in foil. "I made these. For last time. I never said thank you properly, and then the ${change(s)} happened and I thought, well, I'd better say it before I ask for more help."`,
+      choices: [
+        { label: 'Accept, and ask what actually helped last time', kind: 'prepare', hint: 'Feedback is a gift too. Usually less crumbly.',
+          eff: { insight: 1, trust: 1 },
+          result: (s) => `"Honestly? You didn't make me feel stupid." ${C(s)} shrugs. "Everything else was fine. That part I remembered."` },
+        { label: '"Just doing my job."', kind: 'around', hint: 'Modest. Also a bit of a door-close.',
+          eff: { momentum: 1 },
+          result: (s) => `${C(s)} looks faintly disappointed, as if they'd wanted it to be more than a job. The cookies are excellent.` },
+        { label: 'Share them out and make it a proper break', kind: 'help', hint: 'Slower. Good for everyone.',
+          eff: { energy: 2, trust: 1, momentum: -1 },
+          result: (s) => `You sit on a wall and eat cookies. ${C(s)} tells you a story about last year you'd never heard. Lap ${lap(s)}, and you're still learning things.` }
+      ]
+    },
+
+    /* ================= AT LANDMARKS ================= */
+
+    {
+      id: 'fu_copy_paste_plan', title: 'Copy last time\'s plan?', at: ['loop', 'swamp'],
+      when: (s) => F(s),
+      text: (s) => `The trail curls back on itself. A sign reads: "RETURNING CLIENT? Simply re-use your previous plan! (Recommended.)" Below it, a button: COPY ${String(lastPlan(s)).toUpperCase()}. It would be so easy. ${C(s)}'s life has changed, but has it changed THAT much?`,
+      choices: [
+        { label: 'Press the button', kind: 'through', hint: 'Last time\'s answer to last time\'s life.',
+          eff: { momentum: 2, debt: [{ tag: 'ignored_change', sev: 2 }, { tag: 'assumed_goal', sev: 1 }] },
+          result: 'Everything fills in beautifully. Every field is green. None of them mention the change.' },
+        { label: 'Go through the old plan with them, line by line', kind: 'prepare', hint: 'Slow. Shows you what still fits and what doesn\'t.',
+          eff: { energy: -1, insight: 1 },
+          then: { text: (s) => `Line by line, ${C(s)} reads along. Most of it still holds. Then they stop at one line and frown. "That bit was for before."`,
+            choices: [
+              { label: 'Ask what "before" means now', kind: 'prepare', eff: (s) => (opens(s) ? { fact: 'change_need', trust: 1 } : { insight: 1 }),
+                result: (s) => (opens(s) ? `"Before the ${change(s)}. Now it's..." and they tell you what's really changed.` : `"Just... before." They're not quite ready to say. But you know where to look.`) },
+              { label: 'Mark it and keep going', kind: 'around', eff: { momentum: 1 }, result: 'You circle it in red. It is very much still circled.' }
+            ] } },
+        { label: 'Ask Olu to pull the old file and flag what\'s out of date', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), hint: 'Olu loves a diff.',
+          eff: { insight: 2, momentum: 1, clearDebt: 'stale_info' },
+          result: 'Olu sends back the old file with three lines highlighted in yellow and a note: "These were true once."' }
+      ]
+    },
+
+    {
+      id: 'fu_fog_history', title: 'They remember for you', at: ['fog'],
+      when: (s) => F(s),
+      text: (s) => `In the fog, you reach for a detail from last time and it isn't there. Was it their brother or their cousin? Before you can guess, ${C(s)} says, "My cousin. You were going to ask. You always tilt your head when you're about to ask." Shared history works both ways.`,
+      choices: [
+        { label: 'Laugh, admit it, and let them lead for a bit', kind: 'around', hint: 'Humble. Slower. Clients like being the expert on their own life.',
+          eff: { trust: 1, insight: 1, momentum: -1 },
+          result: (s) => `${C(s)} walks you through the fog, filling in gaps. They know the way. It's their life, after all.` },
+        { label: 'Bluff through the rest of the details', kind: 'through', hint: 'You\'ll get most of it right.',
+          eff: { momentum: 1, debt: { tag: 'guessed_key', sev: 2 } },
+          result: 'You nod confidently through the next three details. You are confident about two of them.' },
+        { label: 'Check your notes from last time', kind: 'help', show: hasNotes, hint: 'The notebook, or the notes system, if you kept one.',
+          eff: { insight: 2 },
+          result: (s) => `Page by page, last time comes back. ${C(s)} peers at your handwriting. "Is that a drawing of my dog?" It is.` }
+      ]
+    },
+
+    {
+      id: 'fu_caves_resurface', title: 'It catches up with them', at: ['caves'],
+      when: (s) => F(s),
+      text: (s) => `Deep in the Caves of What-Ifs, the voices echo: "but what if...?" ${C(s)} stops walking. "I've been fine about the ${change(s)}. Really fine. Totally fine." Their voice cracks on the third "fine."`,
+      choices: [
+        { label: 'Sit down with them and say nothing for a while', kind: 'prepare', hint: 'Costs energy. Says more than a plan would.',
+          eff: (s) => ({ energy: -1, trust: 2, fact: s.res.trust >= 5 ? 'change_need' : undefined }),
+          result: (s) => (needKnown(s) ? `After a long while, ${C(s)} says the real thing out loud. The cave seems smaller afterwards.` : `You sit on a cold rock together. ${C(s)} doesn't say much. But they don't let go of your sleeve either.`) },
+        { label: 'Gently walk through the what-ifs one at a time', kind: 'help', hint: 'Turn fear into a list.',
+          eff: { insight: 2, energy: -1 },
+          then: { text: (s) => `One by one, the what-ifs get smaller when you name them. Then ${C(s)} says, "There's one I haven't said."`,
+            choices: [
+              { label: '"Go on."', kind: 'prepare', eff: (s) => (opens(s) ? { fact: 'change_need' } : { trust: 1 }),
+                result: (s) => (opens(s) ? 'They say it. That one is the one that matters.' : `"Not yet," ${C(s)} says. "But I will."`) },
+              { label: '"That\'s enough for today."', kind: 'around', eff: { trust: 1, energy: 1 }, result: 'You head for the light. Some things keep.' }
+            ] } },
+        { label: 'Crack a joke to lift the mood and push on', kind: 'through', hint: 'Fast. Might land. Might not.',
+          eff: () => ((roll = PP.chance(0.5)) ? { momentum: 1, trust: 1 } : { momentum: 1, trust: -1 }), preview: '50%: they laugh (Trust +1). Otherwise it stings (Trust -1).',
+          result: (s) => (roll ? `${C(s)} snorts. "Okay. Okay. Thank you. I needed that."` : `${C(s)} gives you a look. "I'm being serious." You were too, sort of.`) }
+      ]
+    },
+
+    {
+      id: 'fu_old_spreadsheet', title: 'Last time\'s spreadsheet', at: ['swamp'],
+      when: (s) => F(s),
+      text: (s) => `${C(s)} opens the spreadsheet you built together last time. It's lovely. It's color-coded. Every number in it assumes life before the ${change(s)}. "Can we just... change a couple of cells?"`,
+      choices: [
+        { label: 'Change a couple of cells', kind: 'through', hint: 'Quick. Nobody remembers what the other cells assumed.',
+          eff: { momentum: 1, debt: { tag: 'spreadsheet_assumptions', sev: 2 } },
+          result: 'Two cells change. Forty others quietly carry on believing in a different life.' },
+        { label: 'Start fresh from what\'s true now', kind: 'prepare', hint: 'A tiring afternoon. A model that fits.',
+          eff: (s) => ({ energy: -2, insight: 2, fact: opens(s) ? 'change_need' : undefined }),
+          result: (s) => (needKnown(s) ? `Rebuilding row by row, the real shape of the change appears in the numbers before ${C(s)} says it out loud.` : 'A fresh sheet. Cleaner. Something is still missing from it, but at least it\'s an honest gap.') },
+        { label: 'Ask Marge which numbers actually matter', kind: 'help', contact: 'veteran', show: (s) => PP.contactReady(s, 'veteran'), hint: 'The Veteran spots overcomplication from a mile away.',
+          eff: { insight: 1, momentum: 1, energy: 1 },
+          result: 'Marge squints at it for ten seconds. "Three numbers matter. Delete the rest." She is right, and slightly smug about it.' }
+      ]
+    },
+
+    {
+      id: 'fu_snakepit_calls', title: 'They called twice before', at: ['snakepit'],
+      when: (s) => F(s),
+      text: (s) => `Down in the pit, a phone is ringing. You recognize the number: it's ${C(s)}. From a few weeks ago. And another one before that. They called about small things before the ${change(s)}. You meant to call back.`,
+      choices: [
+        { label: 'Own it, out loud, to the client', kind: 'prepare', hint: 'Uncomfortable. Honest.',
+          eff: { trust: 1, energy: -1 },
+          result: (s) => `"I missed your calls. I'm sorry." ${C(s)} blinks. "Honestly, I'd forgotten. But thanks for saying it."` },
+        { label: 'Set up a regular check-in schedule, now', kind: 'help', hint: 'Follow-up you don\'t have to remember is follow-up that happens.',
+          eff: (s) => (comm(s) ? { trust: 2, momentum: -1, clearDebt: 'missed_message' } : { trust: 1, momentum: -1, clearDebt: 'missed_message' }),
+          result: (s) => `Every three months, in both your calendars. ${C(s)} adds it with a little emoji of a phone.` },
+        { label: 'Climb out quietly and hope it never comes up', kind: 'through', hint: 'It will come up.',
+          eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } },
+          result: 'The ringing fades behind you. It does not stop.' }
+      ]
+    },
+
+    {
+      id: 'fu_specialist_again', title: 'The Specialist remembers', at: ['summit'],
+      when: (s) => F(s),
+      text: (s) => `At the summit, the Specialist looks up from a stack of files. "Ah. ${C(s)}. We met last time." A pause. "Something's changed. People don't climb up here twice for fun."`,
+      choices: [
+        { label: 'Brief them properly: last time, the change, what you still don\'t know', kind: 'prepare', hint: 'Takes energy. Saves everyone from repeating themselves.',
+          eff: { energy: -1, insight: 1, clearDebt: 'bad_handoff' },
+          then: { text: (s) => `The Specialist listens, then turns to ${C(s)}. "One question. What's the part of this you're avoiding?"`,
+            choices: [
+              { label: 'Let the client answer', kind: 'around', eff: (s) => (s.res.trust >= 6 ? { fact: 'change_need', trust: 1 } : { insight: 1 }),
+                result: (s) => (needKnown(s) ? `${C(s)} answers. The Specialist nods slowly. "That changes what I'd suggest."` : `${C(s)} says "nothing," which tells everyone something.`) },
+              { label: 'Answer for them', kind: 'through', eff: { momentum: 1, trust: -1 }, result: (s) => `You answer. ${C(s)} looks at the floor. The Specialist notices.` }
+            ] } },
+        { label: 'Call in Dr. Okafor to translate for the client', kind: 'help', contact: 'specialist', show: (s) => PP.contactReady(s, 'specialist'), hint: 'The Specialist contact: experts made understandable.',
+          eff: { insight: 2, momentum: 1 },
+          result: (s) => `Dev explains it with a napkin and three arrows. ${C(s)} says, "Why didn't anyone draw it like that before?"` },
+        { label: 'Forward last time\'s file and let them get on with it', kind: 'through', hint: 'Fast. Last time\'s file is about last time.',
+          eff: { momentum: 2, debt: { tag: 'bad_handoff', sev: 2 } },
+          result: 'The file goes up. A reply comes back in three to five business days.' }
+      ]
+    },
+
+    {
+      id: 'fu_toll_still_fits', title: 'Does the old plan still fit?', at: ['toll'],
+      when: (s) => F(s),
+      text: (s) => `The troll at the toll booth recognizes ${C(s)}. "Back again? Then before anything new crosses, the old one gets checked. Annual review rules. Even if it hasn't been a year. Especially then."`,
+      choices: [
+        { label: 'Review the existing plan properly, with the client', kind: 'prepare', hint: 'A day. Everything on the bridge is up to date.',
+          eff: { days: 1, insight: 1, trust: 1, clearDebt: 'stale_info' },
+          result: (s) => `Most of it still fits. One piece needed a nudge after the ${change(s)}. The troll stamps it with enormous satisfaction.` },
+        { label: 'Ask the client what else has shifted besides the obvious', kind: 'help', hint: 'Big changes travel in groups.',
+          eff: (s) => (opens(s) ? { fact: 'change_need', insight: 1 } : { insight: 1 }),
+          result: (s) => (needKnown(s) ? `"Well, since you ask..." It isn't just the ${change(s)}. There's the part underneath it.` : `"Nothing else," ${C(s)} says, a bit too fast. The troll raises an eyebrow. So do you.`) },
+        { label: 'Wave the old plan through: it was fine last time', kind: 'through', hint: 'The troll will accept this. The future might not.',
+          eff: { momentum: 1, debt: { tag: 'stale_info', sev: 2 } },
+          result: 'The troll shrugs and lifts the barrier. "Your bridge."' }
+      ]
+    },
+
+    {
+      id: 'fu_x_again', title: 'Back at the X', at: ['clients'],
+      when: (s) => F(s),
+      text: (s) => `Clients for Life looks different the ${nth(lap(s))} time. Less like a finish line, more like a front porch. ${C(s)} looks around and says, quietly, "I almost didn't call, you know. After the ${change(s)}. I thought you'd be too busy."`,
+      choices: [
+        { label: 'Ask what nearly stopped them', kind: 'prepare', hint: 'Worth knowing for every client in your book.',
+          eff: { insight: 1, trust: 1 },
+          result: (s) => `"You're doing well. I figured you'd moved on to bigger clients." ${C(s)} shrugs. You make a note to never let anyone in your book think that.` },
+        { label: 'Promise to call them first next time', kind: 'help', hint: 'A promise is only as good as the calendar it lives in.',
+          eff: { trust: 2, energy: -1 },
+          result: (s) => `You both pull out your phones and put a date in. ${C(s)} seems more moved by that than by anything you said on the trail.` },
+        { label: 'Ask who else in their life might need this', kind: 'through', hint: 'The right time to ask, if the lap went well.',
+          eff: (s) => (s.res.trust >= 6 ? { prospect: { temp: 'warm', source: `a referral from ${C(s)} on lap ${lap(s)}`, bias: bias(s), event: true } } : { trust: -1 }),
+          result: (s) => (s.res.trust >= 6 ? `${C(s)} doesn't even hesitate. "My neighbor. She keeps asking who I talk to." (New prospect in your pipeline.)` : `${C(s)} frowns. "Let's see how this one goes first."`) }
+      ]
+    }
+  );
+})(window.PP);
+
+</script>
+<script>
 /* Wires each contact's ready-made `assist` choice into the events where it fits.
  * Landmark ids get it on every event there; 'travel' contacts appear on a spread of encounters. */
 (function (PP) {
@@ -4716,7 +5484,7 @@ window.PP = window.PP || {};
       notes: { name: 'Note-taking system', mark: 'fog', cost: 400, blurb: 'Never lose a detail again. A new option in the Fog of Forgotten Info.' },
       crm: { name: 'Client database (CRM)', mark: 'loop', cost: 900, blurb: 'Enter it once. The Loop of Endless Data Entry trails take a day less, with a clean way out.', shortens: 'loop' },
       planning: { name: 'Planning software', mark: 'swamp', cost: 1200, blurb: 'Builds a boardwalk across Spreadsheet Swamp: its trails take a day less, with a better option inside.', shortens: 'swamp' },
-      focus: { name: 'Focus routine', mark: 'sands', cost: 300, blurb: 'A filter for every new initiative. New options in the Shifting Sands.' },
+      focus: { name: 'Focus routine', mark: 'sands', cost: 300, blurb: 'A simple rule for weighing every incentive against what the client actually needs. New options in the Shifting Sands of Incentives.' },
       specialist: { name: 'Specialist partnership', mark: 'summit', cost: 800, blurb: 'A standing relationship with the Summit. Its trails take a day less; handoffs go smoothly.', shortens: 'summit' },
       tech: { name: 'Tech setup', mark: 'isles', cost: 600, blurb: 'Logins, portals and e-signatures that just work. New options in the Login Isles.' },
       review: { name: 'Review process', mark: 'toll', cost: 600, blurb: 'Files always current. Sail through the Annual Review Toll Bridge.' }
@@ -4831,6 +5599,23 @@ window.PP = window.PP || {};
           b.status = 'life'; b.perDay = 50; b.sat = 8; c.savings += 1000;
           note(`${b.name}, who said "not yet," is ready now and wants to work with you. +${C.money(1000)}, and they join your book.`, 'good', 'return');
         }
+      });
+      // Life changes: existing clients call you back, which starts a follow-up journey.
+      c.followUps = (c.followUps || []).filter((f) => {
+        const b = c.book.find((x) => x.id === f.bookId);
+        if (!b || b.status === 'cancelled') return false;
+        if (c.days > f.expires) { b.sat = Math.max(0, b.sat - 2); note(`${b.name} waited for you to follow up about "${f.title.toLowerCase()}" and stopped waiting.`, 'bad', 'followup'); return false; }
+        return true;
+      });
+      c.book.forEach((b) => {
+        if (!['life', 'steady'].includes(b.status) || c.followUps.some((f) => f.bookId === b.id)) return;
+        if (c.days - (b.lastLap != null ? b.lastLap : (b.day || 0)) < 10 || !PP.chance(0.045)) return;
+        const seg = (PP.content.clients[b.archetype] || {}).segment;
+        const pool = (PP.content.lifeChanges || []).filter((lc) => (!lc.segs || lc.segs.includes(seg)) && !(b.changes || []).includes(lc.id));
+        if (!pool.length) return;
+        const lc = PP.pick(pool);
+        c.followUps.push({ id: PP.uid('f'), bookId: b.id, change: lc.id, title: lc.title, expires: c.days + 20 });
+        note(`${b.name} called: ${lc.title.toLowerCase()}. They'd like to meet. (A follow-up journey is waiting at the Trailhead.)`, 'good', 'followup');
       });
       // Pipeline
       c.pipeline = c.pipeline.filter((p) => {
@@ -5570,9 +6355,14 @@ window.PP = window.PP || {};
   PP.content.town = {
     places: {
       docks: {
-        name: 'The Docks', short: 'Docks', x: 196, y: 330,
-        blurb: 'Where the trail begins, and where the boats come in. New faces step off every day, and sailors carry news from out on the trail.',
-        activities: [], npcs: ['marge', 'gus'], sections: ['boats', 'pipeline']
+        name: 'The Docks', short: 'Docks', x: 150, y: 372,
+        blurb: 'Where the boats come in. New faces step off every day, and sailors carry news from out on the trail.',
+        activities: [], npcs: ['marge', 'gus'], sections: ['boats']
+      },
+      trailhead: {
+        name: 'The Trailhead', short: 'Trailhead', x: 312, y: 318,
+        blurb: 'The signpost at the edge of town where every journey starts. Prospects and clients who are ready to set out meet you here.',
+        activities: [], npcs: [], sections: ['pipeline']
       },
       square: {
         name: 'Market Square', short: 'Market', x: 178, y: 214,
@@ -5617,7 +6407,7 @@ window.PP = window.PP || {};
     },
 
     /* Old tab names still used around the code, mapped to a place. */
-    tabPlace: { prospect: 'office', pipeline: 'docks', book: 'homes', build: 'street', people: 'office' },
+    tabPlace: { prospect: 'office', pipeline: 'trailhead', book: 'homes', build: 'street', people: 'office' },
 
     school: {
       courses: [
@@ -5630,7 +6420,7 @@ window.PP = window.PP || {};
         { id: 'cert_specialist', name: 'Specialist Liaison Certificate', days: 3, cost: 700, needs: { preparation: 1 }, grants: { system: 'specialist' }, blurb: 'Learn how the specialists at the Summit actually work. Summit trails take a day less, without needing its Mark.' },
         { id: 'cert_portal', name: 'Portal Pro Certificate', days: 2, cost: 500, needs: { resourcefulness: 1 }, grants: { system: 'tech' }, blurb: 'Logins, e-signatures and two-factor, mastered. New options in the Login Isles.' },
         { id: 'cert_crm', name: 'Client Database Workshop', days: 2, cost: 800, needs: { preparation: 1 }, grants: { system: 'crm' }, blurb: 'Set up a client database properly. The Loop of Endless Data Entry takes a day less.' },
-        { id: 'cert_routes', name: 'Old Harbor Routes (Steve\'s class)', days: 2, cost: 400, needs: { navigation: 1 }, grants: { password: true }, blurb: 'Steve teaches one class a year, mostly about fishing. Near the end he mentions the password to the Secret Shortcut.' },
+        { id: 'cert_routes', name: 'Old Harbor Routes (Steve\'s class)', days: 2, cost: 400, needs: { navigation: 1 }, grants: { password: true }, blurb: 'Steve teaches one class a year, mostly about fishing. Near the end he explains his back channels: quiet ways around several obstacles on the trail.' },
         { id: 'cert_stamina', name: 'Sustainable Pace Seminar', days: 1, cost: 250, grants: { perk: 'stamina' }, blurb: 'Sleep, boundaries and lunch breaks. Start every journey with +2 Energy.' },
         { id: 'cert_mapping', name: 'Field Notes Practicum', days: 2, cost: 350, needs: { curiosity: 1 }, grants: { perk: 'scout' }, blurb: 'Keep a proper field journal. Every journey starts with +1 Insight, and nearby places are named on the map.' }
       ]
@@ -6151,36 +6941,53 @@ window.PP = window.PP || {};
     return URL.createObjectURL(new Blob([out], { type: 'audio/wav' }));
   }
 
-  /* ---------- ambience ---------- */
+  /* ---------- ambience ----------
+   * Each place gets sounds that say where you are. Noise is used sparingly (only real
+   * water and wind), because a bed of filtered noise reads as "ocean" everywhere. */
   const gull = (o, t, v) => { sweep(o, t, 0.28, 1900, 1300, v, 'tri', 0.04); sweep(o, t + 0.32, 0.22, 1700, 1250, v * 0.8, 'tri', 0.04); };
   const chirp = (o, t, v, r) => { const f = 2600 + r() * 1400; for (let k = 0; k < 2 + Math.floor(r() * 3); k++) sweep(o, t + k * 0.09, 0.07, f, f * 1.25, v); };
-  const murmur = (o, v, r) => { noiseBed(o, v, 0.08, 0.31, 0.3, r); for (let t = 0; t < o.length / RATE; t += 0.18 + r() * 0.3) tone(o, t, 0.14, 160 + r() * 140, v * 0.5, 'saw', 0.03, 1.5); };
   const clink = (o, t, v) => bell(o, t, 2400, v, 0.5);
-  const typing = (o, t, n, v, r) => { for (let k = 0; k < n; k++) noiseBurst(o, t + k * (0.07 + r() * 0.08), 0.02, v, true, r); };
+  const tick = (o, t, v, r) => noiseBurst(o, t, 0.012, v, true, r);
+  const typing = (o, t, n, v, r) => { for (let k = 0; k < n; k++) tick(o, t + k * (0.07 + r() * 0.08), v, r); };
+  const step = (o, t, v) => tone(o, t, 0.07, (u) => 90 - 40 * u, v, 'sine', 0.002, 1.5);
+  const cricket = (o, t, v) => { for (let k = 0; k < 3; k++) tone(o, t + k * 0.05, 0.03, 4400, v, 'sine', 0.002, 1); };
+  const frog = (o, t, v, r) => { const f = 130 + r() * 70; for (let k = 0; k < 3; k++) tone(o, t + k * 0.07, 0.05, f, v, 'square', 0.004, 1); };
+  const drip = (o, t, v, r) => tone(o, t, 0.18, (u) => (900 + r() * 500) * (1 + u * 0.6), v, 'sine', 0.001, 1.6);
+  const bubble = (o, t, v, r) => tone(o, t, 0.05, (u) => (500 + r() * 700) * (1 + u), v, 'sine', 0.002, 1.2);
+  const ring = (o, t, v) => { for (let k = 0; k < 6; k++) tone(o, t + k * 0.06, 0.05, k % 2 ? 950 : 1200, v, 'sine', 0.003, 1); };
+  /* Distant voices: little pitch contours like speech, too far away to make out. */
+  const voices = (o, v, r, density = 1) => { for (let t = 0; t < 15; t += (0.25 + r() * 0.5) / density) { const f = 150 + r() * 140; tone(o, t, 0.18 + r() * 0.25, (u) => f * (1 + 0.25 * Math.sin(u * 6 + r())), v, 'tri', 0.04, 1.2); } };
+  /* A little tune: notes = MIDI numbers, step = seconds per note. */
+  const tune = (o, t0, notes, stepS, v, type, len = 0.9) => notes.forEach((n, i) => n && tone(o, t0 + i * stepS, stepS * len, note(n), v, type, 0.01, 1.6));
   const AMB = {
     docks(o, r) { noiseBed(o, 0.5, 0.02, 1 / 6, 0.75, r, true); for (let t = 1; t < 15; t += 3 + r() * 3) gull(o, t, 0.05); bell(o, 0.4, 392, 0.12, 2.8); bell(o, 8.4, 392, 0.1, 2.8); },
-    square(o, r) { murmur(o, 0.09, r); for (let t = 0.5; t < 15; t += 1.5 + r() * 3) clink(o, t, 0.06); bell(o, 7, 784, 0.04); },
-    chamber(o, r) { murmur(o, 0.11, r); for (let t = 0.3; t < 15; t += 0.8 + r() * 2) clink(o, t, 0.07); },
-    office(o, r) { noiseBed(o, 0.03, 0.05, 0.1, 0.1, r); for (let t = 0.2; t < 15; t += 1.4 + r() * 2.5) typing(o, t, 4 + Math.floor(r() * 8), 0.18, r); tone(o, 9, 0.9, 1320, 0.03, 'sine', 0.01, 0.4); },
-    street(o, r) { noiseBed(o, 0.35, 0.015, 0.07, 0.5, r, true); for (let t = 0.5; t < 15; t += 0.5) noiseBurst(o, t, 0.04, 0.03, true, r); sweep(o, 6, 0.5, 440, 430, 0.04, 'square'); },
-    homes(o, r) { noiseBed(o, 0.05, 0.03, 0.1, 0.5, r); for (let t = 0.3; t < 15; t += 0.8 + r() * 2) chirp(o, t, 0.035, r); [72, 76, 79, 84].forEach((n, i) => bell(o, 4 + i * 0.35 + r() * 0.2, note(n), 0.04, 2.5)); },
-    school(o, r) { murmur(o, 0.06, r); bell(o, 0.5, 880, 0.06, 2); bell(o, 1.0, 880, 0.05, 2); for (let t = 3; t < 15; t += 2 + r() * 2) noiseBurst(o, t, 0.12, 0.05, true, r, 0.6); },
-    library(o, r) { for (let t = 0; t < 15; t += 1) noiseBurst(o, t, 0.012, 0.12, true, r); for (let t = 2; t < 15; t += 4 + r() * 3) noiseBurst(o, t, 0.35, 0.03, true, r, 0.3); },
-    field(o, r) { murmur(o, 0.08, r); noiseBurst(o, 3, 0.03, 0.4, true, r); noiseBed(o, 0.06, 0.1, 1 / 15, 0.9, r); for (let t = 3.2; t < 5; t += 0.1) noiseBurst(o, t, 0.3, 0.04, true, r, 0.4); },
-    meadows(o, r) { noiseBed(o, 0.06, 0.03, 0.1, 0.5, r); for (let t = 0.3; t < 15; t += 0.6 + r() * 1.5) chirp(o, t, 0.035, r); },
-    sea(o, r) { noiseBed(o, 0.6, 0.02, 1 / 5, 0.8, r, true); for (let t = 2; t < 15; t += 4 + r() * 4) gull(o, t, 0.04); },
-    fog(o, r) { noiseBed(o, 0.15, 0.01, 0.05, 0.3, r, true); sweep(o, 1, 3.2, 98, 96, 0.22, 'saw'); sweep(o, 1, 3.2, 147, 145, 0.12, 'saw'); for (let t = 5; t < 15; t += 1.3 + r()) tone(o, t, 0.08, 1800 + r() * 600, 0.04, 'sine', 0.001, 1); },
-    swamp(o, r) { noiseBed(o, 0.05, 0.03, 0.2, 0.4, r); for (let t = 0.2; t < 15; t += 0.7 + r() * 1.4) { const f = 140 + r() * 80; for (let k = 0; k < 3; k++) tone(o, t + k * 0.06, 0.05, f, 0.12, 'square', 0.005, 1); } },
-    summit(o, r) { noiseBed(o, 0.5, 0.02, 1 / 7.5, 0.85, r, true); noiseBed(o, 0.05, 0.3, 1 / 5, 0.9, r); },
-    caves(o, r) { noiseBed(o, 0.06, 0.01, 0.05, 0.2, r, true); for (let t = 0.5; t < 15; t += 1 + r() * 2) tone(o, t, 0.25, 900 + r() * 700, 0.08, 'sine', 0.001, 1.2); echo(o, 0.23, 0.35); },
-    sands(o, r) { noiseBed(o, 0.12, 0.25, 1 / 3.75, 0.8, r); },
-    isles(o, r) { noiseBed(o, 0.45, 0.02, 1 / 5, 0.8, r, true); for (let t = 1; t < 15; t += 2.5 + r() * 2) { tone(o, t, 0.08, 1760, 0.05, 'square', 0.002, 1); tone(o, t + 0.12, 0.08, 1320, 0.05, 'square', 0.002, 1); } },
-    snakepit(o, r) { noiseBed(o, 0.04, 0.03, 0.2, 0.4, r); for (let t = 0.5; t < 15; t += 2 + r() * 2.5) for (let k = 0; k < 4; k++) tone(o, t + k * 0.07, 0.06, k % 2 ? 950 : 1200, 0.05, 'sine', 0.003, 1); },
-    loop(o, r) { for (let t = 0.2; t < 15; t += 1 + r() * 1.5) typing(o, t, 5 + Math.floor(r() * 8), 0.16, r); tone(o, 7, 0.15, 880, 0.05, 'square', 0.002, 1); },
-    toll(o, r) { noiseBed(o, 0.4, 0.02, 1 / 6, 0.7, r, true); for (let t = 2; t < 15; t += 5) sweep(o, t, 0.6, 180, 120, 0.05, 'saw'); },
-    clients(o, r) { [72, 76, 79, 84, 88].forEach((n, i) => { bell(o, 0.5 + i * 0.4, note(n), 0.06, 3); bell(o, 7.5 + i * 0.4, note(n - 5), 0.05, 3); }); noiseBed(o, 0.04, 0.03, 0.1, 0.5, r); }
+    trailhead(o, r) { for (let t = 0.3; t < 15; t += 0.7 + r() * 1.6) chirp(o, t, 0.04, r); for (let t = 0; t < 15; t += 0.55) step(o, t, 0.07); for (let t = 0.2; t < 15; t += 0.9 + r() * 0.6) cricket(o, t, 0.012); },
+    square(o, r) { voices(o, 0.025, r, 1.4); for (let t = 0.5; t < 15; t += 1.4 + r() * 2.5) clink(o, t, 0.05); // a busker on the corner
+      tune(o, 0.5, [67, 71, 74, 72, 71, 69, 67, 0, 69, 71, 72, 74, 72, 71, 69, 0, 67, 71, 74, 76, 74, 72, 71, 69, 67], 0.45, 0.05, 'tri'); },
+    chamber(o, r) { voices(o, 0.02, r, 1.8); for (let t = 0.3; t < 15; t += 0.8 + r() * 1.8) clink(o, t, 0.06); // a piano in the corner
+      [[60, 64, 67, 71], [57, 60, 64, 67], [62, 65, 69, 72], [55, 59, 62, 65]].forEach((ch, i) => ch.forEach((n, k) => tone(o, i * 3.75 + k * 0.12, 3.4, note(n), 0.035, 'sine', 0.01, 0.8))); },
+    office(o, r) { for (let t = 0.2; t < 15; t += 1.2 + r() * 2.2) typing(o, t, 4 + Math.floor(r() * 9), 0.14, r); for (let t = 0; t < 15; t += 1) tick(o, t, 0.05, r); ring(o, 9, 0.03); tone(o, 4, 0.08, 1320, 0.03, 'sine', 0.002, 1); tone(o, 4.1, 0.08, 1760, 0.03, 'sine', 0.002, 1); },
+    street(o, r) { for (let t = 0; t < 15; t += 0.42 + r() * 0.1) step(o, t, 0.06); voices(o, 0.015, r, 0.6); sweep(o, 5.5, 0.4, 440, 435, 0.04, 'square'); bell(o, 11, 2200, 0.05, 0.6); bell(o, 11.15, 2200, 0.05, 0.6); },
+    homes(o, r) { for (let t = 0.3; t < 15; t += 0.6 + r() * 1.4) chirp(o, t, 0.04, r); [72, 76, 79, 84].forEach((n, i) => bell(o, 3 + i * 0.35 + r() * 0.2, note(n), 0.05, 2.5)); [79, 84, 76].forEach((n, i) => bell(o, 10 + i * 0.4, note(n), 0.04, 2.5)); sweep(o, 7.2, 0.15, 500, 380, 0.05, 'saw'); sweep(o, 7.45, 0.15, 520, 400, 0.05, 'saw'); },
+    school(o, r) { bell(o, 0.3, 988, 0.07, 1.5); bell(o, 0.65, 988, 0.06, 1.5); voices(o, 0.012, r, 0.8); for (let t = 3; t < 15; t += 0.25 + r() * 0.2) if (r() < 0.5) tick(o, t, 0.06, r); // chalk, and a piano lesson down the hall
+      tune(o, 5, [60, 62, 64, 65, 67, 69, 71, 72, 71, 69, 67, 65, 64, 62, 60], 0.3, 0.035, 'sine'); },
+    library(o, r) { for (let t = 0; t < 15; t += 1) tick(o, t, 0.04, r); for (let t = 2.5; t < 15; t += 4 + r() * 3) noiseBurst(o, t, 0.25, 0.012, true, r, 0.25); noiseBurst(o, 8, 0.6, 0.008, true, r, 0.9); tone(o, 12, 0.25, 140, 0.02, 'sine', 0.05, 1); },
+    field(o, r) { noiseBurst(o, 1.5, 0.03, 0.2, true, r); voices(o, 0.02, r, 1.5); tune(o, 3, [60, 64, 67, 72, 0, 67, 72], 0.22, 0.06, 'square', 0.8); bell(o, 9, 3000, 0.04, 0.3); },
+    meadows(o, r) { for (let t = 0.3; t < 15; t += 0.5 + r() * 1.3) chirp(o, t, 0.04, r); for (let t = 0.1; t < 15; t += 0.7 + r() * 0.5) cricket(o, t, 0.012); },
+    sea(o, r) { noiseBed(o, 0.5, 0.02, 1 / 5, 0.8, r, true); for (let t = 2; t < 15; t += 4 + r() * 4) gull(o, t, 0.04); },
+    fog(o, r) { sweep(o, 1, 3.2, 98, 96, 0.22, 'saw'); sweep(o, 1, 3.2, 147, 145, 0.12, 'saw'); sweep(o, 9, 2.5, 98, 96, 0.16, 'saw'); for (let t = 4.5; t < 15; t += 1.1 + r()) drip(o, t, 0.04, r); },
+    swamp(o, r) { for (let t = 0.2; t < 15; t += 0.5 + r() * 1.1) frog(o, t, 0.1, r); for (let t = 0.1; t < 15; t += 0.4 + r() * 0.4) cricket(o, t, 0.015); },
+    summit(o, r) { for (let t = 0; t < 15; t += 3.75) sweep(o, t, 3.6, 300 + r() * 80, 520 + r() * 100, 0.03, 'sine', 0.01); sweep(o, 6, 0.9, 1500, 1100, 0.05, 'tri', 0.03); },
+    caves(o, r) { for (let t = 0.5; t < 15; t += 0.9 + r() * 1.8) drip(o, t, 0.08, r); tone(o, 0, 15, 55, 0.03, 'sine', 2, 0.1); echo(o, 0.23, 0.35); },
+    sands(o, r) { // the incentive fair: a game-show jingle, a cash register, a crowd
+      voices(o, 0.015, r, 1.2); tune(o, 0.4, [72, 76, 79, 84, 0, 79, 84], 0.16, 0.06, 'square', 0.8); for (const t of [4, 9.5, 13]) { bell(o, t, 2093, 0.05, 0.4); bell(o, t + 0.08, 2637, 0.05, 0.5); } tune(o, 7, [67, 0, 67, 72], 0.18, 0.05, 'square', 0.8); },
+    isles(o, r) { noiseBed(o, 0.2, 0.02, 1 / 5, 0.8, r, true); for (let t = 1; t < 15; t += 2.5 + r() * 2) { tone(o, t, 0.08, 1760, 0.05, 'square', 0.002, 1); tone(o, t + 0.12, 0.08, 1320, 0.05, 'square', 0.002, 1); } },
+    snakepit(o, r) { for (let t = 0.5; t < 15; t += 1.4 + r() * 2) ring(o, t, 0.05); tone(o, 6, 0.4, 425, 0.03, 'sine', 0.01, 0.5); },
+    loop(o, r) { for (let t = 0.2; t < 15; t += 1 + r() * 1.5) typing(o, t, 5 + Math.floor(r() * 8), 0.14, r); for (const t of [4, 9, 13]) { tone(o, t, 0.15, 220, 0.05, 'square', 0.002, 1); tone(o, t + 0.17, 0.2, 196, 0.05, 'square', 0.002, 1); } },
+    toll(o, r) { for (let t = 0; t < 15; t += 0.12 + r() * 0.2) bubble(o, t, 0.02, r); for (const t of [2, 7, 12]) sweep(o, t, 0.6, 180, 120, 0.04, 'saw'); },
+    clients(o, r) { [72, 76, 79, 84, 88].forEach((n, i) => { bell(o, 0.5 + i * 0.4, note(n), 0.06, 3); bell(o, 7.5 + i * 0.4, note(n - 5), 0.05, 3); }); for (let t = 0.3; t < 15; t += 0.8 + r() * 1.5) chirp(o, t, 0.03, r); }
   };
-  const AMB_ALIAS = { port: 'docks', lighthouse: 'sea', wreck: 'sea', backchannel: 'meadows', cliffs: 'summit' };
+  const AMB_ALIAS = { port: 'docks', lighthouse: 'sea', wreck: 'sea', meadow: 'meadows', cliffs: 'summit' };
 
   /* ---------- music ---------- */
   const MOODS = {
@@ -6240,7 +7047,9 @@ window.PP = window.PP || {};
     else { o = buf(15); const fn = AMB[AMB_ALIAS[name] || name] || AMB.meadows; fn(o, rnd(name.length * 131 + 7)); }
     // Even out loudness: music sits a little above ambience, both well under the effects.
     let sum = 0; for (let i = 0; i < o.length; i++) sum += o[i] * o[i];
-    const rms = Math.sqrt(sum / o.length) || 1, k = Math.min(25, (kind === 'music' ? 0.1 : 0.06) / rms);
+    let peak = 0; for (let i = 0; i < o.length; i++) peak = Math.max(peak, Math.abs(o[i]));
+    const rms = Math.sqrt(sum / o.length) || 1;
+    const k = Math.min(kind === 'music' ? 25 : 6, (kind === 'music' ? 0.1 : 0.05) / rms, 0.8 / (peak || 1));
     for (let i = 0; i < o.length; i++) o[i] *= k;
     return (cache[key] = o);
   }
@@ -9304,7 +10113,7 @@ window.PP = window.PP || {};
 (function (PP) {
   const NS = 'http://www.w3.org/2000/svg';
   const INK = '#4a2c12', NAVY = '#000a62', ORANGE = '#f39c12';
-  const W = 360, H = 400;
+  const W = 360, H = 440;
   const el = (tag, attrs, ...kids) => {
     const e = document.createElementNS(NS, tag);
     for (const k in attrs || {}) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
@@ -9315,6 +10124,7 @@ window.PP = window.PP || {};
 
   /* Little buildings, each drawn around (0,0) = the place's anchor. */
   const ICON = {
+    trailhead: () => [p('M0,16 v-36', 'ink thick'), p('M0,-18 h22 l6,5 l-6,5 h-22z', 'fill-orange'), p('M0,-6 h-20 l-6,5 l6,5 h20z', 'fill-fog'), p('M-30,16 q30,-8 60,0', 'ink thin'), el('circle', { cx: 18, cy: 8, r: 6, class: 'fill-tan' }), p('M14,4 h8', 'ink thin')],
     docks: () => [
       p('M-34,8 h68 M-28,8 v14 M-10,8 v14 M8,8 v14 M26,8 v14', 'ink thick'),
       el('g', { class: 't-boat' }, p('M-60,24 h30 l-6,9 h-18z', 'fill-fog'), p('M-46,24 v-20 l14,17z', 'fill-orange')),
@@ -9337,23 +10147,24 @@ window.PP = window.PP || {};
     // Land, water, coast
     svg.append(
       el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: 4, class: 'land' }),
-      el('path', { d: `M2,318 C60,300 110,330 150,312 C200,292 240,318 290,300 C320,290 340,296 358,288 V398 H2z`, class: 'sea' }),
-      ...[0, 1, 2].map((r) => el('path', { d: `M${14 + r * 30},${352 + r * 14} q10,-6 20,0 t20,0 M${210 + r * 40},${345 + r * 16} q10,-6 20,0 t20,0`, class: 'wave' })),
-      el('text', { x: 300, y: 384, class: 't-sea' }, 'to the trail →')
+      el('path', { d: `M2,352 C50,340 100,358 150,346 C200,334 240,356 278,362 C310,368 340,372 358,366 V438 H2z`, class: 'sea' }),
+      ...[0, 1, 2].map((r) => el('path', { d: `M${14 + r * 30},${392 + r * 12} q10,-6 20,0 t20,0 M${220 + r * 40},${394 + r * 12} q10,-6 20,0 t20,0`, class: 'wave' })),
+      el('path', { d: 'M330,318 C344,312 350,300 358,296', class: 'road' }),
+      el('text', { x: 346, y: 352, class: 't-sea t-small' }, 'trail →')
     );
     // Roads (dotted, like the trail map)
-    const roads = ['M78,150 C120,170 150,190 178,214', 'M178,214 C220,200 250,170 282,140', 'M178,214 C230,225 260,232 300,236', 'M178,214 C185,260 190,295 196,318', 'M56,262 C100,250 140,232 178,214',
+    const roads = ['M78,150 C120,170 150,190 178,214', 'M178,214 C220,200 250,170 282,140', 'M178,214 C230,225 260,232 300,236', 'M178,214 C170,270 160,320 150,352', 'M178,214 C230,250 280,290 312,318', 'M56,262 C100,250 140,232 178,214',
       'M170,62 C175,120 176,170 178,214', 'M170,62 C220,58 250,54 292,52', 'M58,62 C100,60 130,62 170,62', 'M78,150 C70,110 62,85 58,62', 'M282,140 C288,110 290,80 292,52'];
     roads.forEach((d) => svg.appendChild(el('path', { d, class: 'road' })));
     // Scenery: trees and grass
-    [[120, 110], [236, 96], [22, 200], [128, 270], [330, 180], [250, 270], [26, 120], [334, 100]].forEach(([x, y], i) =>
+    [[120, 110], [236, 96], [22, 200], [118, 300], [330, 180], [246, 300], [26, 120], [334, 100], [60, 330], [228, 336], [96, 322]].forEach(([x, y], i) =>
       svg.appendChild(i % 2 ? el('path', { d: `M${x - 5},${y} l5,-10 l5,10`, class: 'grass' }) : el('g', null, el('circle', { cx: x, cy: y - 8, r: 7, class: 'fill-tree' }), el('path', { d: `M${x},${y - 1} v6`, class: 'ink thin' }))));
     // Compass
     svg.appendChild(el('g', { transform: 'translate(330 30)', class: 't-compass' }, el('circle', { r: 13, class: 'fill-fog' }), el('path', { d: 'M0,-16 L3,-3 L0,0 L-3,-3z', class: 'fill-orange' }), el('path', { d: 'M0,16 L3,3 L0,0 L-3,3z', class: 'fill-navy' }), el('text', { y: -19, class: 't-n' }, 'N')));
 
     const badges = {
-      docks: c.pipeline.length ? { n: c.pipeline.length, cls: 'b-go', title: 'ready to set out' } : null,
-      homes: (() => { const act = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)); const un = act.filter((b) => b.sat < 5).length; return un ? { n: '!', cls: 'b-warn', title: 'clients need you' } : act.length ? { n: act.length, cls: 'b-ok', title: 'clients' } : null; })()
+      trailhead: c.pipeline.length + (c.followUps || []).length ? { n: c.pipeline.length + (c.followUps || []).length, cls: 'b-go', title: 'ready to set out' } : null,
+      homes: (() => { const act = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)); const un = act.filter((b) => b.sat < 5).length + (c.followUps || []).length; return un ? { n: '!', cls: 'b-warn', title: 'clients need you' } : act.length ? { n: act.length, cls: 'b-ok', title: 'clients' } : null; })()
     };
     Object.entries(T.places).forEach(([id, pl]) => {
       if (!badges[id] && pl.npcs.some((n) => !c.met[n])) badges[id] = { n: '•', cls: 'b-new', title: 'someone new to meet' };
@@ -9399,11 +10210,11 @@ window.PP = window.PP || {};
     fog: [{ who: 'A traveler who has been here a while', line: '"What was I saying? Oh, right. Write down dates. Write down everything."', eff: { insight: 1 } }],
     loop: [{ who: 'A clerk on lap 14', line: '"I\'ve typed this same address since spring. Tip: check it once, properly, and you only do it once."', eff: { insight: 1 } }],
     swamp: [{ who: 'A frog in a green visor', line: '"Ribbit." (You\'re fairly sure that means: ask what the spreadsheet is FOR.)' }],
-    sands: [{ who: 'A nomad wearing nine lanyards', line: '"Every initiative is the most important one. For about a week."', eff: { insight: 1 } }],
+    sands: [{ who: 'A nomad wearing nine contest lanyards', line: '"Won a trip every year for a decade. Lost a client every year too. The trips were nice. I don\'t remember them."', eff: { insight: 1 } }],
+    caves: [{ who: 'An old miner with a lantern', line: '"Folks think there are monsters down here. It\'s just the questions nobody wanted to ask. Go slow, bring a light, and let them lead."', eff: { insight: 1 } }],
     summit: [{ who: 'The Specialist\'s assistant', line: '"Bring context. The Specialist hates \'see below.\'"' }],
     isles: [{ who: 'A ferryman', line: '"Password hint? It\'s always the pet\'s name. Always."' }],
-    toll: [{ who: 'The troll, off duty', line: '"I\'m not mean. I just like tidy files. You\'d be amazed how few people keep tidy files."' }],
-    backchannel: [{ who: 'Nobody', line: 'It is very quiet here. That\'s the point of a back channel.' }]
+    toll: [{ who: 'The troll, off duty', line: '"I\'m not mean. I just like tidy files. You\'d be amazed how few people keep tidy files."' }]
   };
 
   const T = (PP.trail = {});
@@ -9429,7 +10240,8 @@ window.PP = window.PP || {};
     if (T.keys) document.removeEventListener('keydown', T.keys);
     T.keys = onKey; document.addEventListener('keydown', T.keys);
     renderLedger(); renderSide();
-    say(`Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
+    if (s.followUp) say(s.client.followCall || `${s.client.name} called. Life has changed.`);
+    say(s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
     showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
   };
@@ -9440,7 +10252,7 @@ window.PP = window.PP || {};
   function goalLine() {
     const s = T.s;
     return h('div', { class: 'goal' },
-      h('div', null, h('span', { class: 'eyebrow' }, 'This journey'), ` Find out where ${s.client.name} actually needs to go, and get them to Clients for Life with their trust intact.`),
+      h('div', null, h('span', { class: 'eyebrow' }, 'This journey'), s.followUp ? ` ${s.client.name}'s life changed: ${s.followUp.title.toLowerCase()}. Find out what it really means for them, and see the relationship through to the next plan.` : ` Build rapport, find the facts, understand the risks, and guide ${s.client.name} to the plan that truly fits, with their trust intact.`),
       s.career ? h('div', null, h('span', { class: 'eyebrow' }, 'Your career'), ` Build a Profitable practice before your savings run out. Every day away costs ${PP.career.money(PP.career.costs(s.career))}, and your clients and prospects back at the port are waiting.`) : null);
   }
   function narration(n = 3) {
@@ -9764,6 +10576,7 @@ window.PP = window.PP || {};
   }
 
   /* ---------- Arriving ---------- */
+  PP.ui.trailDebug = { arrive: (id) => arrive(id), state: () => T.s }; // for automated tests
   async function arrive(id) {
     const s = T.s;
     const node = PP.content.nodes[id];
@@ -10075,7 +10888,7 @@ window.PP = window.PP || {};
     const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
     if (!c.pipeline.length) return 'Nobody is waiting to set out. Find prospects: make calls from your desk, work the room at Chamber Hall, set up a tent in Market Square, or meet the boats at the Docks.';
     if (unhappy.length) return `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. Visit Maple Row before you head out.`;
-    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Head to the Docks to set out on the trail, or keep building.`;
+    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Head to the Trailhead to set out, or keep building.`;
   }
 
   function practicePanel(c) {
@@ -10128,7 +10941,7 @@ window.PP = window.PP || {};
     const c = G.career, T = PP.content.town;
     const want = T.places[where] ? where : T.tabPlace[where];
     if (want) G.place = want;
-    if (!G.place) G.place = c.pipeline.length ? 'docks' : 'office';
+    if (!G.place) G.place = c.pipeline.length || (c.followUps || []).length ? 'trailhead' : 'office';
     PP.audio && PP.audio.bed('town:' + G.place);
     const panel = h('div', { class: 'place-panel', id: 'place-panel' }, placePanel(G.place));
     const map = PP.ui.townMap(c, G.place, (id) => {
@@ -10250,12 +11063,16 @@ window.PP = window.PP || {};
   }
 
   /* ---- Pipeline ---- */
+  function followUpBox() {
+    const fus = (G.career.followUps || []).map(followUpCard).filter(Boolean);
+    return fus.length ? h('div', { class: 'stack' }, h('h4', { class: 'place-sub' }, 'Clients who called you back'), h('div', { class: 'pipeline-grid' }, fus)) : null;
+  }
   function tabPipeline() {
     const c = G.career;
-    if (!c.pipeline.length) return h('div', { class: 'panel' }, h('p', null, 'Nobody in your pipeline yet. Prospects you meet show up here, ready to be guided along the trail.'), h('button', { class: 'btn primary', onclick: () => port('prospect') }, 'Go prospecting'));
+    if (!c.pipeline.length) return h('div', { class: 'stack' }, followUpBox(), h('div', { class: 'panel' }, h('p', null, 'No new prospects waiting. Prospects you meet show up here, ready to be guided along the trail.'), h('button', { class: 'btn primary', onclick: () => port('prospect') }, 'Go prospecting')));
     const nurture = h('div', { class: 'panel row between' }, h('div', null, h('h3', null, 'Keep your pipeline warm'), h('p', { class: 'small muted' }, 'Prospects go cold if you leave them waiting. A day of follow-up notes and calls buys everyone another week.')),
       h('button', { class: 'btn', onclick: () => spendDay(() => { c.pipeline.forEach((p) => (p.expires += 7)); return `You spend the day following up with ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''}. Everyone gets another week.`; }, 'pipeline') }, 'Nurture your pipeline (1 day)'));
-    return h('div', { class: 'stack' }, nurture, h('div', { class: 'pipeline-grid' }, c.pipeline.slice().sort((a, b) => a.expires - b.expires).map((p) => {
+    return h('div', { class: 'stack' }, followUpBox(), h('h4', { class: 'place-sub' }, 'New prospects'), nurture, h('div', { class: 'pipeline-grid' }, c.pipeline.slice().sort((a, b) => a.expires - b.expires).map((p) => {
       const cl = PP.content.clients[p.archetype];
       const left = p.expires - c.days;
       return h('article', { class: 'panel prospect-card t-' + p.temp },
@@ -10294,7 +11111,7 @@ window.PP = window.PP || {};
     const c = G.career;
     const list = c.book.filter((b) => b.status !== 'lost');
     const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
-    return h('div', { class: 'stack' },
+    return h('div', { class: 'stack' }, followUpBox(),
       h('div', { class: 'panel' },
         h('h3', null, 'Look after your clients'),
         h('p', { class: 'small muted' }, 'Satisfaction slips a little every day. Below 4, clients start to cancel. Spend a day on service to keep them close.' + (c.partner ? ' Your partner looks after them while you are on the trail.' : '')),
@@ -10395,7 +11212,7 @@ window.PP = window.PP || {};
     const done = (co) => co.skill ? (c.skills[co.skill] || 0) >= 2 : co.grants.system ? !!c.systems[co.grants.system] : co.grants.password ? PP.store.get('password', false) : !!c.perks[co.grants.perk];
     const card = (co) => {
       const has = done(co), ok = meets(co.needs), afford = c.savings >= co.cost;
-      const what = co.skill ? `+1 ${PP.SKILLS.find((x) => x.id === co.skill).label} (now ${c.skills[co.skill] || 0}/2)` : co.grants.system ? `Builds: ${P().systems[co.grants.system].name}` : co.grants.password ? 'Unlocks the Secret Shortcut' : PP.content.town.perks[co.grants.perk].blurb;
+      const what = co.skill ? `+1 ${PP.SKILLS.find((x) => x.id === co.skill).label} (now ${c.skills[co.skill] || 0}/2)` : co.grants.system ? `Builds: ${P().systems[co.grants.system].name}` : co.grants.password ? 'Opens Steve\'s back channels: hidden passages at several obstacles' : PP.content.town.perks[co.grants.perk].blurb;
       return h('article', { class: 'panel activity course' + (co.skill ? '' : ' cert') },
         h('div', { class: 'eyebrow' }, co.skill ? 'Course' : 'Certificate'),
         h('h3', null, co.name), h('p', { class: 'small' }, co.blurb), h('p', { class: 'small good' }, what),
@@ -10414,7 +11231,7 @@ window.PP = window.PP || {};
       c.courses[co.id] = true;
       if (co.skill) { c.skills[co.skill] = Math.min(2, (c.skills[co.skill] || 0) + 1); return `${co.name}: ${co.days} evening${co.days > 1 ? 's' : ''} of class. +1 ${PP.SKILLS.find((x) => x.id === co.skill).label}.`; }
       if (co.grants.system) { c.systems[co.grants.system] = true; return `${co.name} complete. ${P().systems[co.grants.system].name} is now part of your practice.`; }
-      if (co.grants.password) { PP.store.set('password', true); return `${co.name}: two hours on bait, then, almost as an afterthought, "the shortcut password is password1." The Secret Shortcut is open to you.`; }
+      if (co.grants.password) { PP.store.set('password', true); return `${co.name}: two hours on bait, then, almost as an afterthought, a list of people who owe Steve favors all along the trail. His back channels are open to you.`; }
       c.perks[co.grants.perk] = true; return `${co.name} complete. ${PP.content.town.perks[co.grants.perk].blurb}`;
     });
   }
@@ -10519,16 +11336,63 @@ window.PP = window.PP || {};
       list, h('div', { class: 'row' }, go, h('button', { class: 'btn ghost', onclick: () => port('pipeline') }, 'Back to the port'))));
   }
 
+  /* ---- Follow-up journeys: an existing client's life changed ---- */
+  function setupFollowUp(s, c, f) {
+    const b = c.book.find((x) => x.id === f.bookId), lc = PP.content.lifeChanges.find((x) => x.id === f.change), cl = s.client;
+    const fill = (t) => String(t || '').replace(/\{c\}/g, cl.name);
+    s.followUp = { id: f.id, bookId: b.id, change: lc.id, lap: (b.laps || 1) + 1, title: lc.title };
+    (b.facts || []).forEach((k) => { if (cl.facts[k]) s.facts[k] = 0; });
+    cl.facts.change_need = { label: fill(lc.need), key: true };
+    cl.keyFact = 'change_need';
+    cl.fit = {}; Object.keys(PP.content.destinations).forEach((d) => (cl.fit[d] = 'poor'));
+    cl.fit[lc.right] = 'appropriate'; (lc.ok || []).forEach((d) => (cl.fit[d] = 'acceptable'));
+    cl.unlocks = { [lc.right]: ['change_need'] };
+    cl.surface = fill(lc.title) + '. ' + cl.surface;
+    cl.checkin = Object.assign({}, cl.checkin, { worry: { curious: true, minTrust: 6, text: fill(lc.reveal), fact: 'change_need', guarded: fill(lc.guarded) }, goal: { text: fill(lc.goal) } });
+    cl.conversation = (cl.conversation || []).concat([{ text: fill(lc.line), tag: 'fact', fact: 'change_need', subtle: true }]);
+    cl.followCall = fill(lc.call); cl.followHelp = fill(lc.help);
+    PP.apply(s, { trust: 1 + Math.min(2, b.laps || 1) });
+  }
+  function followUpEnd(s, c, pay, fit) {
+    const b = c.book.find((x) => x.id === s.followUp.bookId);
+    if (!b) return;
+    pay.now = Math.round(pay.now * 0.6);
+    b.laps = s.followUp.lap; b.lastLap = c.days;
+    b.changes = (b.changes || []).concat(s.followUp.change);
+    b.facts = [...new Set((b.facts || []).concat(Object.keys(s.facts).filter((k) => k !== 'change_need')))];
+    if (pay.status === 'lost') { b.sat = Math.max(0, b.sat - 3); pay.note = `${b.name} felt you weren't really there for this change.`; return; }
+    b.sat = Math.min(10, Math.max(b.sat, pay.sat) + 1);
+    b.perDay += Math.round((pay.perDay || 10) * 0.6);
+    if (fit === 'poor') b.status = 'at-risk';
+    else if (b.laps >= 3) b.status = 'life';
+    else if (b.status === 'at-risk') b.status = 'steady';
+    pay.note = (fit === 'poor' ? `The change was handled, but not well. ${b.name} is less sure about you now.` : b.status === 'life' ? `${b.laps} laps together. ${b.name} is a client for life.` : `You were there when life changed. ${b.name}'s relationship with you deepens (lap ${b.laps}).`) + (fit !== 'poor' && s.client.followHelp ? ' ' + s.client.followHelp : '');
+    if (fit === 'appropriate' && s.res.trust >= 7) pay.referral = true;
+  }
+  function followUpCard(f) {
+    const c = G.career, b = c.book.find((x) => x.id === f.bookId);
+    if (!b) return null;
+    const cl = PP.content.clients[b.archetype];
+    const left = f.expires - c.days;
+    return h('article', { class: 'panel prospect-card followup' },
+      h('div', { class: 'row tight' }, PP.ui.avatar({ name: b.name, hue: cl.hue }, 44), h('div', null, h('div', { class: 'eyebrow' }, `Follow-up · lap ${(b.laps || 1) + 1}`), h('h3', null, b.name), h('div', { class: 'small muted' }, f.title))),
+      h('p', { class: 'small' }, `${b.name} trusts you already, so the trail is shorter. Find out what this change really means for them.`),
+      h('p', { class: 'small ' + (left <= 5 ? 'warn' : 'muted') }, `They'll wait about ${left} more day${left === 1 ? '' : 's'}.`),
+      h('button', { class: 'btn primary', onclick: () => packScreen({ id: f.id, name: b.name, archetype: b.archetype, temp: 'warm', source: 'a follow-up call', followUp: f }) }, `Meet ${b.name} again`));
+  }
+
   function startJourney(p, pack) {
     const c = G.career;
     const s = PP.newState();
     s.career = c;
     s.skills = c.skills; s.contacts = c.contacts; s.met = c.met; s.quests = c.quests;
     s.client = PP.career.makeClient(p);
+    if (p.followUp) setupFollowUp(s, c, p.followUp);
     s.map.known = c.known;
     s.pack = pack;
     s.phase = 'journey';
     c.pipeline = c.pipeline.filter((x) => x.id !== p.id);
+    if (p.followUp) c.followUps = c.followUps.filter((f) => f.id !== p.followUp.id);
     const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
     PP.apply(s, { trust: trustMod });
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
@@ -10559,9 +11423,15 @@ window.PP = window.PP || {};
       pay = P().payout(s, s.destination, fit);
       cut = c.partner ? Math.round(pay.now * 0.25) : 0;
       c.savings += pay.now - cut;
-      if (pay.status !== 'lost') c.book.push({ id: PP.uid('b'), archetype: cl.id, name: cl.name, status: pay.status, perDay: pay.perDay, sat: pay.sat, journey: c.journeys + 1 });
+      if (s.followUp) followUpEnd(s, c, pay, fit);
+      else if (pay.status !== 'lost') c.book.push({ id: PP.uid('b'), archetype: cl.id, name: cl.name, status: pay.status, perDay: pay.perDay, sat: pay.sat, journey: c.journeys + 1, day: c.days, lastLap: c.days, laps: 1, facts: Object.keys(s.facts), changes: [] });
       if (pay.referral) PP.career.addProspect(c, { temp: 'hot', source: `referral from ${cl.name}` });
     }
+    if (s.followUp) {
+      c.followUps = (c.followUps || []).filter((f) => f.id !== s.followUp.id);
+      if (kind !== 'landed') { const b = c.book.find((x) => x.id === s.followUp.bookId); if (b) { b.sat = Math.max(0, b.sat - 3); b.lastLap = c.days; } }
+    }
+    c.visits = c.visits || {}; Object.keys(s.map.visited).forEach((k) => (c.visits[k] = (c.visits[k] || 0) + 1));
     if (kind !== 'broke') {
       c.journeys++;
       c.history.push({ journey: c.journeys, client: cl.name, outcome: kind === 'landed' ? PP.content.destinations[s.destination].name : kind, fit, cash: pay ? pay.now - cut : 0 });
@@ -10585,7 +11455,7 @@ window.PP = window.PP || {};
 
     screen(h('section', { class: 'ending' },
       h('header', { class: 'ending-head' },
-        h('div', { class: 'eyebrow' }, `Journey ${c.journeys} · ${cl.name} · ${s.day} days on the trail`),
+        h('div', { class: 'eyebrow' }, `${s.followUp ? 'Follow-up · ' : ''}Journey ${c.journeys} · ${cl.name} · ${s.day} days on the trail`),
         h('h2', { class: 'display' }, firstProfitable ? 'Profitable!' : rating),
         kind === 'landed' ? h('div', { class: 'stars', 'aria-label': `${pts} of 7` }, Array.from({ length: 7 }, (_, i) => h('span', { class: i < pts ? 'on' : '' }))) : null,
         h('p', { class: 'lede' }, firstProfitable ? `Your income now covers twice your costs. ${why}` : why),
@@ -10605,6 +11475,8 @@ window.PP = window.PP || {};
         newMarks.length ? h('p', { class: 'small good-text' }, `Marks earned: ${newMarks.map((m) => PP.content.nodes[m].name).join(', ')}. New systems are available under Build your practice.`) : null,
         ladder(levelAfter)),
       h('div', { class: 'ending-grid' },
+        h('div', { class: 'panel' }, h('h3', null, s.followUp ? `The relationship · lap ${s.followUp.lap}` : 'The relationship'),
+          h('ul', { class: 'score-list stages-end' }, PP.stageStatus(s).map((st) => h('li', { class: st.done ? 'done' : 'missed' }, h('span', null, st.label), h('strong', null, st.done ? '✓ ' + st.blurb : 'not yet'))))),
         h('div', { class: 'panel' }, h('h3', null, 'Where the journey ended'), PP.ui.gauges(s),
           kind === 'landed' ? h('ul', { class: 'score-list' },
             h('li', null, h('span', null, 'Destination fit'), h('strong', null, fit)),

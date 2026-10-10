@@ -27,6 +27,10 @@
     const t = Object.values(ci).find((x) => x.fact === s.client.keyFact);
     return t ? t.text : '"There\'s something I haven\'t told you."';
   };
+  const R = {}; // remembers what an eff decided, so result() can describe it
+  const ciWorry = (s) => (s.client.checkin && s.client.checkin.worry) || null;
+  const worryOpen = (s) => PP.skill(s, 'curiosity') > 0 || s.res.trust >= 6;
+  const worryText = (s) => { const w = ciWorry(s); return w ? (worryOpen(s) ? w.text : (w.guarded || w.text)) : '"I don\'t even know which one scares me most."'; };
 
   PP.content.events = [
     /* ================= LANDMARKS ================= */
@@ -156,40 +160,41 @@
       ]
     },
 
-    /* ---- Shifting Sands of Initiatives ---- */
+    /* ---- Shifting Sands of Incentives ---- */
     {
-      id: 'sands_change', title: 'Change of mind', at: ['sands'], first: true,
-      text: (s) => `The dunes shift under your boots. So does ${C(s)}. ${s.client.changeOfMind}`,
+      id: 'sands_change', title: 'The contest banner', at: ['sands'], first: true,
+      text: (s) => `The dunes are plastered with banners. This quarter's sales contest: place enough of the featured product and win a week at a beach resort. Your manager has circled your name on the leaderboard. ${C(s)} is reading the banner too. "Is that... something I should have?"`,
       choices: [
-        { label: 'Defend the current plan', kind: 'through', hint: 'Sunk cost feels like commitment.', eff: { momentum: 1, trust: -2, debt: { tag: 'ignored_change', sev: 2 } }, result: '"The plan is still solid," you say. The client sounds unconvinced.' },
-        { label: 'Ask what changed, and why', kind: 'prepare', eff: (s) => ({ momentum: -1, insight: 2, trust: 1, fact: s.client.keyFact }), result: 'It turns out this was coming for a while. Now the picture is clearer.' },
-        { label: 'Restart discovery from scratch', kind: 'around', hint: 'Thorough. Expensive.', eff: (s) => ({ momentum: -3, days: 2, insight: 3, trust: 1, fact: Object.keys(s.client.facts) }), result: 'Two long days of conversation. Everything is on the table now.' },
-        { label: 'Note it and carry on', kind: 'through', eff: { debt: { tag: 'ignored_change', sev: 2 }, style: { avoid: 1 } }, result: 'Noted. Carrying on.' }
+        { label: 'Steer them toward the featured product', kind: 'through', hint: 'A bonus now. Is it right for them, or right for the leaderboard?', eff: { cash: 400, momentum: 1, trust: -2, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `You climb two places on the leaderboard. ${C(s)} goes along with it, but keeps glancing back at the banner like it might explain itself.` },
+        { label: '"Honestly? Maybe not. Let\'s find out what fits you first."', kind: 'prepare', hint: 'No trip. A client who remembers you said it.', eff: (s) => (worryOpen(s) ? { trust: 2, insight: 1, momentum: -1, fact: s.client.keyFact } : { trust: 2, momentum: -1 }), preview: 'With Curiosity or Trust 6+, they tell you what they actually need.', result: (s) => `${C(s)} blinks. "You'd say that with a beach on the line?" ` + (PP.knows(s, s.client.keyFact) ? `Then, more quietly, they tell you what is really going on: ${s.client.facts[s.client.keyFact].label.toLowerCase()}.` : 'They don\'t say much more today, but they remember it.') },
+        { label: 'Tell them about the contest, openly, then talk about fit', kind: 'around', hint: 'Awkward to say. Easier to defend.', eff: (s) => ({ trust: PP.skill(s, 'communication') > 0 ? 2 : 1, insight: 1 }), result: '"Full disclosure: I\'d win a trip if you bought that. Here\'s why it might not be for you." It is the strangest sentence you have said all week. It works.' },
+        { label: 'Walk past the banners without a word', kind: 'around', eff: { momentum: 1 }, result: (s) => `${C(s)} keeps looking back at the beach on the banner. You never explain. They wonder about it later.` }
       ]
     },
     {
-      id: 'sands_initiative', title: 'A new initiative!', at: ['sands'],
-      text: 'A memo blows across the dunes: there is a new priority, effective immediately. Everyone is very excited about it. It has a logo.',
+      id: 'sands_initiative', title: 'Two short of quota', at: ['sands'],
+      text: (s) => `Your phone buzzes. Your manager: "You're two sales short of quota this month, and this month's featured product is a great fit for ${C(s)}, isn't it?" You haven't finished understanding ${C(s)} yet.`,
       choices: [
-        { label: 'Pivot the client toward it', kind: 'through', hint: 'Is it right for this client, or just new?', eff: { momentum: -1, energy: -1, trust: -1, style: { chase: 1 } }, result: 'The client is confused about why everything changed.' },
-        { label: 'Ask whether it fits this client', kind: 'prepare', eff: { insight: 1 }, result: 'It does not, really. Good to know.' },
-        { label: 'Ignore the memo', kind: 'around', eff: { momentum: 1 }, result: 'The memo is followed by another memo. You ignore that too.' }
+        { label: 'Push it to make quota', kind: 'through', hint: 'Your manager will be happy until the client is not.', eff: { cash: 250, momentum: 1, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `Quota made. ${C(s)} asks, twice, why this came up so suddenly.` },
+        { label: 'Tell your manager it isn\'t a fit yet', kind: 'prepare', hint: 'Short-term pain. Long-term reputation.', eff: { energy: -1, insight: 1, trust: 1 }, result: 'Your manager sighs down the phone. "Fine. But next month..." You hang up and get back to the actual client, who overheard your half of the call.' },
+        { label: 'Ask your manager what would make it a fit', kind: 'prepare', eff: { insight: 1 }, result: '"I mean, if they needed it, I guess." A pause. "Do they?" You don\'t know yet. Now you both know that.' }
       ]
     },
 
-    /* ---- Nobody-Remembers-Why Caves (side trail) ---- */
+    /* ---- Caves of What-Ifs (side trail) ---- */
     {
-      id: 'caves_process', title: 'Form 27-B, in triplicate', at: ['caves'], first: true, cut: 'caves',
-      text: 'Deep in the cave, a stone tablet: "ALL CLIENTS MUST COMPLETE FORM 27-B IN TRIPLICATE." Nobody remembers why. There are cobwebs on the in-tray.',
+      id: 'caves_process', title: 'The Caves of What-Ifs', at: ['caves'], first: true, cut: 'caves',
+      text: (s) => `The cave mouth is cold, and somewhere inside a voice keeps asking, "...but what if?" ${C(s)} hangs back. "Do we have to go in there? I'd honestly rather not think about the bad stuff."`,
       choices: [
-        { label: 'Fill it out, all three copies', kind: 'through', eff: { energy: -2, momentum: -1 }, result: 'Three copies. Perfect penmanship. Your hand will never be the same.' },
-        { label: 'Find out why it exists', kind: 'prepare', hint: 'Curiosity pays off in caves.',
-          then: { text: 'You follow the cobwebs to a dusty memo from years ago. Form 27-B exists because someone once changed a client\'s details based on a single phone call from a stranger.',
+        { label: 'March through every scary scenario at once', kind: 'through', hint: 'Thorough on paper. A lot to hear in ten minutes.', eff: { insight: 1, trust: -2, energy: -1, debt: { tag: 'confused_client', sev: 1 } }, result: (s) => `Job loss, illness, a long life, a parent needing care: all of it, in ten minutes, with charts. ${C(s)} goes pale and stops asking questions.` },
+        { label: 'Go in slowly, one what-if at a time', kind: 'prepare', hint: 'Slower. The real worry is usually a few tunnels in.',
+          then: { text: (s) => `"What if work changed suddenly?" ${C(s)} thinks about it. "What if you were sick for a few months?" Each one gets smaller once it is said out loud. At the third, they stop and say: ${worryText(s)}`,
             choices: [
-              { label: 'Apply that lesson to your own file', kind: 'prepare', eff: (s) => (s.debt.some((d) => d.tag === 'fraud' || d.tag === 'unverified_details') ? { clearDebt: s.debt.find((d) => d.tag === 'fraud' || d.tag === 'unverified_details').tag, insight: 1 } : { insight: 2 }), result: 'You double-check something you had taken on faith. Good thing.' },
-              { label: 'Fill out one copy and leave', kind: 'around', eff: { energy: -1, insight: 1 }, result: 'One copy, filled in thoughtfully this time.' }
+              { label: '"Is that the one that keeps you up at night?"', kind: 'prepare', preview: 'With Curiosity or Trust 6+, they tell you the whole thing.', eff: (s) => { const w = ciWorry(s); R.cave = worryOpen(s) && !!(w && w.fact); return R.cave ? { trust: 2, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; }, result: () => (R.cave ? `They nod. You spend the rest of the afternoon in that tunnel, together, and it turns out to be where the plan has to start.` : 'They shrug. "Maybe." The door is open a crack. You will come back to it.') },
+              { label: 'Write the what-ifs down for next time', kind: 'around', eff: { insight: 1, trust: 1 }, result: 'A short list, in their handwriting. Less scary on paper than in the dark.' }
             ] } },
-        { label: 'Skip it. Nobody will check.', kind: 'through', eff: { momentum: 1, debt: { tag: 'defaults', sev: 2 } }, result: 'Nobody checks. Today.' }
+        { label: 'Sit at the cave mouth and just let them talk', kind: 'prepare', minigame: 'conversation', hint: 'Listen for the worry under the words.', eff: { energy: -1 }, result: 'By the time the lantern burns low, you know more about what scares them than any form could tell you.' },
+        { label: 'Skip the cave and keep things upbeat', kind: 'around', hint: 'Everyone feels better today.', eff: (s) => ({ momentum: 1, debt: { tag: 'guessed_key', sev: 2 }, missed: s.client.keyFact, style: { avoid: 1 } }), result: 'Everyone is relieved. The plan now has a blind spot exactly the shape of whatever was in that cave.' }
       ]
     },
 
@@ -259,17 +264,18 @@
       ]
     },
 
-    /* ---- Back-Channel Bridge (Secret Shortcut) ---- */
+    /* ================= ON THE TRAIL ================= */
     {
-      id: 'backchannel_arrive', title: 'The Back-Channel Bridge', at: ['backchannel'], first: true,
-      text: (s) => `You took Steve's secret shortcut. Four quiet days and here you are, almost at Clients for Life. You skipped the Meadows, the Swamp, the Summit... and everything they would have taught you about ${C(s)}.`,
+      id: 'road_change_of_mind', title: 'Change of mind', at: ['travel'],
+      when: (s) => s.day >= 5 && !K(s, s.client.keyFact),
+      text: (s) => `The trail shifts under your boots. So does ${C(s)}. ${s.client.changeOfMind}`,
       choices: [
-        { label: 'Press on, you\'re nearly there', kind: 'through', eff: { momentum: 1 }, result: 'The X is in sight.' },
-        { label: 'Stop on the bridge and really talk', kind: 'prepare', minigame: 'conversation', eff: { energy: -1 }, result: 'Better late than never.' }
+        { label: 'Defend the current plan', kind: 'through', hint: 'Sunk cost feels like commitment.', eff: { momentum: 1, trust: -2, debt: { tag: 'ignored_change', sev: 2 } }, result: '"The plan is still solid," you say. The client sounds unconvinced.' },
+        { label: 'Ask what changed, and why', kind: 'prepare', eff: (s) => ({ momentum: -1, insight: 2, trust: 1, fact: s.client.keyFact }), result: 'It turns out this was coming for a while. Now the picture is clearer.' },
+        { label: 'Restart discovery from scratch', kind: 'around', hint: 'Thorough. Expensive.', eff: (s) => ({ momentum: -3, days: 2, insight: 3, trust: 1, fact: Object.keys(s.client.facts) }), result: 'Two long days of conversation. Everything is on the table now.' },
+        { label: 'Note it and carry on', kind: 'through', eff: { debt: { tag: 'ignored_change', sev: 2 }, style: { avoid: 1 } }, result: 'Noted. Carrying on.' }
       ]
     },
-
-    /* ================= ON THE TRAIL ================= */
     {
       id: 'enc_rick', title: 'Slick Rick, top producer', at: ['travel'],
       text: 'A hiker in very expensive boots strides up. "Slick Rick, top producer! Where you headed, kid? Closed four deals this week. Want to know my secret?"',
@@ -333,10 +339,10 @@
         { label: 'Ask what he\'s fishing for', kind: 'prepare',
           then: { text: '"Nothing. It\'s about the waiting." He looks at you sideways. "You seem all right. Want to know something nobody else knows?"',
             choices: [
-              { label: '"Yes."', kind: 'prepare', eff: { password: true, insight: 1 }, result: '"There\'s a Secret Shortcut from Port Prospect. Password\'s password1." He winks. "Shame you already left. Next time." (The Secret Shortcut is now unlocked on future runs.)' },
+              { label: '"Yes."', kind: 'prepare', eff: { password: true, insight: 1 }, result: '"Back channels," he says. "Every obstacle out there has a quiet way around it, if you know who to ask. My cousin keeps the lighthouse lamp. Another one runs the mail boat in the Login Isles. There\'s one with goats." He winks. "I have a lot of cousins." (Steve\'s back channels are open to you: new hidden passages at several landmarks, from now on.)' },
               { label: '"I\'m good, thanks."', kind: 'around', result: 'Steve shrugs and casts again.' }
             ] } },
-        { label: 'Offer him some coffee', kind: 'help', item: 'thermos', show: (s) => PP.hasItem(s, 'thermos'), eff: { password: true, trust: 1 }, result: 'Steve sips. "Good coffee. Here\'s a secret: there\'s a shortcut out of Port Prospect. Password is password1." (The Secret Shortcut is now unlocked on future runs.)' },
+        { label: 'Offer him some coffee', kind: 'help', item: 'thermos', show: (s) => PP.hasItem(s, 'thermos'), eff: { password: true, trust: 1 }, result: 'Steve sips. "Good coffee. Tell you what: at the lighthouse, the cliffs, the dunes and the Isles, ask for my cousins. Say Steve sent you. They know the quiet ways around." (Steve\'s back channels are open to you: new hidden passages at several landmarks, from now on.)' },
         { label: 'Leave him to it', kind: 'around', result: 'Steve does not notice you leave.' }
       ]
     },
@@ -403,11 +409,11 @@
     {
       id: 'enc_stampede', title: 'Stampede!', at: ['travel'], cut: 'stampede',
       when: (s) => s.map.visited.swamp || s.style.chase > 0,
-      text: 'A herd of New Initiatives thunders across the trail, each one waving a slide deck. The ground shakes. One of them looks at your client meaningfully.',
+      text: 'A herd of sales contests thunders across the trail, each one trailing a banner: BONUS TRIP! DOUBLE POINTS! PRODUCT OF THE MONTH! The ground shakes. One of them looks at your client meaningfully.',
       choices: [
-        { label: 'Wait for the herd to pass', kind: 'around', eff: { days: 1, momentum: -1 }, result: 'A day later, the dust settles. Most of the initiatives have already been renamed.' },
-        { label: 'Grab one and run along with it', kind: 'through', hint: 'Exciting. Is it going your way?', eff: { momentum: 1, energy: -1, style: { chase: 1 } }, result: 'Wheee! It takes you somewhere. Not necessarily where you were going.' },
-        { label: 'Ask which one actually matters for this client', kind: 'prepare', eff: { insight: 1 }, result: 'One of them does, a little. You make a note. The rest gallop off.' }
+        { label: 'Wait for the herd to pass', kind: 'around', eff: { days: 1, momentum: -1 }, result: 'A day later, the dust settles. Most of the contests have already been replaced by new ones.' },
+        { label: 'Grab one and ride it', kind: 'through', hint: 'Exciting. Is it going where your client needs to go?', eff: { momentum: 1, energy: -1, style: { chase: 1 } }, result: 'Wheee! It takes you somewhere. Mostly toward a prize.' },
+        { label: 'Ask which one, if any, actually helps this client', kind: 'prepare', eff: { insight: 1 }, result: 'One of them might, a little. You make a note. The rest gallop off toward someone else\'s client.' }
       ]
     },
     {
@@ -602,8 +608,9 @@
   add('fog_forgot', { label: 'Check your note-taking system', show: has('notes'), eff: { insight: 1, momentum: 1 }, result: 'It is all there, dated and searchable. The fog thins.' });
   add('loop_reentry', { label: 'Pull everything from your CRM', show: has('crm'), eff: { momentum: 1, insight: 1 }, result: 'Entered once, used forever. The loop straightens into a line.' });
   add('swamp_sheet', { label: 'Run it through your planning software', show: has('planning'), eff: (s) => ({ insight: 2, fact: s.client.spreadsheetFact }), result: 'You cross on your own boardwalk. The software flags the one assumption that matters.' });
-  add('sands_initiative', { label: 'Check it against your focus routine', show: has('focus'), eff: { insight: 1, momentum: 1 }, result: 'Not relevant to this client. Filed, ignored, done.' });
-  add('sands_change', { label: 'Use your focus routine to sort what really changed', show: has('focus'), eff: (s) => ({ insight: 2, fact: s.client.keyFact }), result: 'You separate the signal from the noise together.' });
+  add('sands_initiative', { label: 'Check it against your focus routine', show: has('focus'), eff: { insight: 1, momentum: 1 }, result: 'Your routine asks one question: would you sell this if there were no quota? Not to this client, not yet. You tell your manager so, with reasons. Done.' });
+  add('sands_change', { label: 'Run the banner through your focus routine', show: has('focus'), eff: (s) => ({ insight: 2, trust: 1, fact: s.client.keyFact }), result: 'Client first, prize second. You talk about what they need instead, and the real reason they came comes out.' });
+  add('road_change_of_mind', { label: 'Use your focus routine to sort what really changed', show: has('focus'), eff: (s) => ({ insight: 2, fact: s.client.keyFact }), result: 'You separate the signal from the noise together.' });
   add('summit_handoff', { label: 'Send it to your specialist partner', show: has('specialist'), eff: { insight: 2, momentum: 1 }, result: 'They know how you work. The handoff takes ten minutes.' });
   add('isles_locked', { label: 'Your tech setup handles it', show: has('tech'), eff: { momentum: 1, trust: 1 }, result: 'One tap, a code, and you are in.' });
   add('isles_message', { label: 'Let your tech setup screen them', show: has('tech'), eff: { insight: 1 }, result: 'The fakes are flagged before you even see them.' });

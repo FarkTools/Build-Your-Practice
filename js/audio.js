@@ -68,36 +68,53 @@
     return URL.createObjectURL(new Blob([out], { type: 'audio/wav' }));
   }
 
-  /* ---------- ambience ---------- */
+  /* ---------- ambience ----------
+   * Each place gets sounds that say where you are. Noise is used sparingly (only real
+   * water and wind), because a bed of filtered noise reads as "ocean" everywhere. */
   const gull = (o, t, v) => { sweep(o, t, 0.28, 1900, 1300, v, 'tri', 0.04); sweep(o, t + 0.32, 0.22, 1700, 1250, v * 0.8, 'tri', 0.04); };
   const chirp = (o, t, v, r) => { const f = 2600 + r() * 1400; for (let k = 0; k < 2 + Math.floor(r() * 3); k++) sweep(o, t + k * 0.09, 0.07, f, f * 1.25, v); };
-  const murmur = (o, v, r) => { noiseBed(o, v, 0.08, 0.31, 0.3, r); for (let t = 0; t < o.length / RATE; t += 0.18 + r() * 0.3) tone(o, t, 0.14, 160 + r() * 140, v * 0.5, 'saw', 0.03, 1.5); };
   const clink = (o, t, v) => bell(o, t, 2400, v, 0.5);
-  const typing = (o, t, n, v, r) => { for (let k = 0; k < n; k++) noiseBurst(o, t + k * (0.07 + r() * 0.08), 0.02, v, true, r); };
+  const tick = (o, t, v, r) => noiseBurst(o, t, 0.012, v, true, r);
+  const typing = (o, t, n, v, r) => { for (let k = 0; k < n; k++) tick(o, t + k * (0.07 + r() * 0.08), v, r); };
+  const step = (o, t, v) => tone(o, t, 0.07, (u) => 90 - 40 * u, v, 'sine', 0.002, 1.5);
+  const cricket = (o, t, v) => { for (let k = 0; k < 3; k++) tone(o, t + k * 0.05, 0.03, 4400, v, 'sine', 0.002, 1); };
+  const frog = (o, t, v, r) => { const f = 130 + r() * 70; for (let k = 0; k < 3; k++) tone(o, t + k * 0.07, 0.05, f, v, 'square', 0.004, 1); };
+  const drip = (o, t, v, r) => tone(o, t, 0.18, (u) => (900 + r() * 500) * (1 + u * 0.6), v, 'sine', 0.001, 1.6);
+  const bubble = (o, t, v, r) => tone(o, t, 0.05, (u) => (500 + r() * 700) * (1 + u), v, 'sine', 0.002, 1.2);
+  const ring = (o, t, v) => { for (let k = 0; k < 6; k++) tone(o, t + k * 0.06, 0.05, k % 2 ? 950 : 1200, v, 'sine', 0.003, 1); };
+  /* Distant voices: little pitch contours like speech, too far away to make out. */
+  const voices = (o, v, r, density = 1) => { for (let t = 0; t < 15; t += (0.25 + r() * 0.5) / density) { const f = 150 + r() * 140; tone(o, t, 0.18 + r() * 0.25, (u) => f * (1 + 0.25 * Math.sin(u * 6 + r())), v, 'tri', 0.04, 1.2); } };
+  /* A little tune: notes = MIDI numbers, step = seconds per note. */
+  const tune = (o, t0, notes, stepS, v, type, len = 0.9) => notes.forEach((n, i) => n && tone(o, t0 + i * stepS, stepS * len, note(n), v, type, 0.01, 1.6));
   const AMB = {
     docks(o, r) { noiseBed(o, 0.5, 0.02, 1 / 6, 0.75, r, true); for (let t = 1; t < 15; t += 3 + r() * 3) gull(o, t, 0.05); bell(o, 0.4, 392, 0.12, 2.8); bell(o, 8.4, 392, 0.1, 2.8); },
-    square(o, r) { murmur(o, 0.09, r); for (let t = 0.5; t < 15; t += 1.5 + r() * 3) clink(o, t, 0.06); bell(o, 7, 784, 0.04); },
-    chamber(o, r) { murmur(o, 0.11, r); for (let t = 0.3; t < 15; t += 0.8 + r() * 2) clink(o, t, 0.07); },
-    office(o, r) { noiseBed(o, 0.03, 0.05, 0.1, 0.1, r); for (let t = 0.2; t < 15; t += 1.4 + r() * 2.5) typing(o, t, 4 + Math.floor(r() * 8), 0.18, r); tone(o, 9, 0.9, 1320, 0.03, 'sine', 0.01, 0.4); },
-    street(o, r) { noiseBed(o, 0.35, 0.015, 0.07, 0.5, r, true); for (let t = 0.5; t < 15; t += 0.5) noiseBurst(o, t, 0.04, 0.03, true, r); sweep(o, 6, 0.5, 440, 430, 0.04, 'square'); },
-    homes(o, r) { noiseBed(o, 0.05, 0.03, 0.1, 0.5, r); for (let t = 0.3; t < 15; t += 0.8 + r() * 2) chirp(o, t, 0.035, r); [72, 76, 79, 84].forEach((n, i) => bell(o, 4 + i * 0.35 + r() * 0.2, note(n), 0.04, 2.5)); },
-    school(o, r) { murmur(o, 0.06, r); bell(o, 0.5, 880, 0.06, 2); bell(o, 1.0, 880, 0.05, 2); for (let t = 3; t < 15; t += 2 + r() * 2) noiseBurst(o, t, 0.12, 0.05, true, r, 0.6); },
-    library(o, r) { for (let t = 0; t < 15; t += 1) noiseBurst(o, t, 0.012, 0.12, true, r); for (let t = 2; t < 15; t += 4 + r() * 3) noiseBurst(o, t, 0.35, 0.03, true, r, 0.3); },
-    field(o, r) { murmur(o, 0.08, r); noiseBurst(o, 3, 0.03, 0.4, true, r); noiseBed(o, 0.06, 0.1, 1 / 15, 0.9, r); for (let t = 3.2; t < 5; t += 0.1) noiseBurst(o, t, 0.3, 0.04, true, r, 0.4); },
-    meadows(o, r) { noiseBed(o, 0.06, 0.03, 0.1, 0.5, r); for (let t = 0.3; t < 15; t += 0.6 + r() * 1.5) chirp(o, t, 0.035, r); },
-    sea(o, r) { noiseBed(o, 0.6, 0.02, 1 / 5, 0.8, r, true); for (let t = 2; t < 15; t += 4 + r() * 4) gull(o, t, 0.04); },
-    fog(o, r) { noiseBed(o, 0.15, 0.01, 0.05, 0.3, r, true); sweep(o, 1, 3.2, 98, 96, 0.22, 'saw'); sweep(o, 1, 3.2, 147, 145, 0.12, 'saw'); for (let t = 5; t < 15; t += 1.3 + r()) tone(o, t, 0.08, 1800 + r() * 600, 0.04, 'sine', 0.001, 1); },
-    swamp(o, r) { noiseBed(o, 0.05, 0.03, 0.2, 0.4, r); for (let t = 0.2; t < 15; t += 0.7 + r() * 1.4) { const f = 140 + r() * 80; for (let k = 0; k < 3; k++) tone(o, t + k * 0.06, 0.05, f, 0.12, 'square', 0.005, 1); } },
-    summit(o, r) { noiseBed(o, 0.5, 0.02, 1 / 7.5, 0.85, r, true); noiseBed(o, 0.05, 0.3, 1 / 5, 0.9, r); },
-    caves(o, r) { noiseBed(o, 0.06, 0.01, 0.05, 0.2, r, true); for (let t = 0.5; t < 15; t += 1 + r() * 2) tone(o, t, 0.25, 900 + r() * 700, 0.08, 'sine', 0.001, 1.2); echo(o, 0.23, 0.35); },
-    sands(o, r) { noiseBed(o, 0.12, 0.25, 1 / 3.75, 0.8, r); },
-    isles(o, r) { noiseBed(o, 0.45, 0.02, 1 / 5, 0.8, r, true); for (let t = 1; t < 15; t += 2.5 + r() * 2) { tone(o, t, 0.08, 1760, 0.05, 'square', 0.002, 1); tone(o, t + 0.12, 0.08, 1320, 0.05, 'square', 0.002, 1); } },
-    snakepit(o, r) { noiseBed(o, 0.04, 0.03, 0.2, 0.4, r); for (let t = 0.5; t < 15; t += 2 + r() * 2.5) for (let k = 0; k < 4; k++) tone(o, t + k * 0.07, 0.06, k % 2 ? 950 : 1200, 0.05, 'sine', 0.003, 1); },
-    loop(o, r) { for (let t = 0.2; t < 15; t += 1 + r() * 1.5) typing(o, t, 5 + Math.floor(r() * 8), 0.16, r); tone(o, 7, 0.15, 880, 0.05, 'square', 0.002, 1); },
-    toll(o, r) { noiseBed(o, 0.4, 0.02, 1 / 6, 0.7, r, true); for (let t = 2; t < 15; t += 5) sweep(o, t, 0.6, 180, 120, 0.05, 'saw'); },
-    clients(o, r) { [72, 76, 79, 84, 88].forEach((n, i) => { bell(o, 0.5 + i * 0.4, note(n), 0.06, 3); bell(o, 7.5 + i * 0.4, note(n - 5), 0.05, 3); }); noiseBed(o, 0.04, 0.03, 0.1, 0.5, r); }
+    trailhead(o, r) { for (let t = 0.3; t < 15; t += 0.7 + r() * 1.6) chirp(o, t, 0.04, r); for (let t = 0; t < 15; t += 0.55) step(o, t, 0.07); for (let t = 0.2; t < 15; t += 0.9 + r() * 0.6) cricket(o, t, 0.012); },
+    square(o, r) { voices(o, 0.025, r, 1.4); for (let t = 0.5; t < 15; t += 1.4 + r() * 2.5) clink(o, t, 0.05); // a busker on the corner
+      tune(o, 0.5, [67, 71, 74, 72, 71, 69, 67, 0, 69, 71, 72, 74, 72, 71, 69, 0, 67, 71, 74, 76, 74, 72, 71, 69, 67], 0.45, 0.05, 'tri'); },
+    chamber(o, r) { voices(o, 0.02, r, 1.8); for (let t = 0.3; t < 15; t += 0.8 + r() * 1.8) clink(o, t, 0.06); // a piano in the corner
+      [[60, 64, 67, 71], [57, 60, 64, 67], [62, 65, 69, 72], [55, 59, 62, 65]].forEach((ch, i) => ch.forEach((n, k) => tone(o, i * 3.75 + k * 0.12, 3.4, note(n), 0.035, 'sine', 0.01, 0.8))); },
+    office(o, r) { for (let t = 0.2; t < 15; t += 1.2 + r() * 2.2) typing(o, t, 4 + Math.floor(r() * 9), 0.14, r); for (let t = 0; t < 15; t += 1) tick(o, t, 0.05, r); ring(o, 9, 0.03); tone(o, 4, 0.08, 1320, 0.03, 'sine', 0.002, 1); tone(o, 4.1, 0.08, 1760, 0.03, 'sine', 0.002, 1); },
+    street(o, r) { for (let t = 0; t < 15; t += 0.42 + r() * 0.1) step(o, t, 0.06); voices(o, 0.015, r, 0.6); sweep(o, 5.5, 0.4, 440, 435, 0.04, 'square'); bell(o, 11, 2200, 0.05, 0.6); bell(o, 11.15, 2200, 0.05, 0.6); },
+    homes(o, r) { for (let t = 0.3; t < 15; t += 0.6 + r() * 1.4) chirp(o, t, 0.04, r); [72, 76, 79, 84].forEach((n, i) => bell(o, 3 + i * 0.35 + r() * 0.2, note(n), 0.05, 2.5)); [79, 84, 76].forEach((n, i) => bell(o, 10 + i * 0.4, note(n), 0.04, 2.5)); sweep(o, 7.2, 0.15, 500, 380, 0.05, 'saw'); sweep(o, 7.45, 0.15, 520, 400, 0.05, 'saw'); },
+    school(o, r) { bell(o, 0.3, 988, 0.07, 1.5); bell(o, 0.65, 988, 0.06, 1.5); voices(o, 0.012, r, 0.8); for (let t = 3; t < 15; t += 0.25 + r() * 0.2) if (r() < 0.5) tick(o, t, 0.06, r); // chalk, and a piano lesson down the hall
+      tune(o, 5, [60, 62, 64, 65, 67, 69, 71, 72, 71, 69, 67, 65, 64, 62, 60], 0.3, 0.035, 'sine'); },
+    library(o, r) { for (let t = 0; t < 15; t += 1) tick(o, t, 0.04, r); for (let t = 2.5; t < 15; t += 4 + r() * 3) noiseBurst(o, t, 0.25, 0.012, true, r, 0.25); noiseBurst(o, 8, 0.6, 0.008, true, r, 0.9); tone(o, 12, 0.25, 140, 0.02, 'sine', 0.05, 1); },
+    field(o, r) { noiseBurst(o, 1.5, 0.03, 0.2, true, r); voices(o, 0.02, r, 1.5); tune(o, 3, [60, 64, 67, 72, 0, 67, 72], 0.22, 0.06, 'square', 0.8); bell(o, 9, 3000, 0.04, 0.3); },
+    meadows(o, r) { for (let t = 0.3; t < 15; t += 0.5 + r() * 1.3) chirp(o, t, 0.04, r); for (let t = 0.1; t < 15; t += 0.7 + r() * 0.5) cricket(o, t, 0.012); },
+    sea(o, r) { noiseBed(o, 0.5, 0.02, 1 / 5, 0.8, r, true); for (let t = 2; t < 15; t += 4 + r() * 4) gull(o, t, 0.04); },
+    fog(o, r) { sweep(o, 1, 3.2, 98, 96, 0.22, 'saw'); sweep(o, 1, 3.2, 147, 145, 0.12, 'saw'); sweep(o, 9, 2.5, 98, 96, 0.16, 'saw'); for (let t = 4.5; t < 15; t += 1.1 + r()) drip(o, t, 0.04, r); },
+    swamp(o, r) { for (let t = 0.2; t < 15; t += 0.5 + r() * 1.1) frog(o, t, 0.1, r); for (let t = 0.1; t < 15; t += 0.4 + r() * 0.4) cricket(o, t, 0.015); },
+    summit(o, r) { for (let t = 0; t < 15; t += 3.75) sweep(o, t, 3.6, 300 + r() * 80, 520 + r() * 100, 0.03, 'sine', 0.01); sweep(o, 6, 0.9, 1500, 1100, 0.05, 'tri', 0.03); },
+    caves(o, r) { for (let t = 0.5; t < 15; t += 0.9 + r() * 1.8) drip(o, t, 0.08, r); tone(o, 0, 15, 55, 0.03, 'sine', 2, 0.1); echo(o, 0.23, 0.35); },
+    sands(o, r) { // the incentive fair: a game-show jingle, a cash register, a crowd
+      voices(o, 0.015, r, 1.2); tune(o, 0.4, [72, 76, 79, 84, 0, 79, 84], 0.16, 0.06, 'square', 0.8); for (const t of [4, 9.5, 13]) { bell(o, t, 2093, 0.05, 0.4); bell(o, t + 0.08, 2637, 0.05, 0.5); } tune(o, 7, [67, 0, 67, 72], 0.18, 0.05, 'square', 0.8); },
+    isles(o, r) { noiseBed(o, 0.2, 0.02, 1 / 5, 0.8, r, true); for (let t = 1; t < 15; t += 2.5 + r() * 2) { tone(o, t, 0.08, 1760, 0.05, 'square', 0.002, 1); tone(o, t + 0.12, 0.08, 1320, 0.05, 'square', 0.002, 1); } },
+    snakepit(o, r) { for (let t = 0.5; t < 15; t += 1.4 + r() * 2) ring(o, t, 0.05); tone(o, 6, 0.4, 425, 0.03, 'sine', 0.01, 0.5); },
+    loop(o, r) { for (let t = 0.2; t < 15; t += 1 + r() * 1.5) typing(o, t, 5 + Math.floor(r() * 8), 0.14, r); for (const t of [4, 9, 13]) { tone(o, t, 0.15, 220, 0.05, 'square', 0.002, 1); tone(o, t + 0.17, 0.2, 196, 0.05, 'square', 0.002, 1); } },
+    toll(o, r) { for (let t = 0; t < 15; t += 0.12 + r() * 0.2) bubble(o, t, 0.02, r); for (const t of [2, 7, 12]) sweep(o, t, 0.6, 180, 120, 0.04, 'saw'); },
+    clients(o, r) { [72, 76, 79, 84, 88].forEach((n, i) => { bell(o, 0.5 + i * 0.4, note(n), 0.06, 3); bell(o, 7.5 + i * 0.4, note(n - 5), 0.05, 3); }); for (let t = 0.3; t < 15; t += 0.8 + r() * 1.5) chirp(o, t, 0.03, r); }
   };
-  const AMB_ALIAS = { port: 'docks', lighthouse: 'sea', wreck: 'sea', backchannel: 'meadows', cliffs: 'summit' };
+  const AMB_ALIAS = { port: 'docks', lighthouse: 'sea', wreck: 'sea', meadow: 'meadows', cliffs: 'summit' };
 
   /* ---------- music ---------- */
   const MOODS = {
@@ -157,7 +174,9 @@
     else { o = buf(15); const fn = AMB[AMB_ALIAS[name] || name] || AMB.meadows; fn(o, rnd(name.length * 131 + 7)); }
     // Even out loudness: music sits a little above ambience, both well under the effects.
     let sum = 0; for (let i = 0; i < o.length; i++) sum += o[i] * o[i];
-    const rms = Math.sqrt(sum / o.length) || 1, k = Math.min(25, (kind === 'music' ? 0.1 : 0.06) / rms);
+    let peak = 0; for (let i = 0; i < o.length; i++) peak = Math.max(peak, Math.abs(o[i]));
+    const rms = Math.sqrt(sum / o.length) || 1;
+    const k = Math.min(kind === 'music' ? 25 : 6, (kind === 'music' ? 0.1 : 0.05) / rms, 0.8 / (peak || 1));
     for (let i = 0; i < o.length; i++) o[i] *= k;
     return (cache[key] = o);
   }

@@ -67,7 +67,7 @@
     const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
     if (!c.pipeline.length) return 'Nobody is waiting to set out. Find prospects: make calls from your desk, work the room at Chamber Hall, set up a tent in Market Square, or meet the boats at the Docks.';
     if (unhappy.length) return `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. Visit Maple Row before you head out.`;
-    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Head to the Docks to set out on the trail, or keep building.`;
+    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Head to the Trailhead to set out, or keep building.`;
   }
 
   function practicePanel(c) {
@@ -120,7 +120,7 @@
     const c = G.career, T = PP.content.town;
     const want = T.places[where] ? where : T.tabPlace[where];
     if (want) G.place = want;
-    if (!G.place) G.place = c.pipeline.length ? 'docks' : 'office';
+    if (!G.place) G.place = c.pipeline.length || (c.followUps || []).length ? 'trailhead' : 'office';
     PP.audio && PP.audio.bed('town:' + G.place);
     const panel = h('div', { class: 'place-panel', id: 'place-panel' }, placePanel(G.place));
     const map = PP.ui.townMap(c, G.place, (id) => {

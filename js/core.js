@@ -121,7 +121,7 @@ window.PP = window.PP || {};
   };
 
   PP.skill = (s, id) => s.skills[id] || 0;
-  PP.knows = (s, fact) => !!s.facts[fact];
+  PP.knows = (s, fact) => !!fact && s.facts[fact] != null;
   PP.hasItem = (s, id) => s.pack.includes(id) && !s.usedItems[id];
   PP.useItem = (s, id) => { s.usedItems[id] = true; };
   PP.contactSlots = (s) => 2 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0);

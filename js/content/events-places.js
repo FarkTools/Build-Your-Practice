@@ -23,6 +23,8 @@
   const hasSys = (s, id) => !!(PP.career && s.career && PP.career.hasSystem(s.career, id));
   const stake = (s) => s.client.shortStake || 'someone close to them';
   const ready = (id) => (s) => PP.contactReady(s, id);
+  /* A fact the client would share when asked about a check-in topic, if they are ready to (force = a contact gets it out of them). */
+  const topicFact = (s, topic, force) => { const a = s.client.checkin && s.client.checkin[topic]; if (!a || !a.fact) return null; const ok = force || ((!a.minTrust || s.res.trust >= a.minTrust) && (!a.curious || curious(s))); return ok ? a.fact : null; };
   const holding = (id) => (s) => PP.hasItem(s, id);
 
   PP.content.events.push(
@@ -479,131 +481,121 @@
       ]
     },
 
-    /* ================= Shifting Sands of Initiatives ================= */
+    /* ================= Shifting Sands of Incentives ================= */
     {
-      id: 'sands_priority_list', title: 'This week\'s top priority', at: ['sands'],
-      text: (s) => `On Monday, ${C(s)}'s top priority was one thing. By Wednesday it was another. Today, standing on a dune that wasn't here yesterday, it is a third thing. They seem completely sure each time.`,
+      id: 'sands_priority_list', title: 'The recruiter', at: ['sands'],
+      text: (s) => `A recruiter in a very clean jacket finds you between two dunes. "Big signing bonus at our firm. All you'd need to do is bring your clients over. ${C(s)} too, obviously. Their plan would just need... redoing. From scratch. Small thing."`,
       choices: [
-        { label: 'Rebuild the plan around today\'s priority', kind: 'through', hint: 'They feel heard. The plan keeps moving with the sand.', eff: { trust: 1, energy: -1, style: { chase: 1 } }, result: 'New plan. Again. It is a very good plan, for today.' },
-        { label: 'Ask what changed since Monday', kind: 'prepare',
-          then: { text: (s) => `${C(s)} sits down in the sand. "Honestly? Nothing changed. I just keep reading things. And then something else seems more urgent."`,
+        { label: 'Take the bonus and move everyone', kind: 'through', hint: 'Real money now. Every client starts their paperwork over.', eff: { cash: 1500, trust: -2, momentum: -1, debt: { tag: 'assumed_goal', sev: 2 } }, result: (s) => `The money is real. So is ${C(s)}'s face when you explain that everything starts over, again, for reasons that are mostly about you.` },
+        { label: 'Ask what happens to clients who move', kind: 'prepare',
+          then: { text: '"Happens?" The recruiter checks his phone. "They move. Some of them. The ones who don\'t, well, there are always more clients." He smiles. It does not reach his eyes.',
             choices: [
-              { label: 'Ask what they would protect if they could only pick one', kind: 'prepare', preview: 'With Curiosity or Trust 6+, the real priority comes out.',
-                eff: (s) => { R.pl = open(s); return R.pl ? { insight: 2, trust: 1, fact: s.client.keyFact } : { insight: 1 }; },
-                result: (s) => (R.pl ? `A long pause. Then the real answer, the one that has been under all three: ${label(s, s.client.keyFact)}.` : '"All of them?" they say. You will get there.') },
-              { label: 'Agree on a "parking lot" for new ideas', kind: 'around', eff: { momentum: 1, style: { chase: -1 } }, result: 'New ideas go in the parking lot. You look at it together once a month. The dunes settle a little.' }
+              { label: 'Turn it down', kind: 'prepare', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 }, trust: 1 } : { trust: 1, insight: 1 }), result: (s) => `"Thanks, but no." ${C(s)} was close enough to hear, and pretends very hard that they weren't.` },
+              { label: 'Take his card, just in case', kind: 'around', eff: { insight: 1 }, result: 'The card is heavy and has embossed lettering. You put it somewhere you will find it on a bad day.' }
             ] } },
-        { label: 'Hold firm on Monday\'s plan', kind: 'around', eff: { momentum: 1, trust: -1, debt: { tag: 'ignored_change', sev: 1 } }, result: '"We agreed on Monday," you say. True. Not entirely helpful.' },
-        { label: 'Run it through your focus routine', kind: 'help', show: (s) => hasSys(s, 'focus'), eff: { insight: 1, momentum: 1, style: { chase: -1 } }, result: 'Two of the three priorities turn out to be the same thing wearing different hats.' }
+        { label: 'Say no on the spot', kind: 'around', eff: { trust: 1, momentum: 1 }, result: 'Short and polite. The recruiter is already walking toward the next agent. Your client noticed you did not even think about it.' },
+        { label: 'Run it through your focus routine', kind: 'help', show: (s) => hasSys(s, 'focus'), eff: { insight: 1, momentum: 1, trust: 1 }, result: 'Your routine asks: five years from now, which choice do you want to have made? It is not close.' }
       ]
     },
     {
-      id: 'sands_new_platform', title: 'The new platform', at: ['sands'], cut: 'stampede',
-      text: 'A notice flaps across the dunes: Operations is moving to a new planning platform, effective now. It is called Horizon. Everything must be re-entered. The training video is ninety minutes long and has a mascot.',
+      id: 'sands_new_platform', title: 'The free lunch', at: ['sands'],
+      text: 'A rep from an outside company has set up a lunch tent in the dunes: good sandwiches, a slideshow about their product, and a points card. Every sale earns points toward a trip. The cookies are excellent.',
       choices: [
-        { label: 'Watch the video and re-enter everything now', kind: 'prepare', eff: { energy: -2, days: 1, insight: 1 }, result: 'The mascot is a cheerful compass. You now dream about it. Everything is re-entered, correctly.' },
-        { label: 'Keep using the old system until someone makes you', kind: 'through', eff: { momentum: 1, debt: { tag: 'stale_info', sev: 1 } }, result: 'The old system still works. For now. Probably.' },
-        { label: 'Re-enter only what this client needs', kind: 'around', preview: '60% fine. 40% the new platform quietly fills in a few blanks for you.',
-          eff: () => (roll('plat', 0.6) ? { energy: -1 } : { energy: -1, debt: { tag: 'defaults', sev: 1 } }),
-          result: 'The bare minimum, entered. The rest can wait for the next initiative.' },
-        { label: 'Ask Olu which parts actually matter', kind: 'help', contact: 'operator', show: ready('operator'), eff: { momentum: 1, insight: 1 }, result: '"Three fields," says Olu. "The rest is for a dashboard nobody opens." Done in ten minutes.' }
+        { label: 'Eat, collect points, pitch their product to your client', kind: 'through', hint: 'Good cookies. Whose interest is the pitch in?', eff: { cash: 300, energy: 1, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `You bring it up with ${C(s)} that afternoon, still holding a cookie. "Is this... from the lunch?" They have seen the tent.` },
+        { label: 'Eat the sandwich, keep your judgment', kind: 'prepare', eff: { energy: 2, insight: 1 }, result: 'You learn how the product works, ask two hard questions the rep cannot answer, and leave the points card on the table. A free sandwich is not a contract.' },
+        { label: 'Skip the lunch and keep walking', kind: 'around', eff: { momentum: 1 }, result: 'You hear the slideshow through the tent wall for a while. Something about "unlocking value." The dunes sound better.' },
+        { label: 'Run it past Harold first', kind: 'help', contact: 'compliance', show: ready('compliance'), eff: { insight: 1, clearDebt: 'premature_pitch' }, result: 'Harold reads the points card twice. "You can eat the sandwich. Recommend what fits the client, and write down why." He takes a cookie. For the file.' }
       ]
     },
     {
-      id: 'sands_mirage', title: 'A mirage', at: ['sands'],
-      text: (s) => `On the horizon, shimmering: THE PERFECT TIME TO DECIDE. ${C(s)} stares at it. "Maybe we should wait until then? When things settle down?"`,
+      id: 'sands_mirage', title: 'The next bonus tier', at: ['sands'],
+      text: (s) => `On the horizon, shimmering: THE NEXT BONUS TIER. Your payout rate jumps if you reach it this quarter, and you are one decent-sized sale away. ${C(s)}'s plan could be a little bigger than it needs to be. Nobody would ever know. Probably.`,
       choices: [
-        { label: 'Walk toward the mirage together', kind: 'around', hint: 'Patient and kind. Mirages do not get closer.', eff: { days: 2, momentum: -2, trust: 1 }, result: 'Two days of walking. It stays exactly as far away. "Huh," says your client.' },
-        { label: '"There\'s no perfect time. What would make now okay?"', kind: 'prepare', preview: 'Likely to land with Communication or Trust 6+. Otherwise it can sound like pressure.',
-          eff: (s) => (roll('mir', comm(s) || s.res.trust >= 6 ? 0.8 : 0.45) ? { trust: 1, momentum: 1, insight: 1 } : { trust: -1, insight: 1 }),
-          result: (s) => (R.mir ? `${C(s)} thinks about it. "Smaller. If it was smaller, now would be okay."` : '"So you\'re saying I should hurry up." That is not what you meant. It is what they heard.') },
-        { label: 'Agree to wait, and check back later', kind: 'through', eff: { momentum: -1, energy: 1, debt: { tag: 'timeline', sev: 1 } }, result: '"Later" is penciled in. The mirage shimmers, pleased with itself.' },
-        { label: 'Offer one small step that works either way', kind: 'prepare', show: (s) => PP.skill(s, 'judgment') > 0 || s.res.insight >= 5, hint: 'Judgment or good Insight: a step that does not need perfect timing.', eff: { momentum: 2, trust: 1 }, result: 'Small, reversible, useful in every version of the future. They say yes before the mirage can object.' }
+        { label: 'Size the plan up, just a little', kind: 'through', hint: 'A bigger plan than they need. Clients sometimes notice.', preview: '50% the client never notices. 50% they ask why it got bigger.',
+          eff: () => (roll('tier', 0.5) ? { cash: 300, momentum: 1, debt: { tag: 'premature_pitch', sev: 1 } } : { cash: 300, trust: -2, debt: { tag: 'premature_pitch', sev: 2 } }),
+          result: (s) => (R.tier ? 'Nobody asks. The mirage gets closer. You feel slightly worse than you expected to.' : `${C(s)} reads the numbers. "This is bigger than what we talked about. Why?" You do not have a good answer.`) },
+        { label: 'Size it to what they actually need', kind: 'prepare', eff: { trust: 1, insight: 1 }, result: 'The mirage stays exactly as far away. The plan fits. That will matter longer than a quarter does.' },
+        { label: 'Ask what size feels right to them', kind: 'prepare', preview: 'Likely to land with Communication or Trust 6+.',
+          eff: (s) => (roll('mir', comm(s) || s.res.trust >= 6 ? 0.8 : 0.45) ? { trust: 2, insight: 1 } : { trust: 1 }),
+          result: (s) => (R.mir ? `${C(s)} thinks. "Smaller than I expected you to say. Is that allowed?" It is. They trust you a good deal more for it.` : '"I don\'t know. What do you think?" You tell them honestly. It is a start.') },
+        { label: 'Think about what the tier costs you long-term', kind: 'prepare', show: (s) => PP.skill(s, 'judgment') > 0, hint: 'Judgment: the payout is one quarter; the reputation is the whole career.', eff: { momentum: 1, trust: 1 }, result: 'One quarter of a better payout, against twenty years of referrals from a client who trusts your numbers. The mirage fades.' }
       ]
     },
     {
-      id: 'sands_stake_pivot', title: 'Somebody else\'s new priority', at: ['sands'],
+      id: 'sands_stake_pivot', title: 'They saw the banner too', at: ['sands'],
       when: (s) => K(s, s.client.stakeholderFact),
-      text: (s) => `A message from ${stake(s)}: they have been thinking, and now there is a new priority. ${C(s)} reads it aloud, frowning. "This is the first I'm hearing of this."`,
+      text: (s) => `A message from ${stake(s)}: they saw the "product of the month" advertised and want to know why ${C(s)} isn't getting "the thing everyone's talking about." ${C(s)} reads it aloud, frowning. "Should I be?"`,
       choices: [
         { label: 'Get them both on a call', kind: 'prepare', eff: { energy: -1, momentum: -1 },
-          then: { text: (s) => `${stake(s)} explains. ${C(s)} explains back. Both of them are right about something, and both of them are getting louder.`,
+          then: { text: (s) => `${stake(s)} explains what they read. ${C(s)} explains what they told you. Both of them are right about something, and both of them are getting louder.`,
             choices: [
-              { label: 'Name what they both want', kind: 'prepare', preview: 'With Communication: likely to settle it. Otherwise a coin flip.',
+              { label: 'Explain honestly why it\'s featured, and whether it fits', kind: 'prepare', preview: 'With Communication: likely to settle it. Otherwise a coin flip.',
                 eff: (s) => { R.sp = comm(s) || PP.chance(0.5); return R.sp ? { trust: 2, insight: 2 } : { trust: -1, insight: 1 }; },
-                result: () => (R.sp ? '"It sounds like you both want this to feel safe, just on different timelines." Silence. Then, "...yes." Progress.' : 'You try to summarize. Both of them correct your summary. At least they agree on that.') },
-              { label: 'Suggest they talk it through without you', kind: 'around', eff: { days: 1, trust: 1 }, result: 'A day later they come back with one priority. It is a new one. It is a better one.' },
+                result: () => (R.sp ? '"It\'s featured because the company is promoting it this month. Here\'s what you actually need, and why." Silence. Then, "...that\'s refreshingly honest." Progress.' : 'You try to explain. Both of them correct your explanation. At least they agree on that.') },
+              { label: 'Suggest they talk it through without you', kind: 'around', eff: { days: 1, trust: 1 }, result: 'A day later they come back with one question instead of two opinions. It is a better question.' },
               { label: 'Side with your client', kind: 'through', eff: { trust: 1, debt: { tag: 'unknown_stakeholder', sev: 2 } }, result: (s) => `${C(s)} looks grateful. ${stake(s)} hangs up. That will come up again.` }
             ] } },
-        { label: 'Quietly adjust the plan to the new priority', kind: 'through', eff: { momentum: 1, trust: -1, style: { chase: 1 } }, result: (s) => `The plan now fits ${stake(s)}'s message. ${C(s)} notices you changed it without asking them.` },
-        { label: 'Tell your client to ignore it for now', kind: 'around', eff: { momentum: 1, debt: { tag: 'ignored_change', sev: 2 } }, result: '"We\'ll come back to it." Famous last words, written in sand.' }
+        { label: 'Just give them the featured product', kind: 'through', hint: 'Everyone stops asking. For now.', eff: { cash: 300, momentum: 1, trust: -1, debt: { tag: 'premature_pitch', sev: 2 }, style: { chase: 1 } }, result: (s) => `Easy. ${stake(s)} is satisfied. ${C(s)} has a product nobody checked against their actual life.` },
+        { label: 'Tell your client to ignore it', kind: 'around', eff: { momentum: 1, debt: { tag: 'unknown_stakeholder', sev: 1 } }, result: '"We\'ll come back to it." Famous last words, written in sand.' }
       ]
     },
 
-    /* ================= Nobody-Remembers-Why Caves ================= */
+    /* ================= Caves of What-Ifs ================= */
     {
-      id: 'caves_wet_ink', title: 'Wet ink only', at: ['caves'],
-      text: (s) => `Carved over the cave door: "ALL SIGNATURES IN BLUE INK, IN PERSON." ${C(s)} is three days away, visiting family. The e-signature button is right there, glowing gently.`,
+      id: 'caves_wet_ink', title: 'What if the paycheck stops?', at: ['caves'],
+      text: (s) => `A side tunnel is marked WHAT IF THE PAYCHECK STOPS? ${C(s)} peers in and steps back. "I try really hard not to think about that one."`,
       choices: [
-        { label: 'Use the e-signature anyway', kind: 'through', hint: 'Probably fine. The carving disagrees.', eff: { momentum: 2, debt: { tag: 'defaults', sev: 2 } }, result: 'Click. Signed. The carving seems to frown.' },
-        { label: 'Ask Operations if the rule still applies', kind: 'prepare',
-          then: { text: 'Operations takes a while to reply. "Good question. The person who wrote that rule retired years ago. We think it was about one specific form. We are not sure which."',
-            choices: [
-              { label: 'Ask for a written exception', kind: 'prepare', preview: '60%: approved in a day. 40%: it goes to a committee.',
-                eff: () => (roll('ink', 0.6) ? { days: 1, insight: 1, momentum: 1 } : { days: 2, momentum: -1 }),
-                result: () => (R.ink ? 'Approved. You even get the rule rewritten to say which form. Future agents will never know your name, but they will thank you.' : 'Your request is now being reviewed by a committee that meets monthly.') },
-              { label: 'Follow the rule, just in case', kind: 'around', eff: { days: 2, energy: -1, trust: 1 }, result: (s) => `You mail the papers. ${C(s)} signs in blue ink at a relative's kitchen table and sends a photo. Charming. Slow.` },
-              { label: 'Decide it obviously doesn\'t apply', kind: 'through', eff: { momentum: 1, debt: { tag: 'defaults', sev: 1 } }, result: 'Obviously. Probably. You e-sign.' }
-            ] } },
-        { label: 'Take the papers to the client yourself', kind: 'around', eff: (s) => ({ energy: -2, days: 1, trust: 1, fact: s.client.stakeholderFact }), result: (s) => `${C(s)}'s family insists you stay for dinner. You learn more at that table than in three meetings, mostly about ${stake(s)}.` }
+        { label: 'Assume their income is safe and move on', kind: 'through', hint: 'Comfortable. It is also a guess.', eff: { momentum: 1, debt: { tag: 'guessed_key', sev: 1 }, style: { avoid: 1 } }, result: '"You\'ll be fine," you say. You both want it to be true.' },
+        { label: 'Walk it through: how many months could they manage?', kind: 'prepare', hint: 'Gently, with real numbers.',
+          eff: (s) => { R.pay = topicFact(s, 'money') || topicFact(s, 'work'); return Object.assign({ insight: 2, energy: -1 }, R.pay ? { fact: R.pay, trust: 1 } : {}); },
+          result: (s) => (R.pay ? `You count it out together on the back of an envelope. Somewhere around month three, ${C(s)} tells you something that matters: ${label(s, R.pay)}.` : `You count it out together. It is fewer months than ${C(s)} hoped, and more than they feared. They look steadier. They are clearly holding something back, though.`) },
+        { label: 'Lay out the worst case in full detail', kind: 'through', hint: 'Accurate. Possibly terrifying.', eff: (s) => (comm(s) ? { insight: 1, trust: 1 } : { insight: 1, trust: -2, debt: { tag: 'confused_client', sev: 1 } }), result: (s) => (comm(s) ? 'You say the hard version plainly and kindly. They thank you for not sugarcoating it.' : `${C(s)} stares at the cave floor for a long time. You may have gone a little fast.`) },
+        { label: 'Call Ray: "What do the lean months look like?"', kind: 'help', contact: 'banker', show: ready('banker'), eff: (s) => ({ insight: 2, fact: topicFact(s, 'money', true) }), result: 'Ray asks one question: "What month do you dread?" Everyone has an answer, and theirs explains a lot.' }
       ]
     },
     {
-      id: 'caves_fax', title: 'The fax machine', at: ['caves'],
-      text: 'In a dripping alcove sits a fax machine, humming. A sign: "FORM 12 MUST BE FAXED. NO EXCEPTIONS." Around it is a small shrine of jammed paper.',
+      id: 'caves_fax', title: 'What if you get sick?', at: ['caves'],
+      text: (s) => `Water drips in a tunnel marked WHAT IF YOU COULDN'T WORK FOR A WHILE? ${C(s)} laughs nervously. "I never get sick. Well. Almost never."`,
       choices: [
-        { label: 'Feed it the form', kind: 'through', preview: '50% it goes through. 50% it jams, and a day goes with it.',
-          eff: () => (roll('fax', 0.5) ? { energy: -1, momentum: 1 } : { energy: -1, days: 1 }),
-          result: () => (R.fax ? 'Screech, warble, beep. It went through. You feel like a time traveler.' : 'It jams on page two. And again. And again. You add your form to the shrine and try tomorrow.') },
-        { label: 'Find out why it has to be faxed', kind: 'prepare',
-          then: { text: 'A very old sticky note inside the lid: "Fax only, because email got spoofed once. A fake \'client\' asked us to change where the money goes." So it was never about the machine. It was about checking who is asking.',
-            choices: [
-              { label: 'Apply that to your file: confirm recent requests by phone', kind: 'prepare', eff: (s) => { const t = hasDebt(s, 'fraud', 'unverified_details'); return t ? { clearDebt: t.tag, energy: -1, insight: 1 } : { insight: 2, energy: -1 }; }, result: (s) => `You call ${C(s)} on the number you already trust and go through the recent requests together. All real. Now you know it, instead of hoping it.` },
-              { label: 'Fax it, now that you know why', kind: 'around', eff: { energy: -1, insight: 1 }, result: 'It jams once, out of principle. Then it goes through.' }
-            ] } },
-        { label: 'Scan and email it instead', kind: 'around', eff: { momentum: 1, debt: { tag: 'defaults', sev: 1 } }, result: 'Sent. It is the twenty-first century. The fax machine hums disapprovingly.' },
-        { label: 'Call Olu', kind: 'help', contact: 'operator', show: ready('operator'), eff: { momentum: 1, insight: 1 }, result: 'Olu arrives, thumps the machine once in exactly the right spot, and leaves without a word.' }
+        { label: 'Joke along and move on', kind: 'around', eff: { trust: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: '"Iron constitution!" you agree. The tunnel stays unexplored, which is exactly where it can surprise you later.' },
+        { label: 'Ask who would step in if they were laid up', kind: 'prepare', hint: 'Turns a scary question into a practical one.',
+          eff: (s) => ({ insight: 2, trust: 1, energy: -1, fact: s.client.stakeholderFact }),
+          result: (s) => `"Who'd handle things? Huh." ${C(s)} thinks out loud, and ${s.client.stakeholder} comes up fast. It turns out a lot depends on them.` },
+        { label: 'Talk through it gently, step by step', kind: 'prepare', preview: 'With Communication or Trust 6+, it lands softly. Otherwise it can feel heavy.',
+          eff: (s) => { R.sick = comm(s) || s.res.trust >= 6; return R.sick ? { trust: 2, insight: 1 } : { trust: -1, insight: 1 }; },
+          result: (s) => (R.sick ? `You go slow. Three months, then six. What would carry on, what would stop. ${C(s)} breathes out. "That's less scary than I thought."` : `It is a lot, all at once. ${C(s)} goes quiet.`) },
+        { label: 'Bring Dev in to explain what usually protects an income', kind: 'help', contact: 'specialist', show: ready('specialist'), eff: { insight: 2, trust: 1 }, result: 'Dev explains the general idea in four sentences, without one acronym. Your client asks good questions. You take notes for later.' }
       ]
     },
     {
-      id: 'caves_bob', title: 'Step 17: Confirm with Bob', at: ['caves'], cut: 'caves',
-      text: 'The cave\'s process checklist has forty steps. Step 17 says "Confirm with Bob." Nobody named Bob has worked here in years. Steps 18 to 40 all assume Bob said yes.',
+      id: 'caves_bob', title: 'What if the money runs out first?', at: ['caves'], cut: 'caves',
+      text: (s) => `Deep in the cave there is a ledge with a sign: AGE 95. ${C(s)} laughs. "I'm not going to live that long." A pause. "Am I?"`,
       choices: [
-        { label: 'Skip step 17', kind: 'through', eff: { momentum: 1, debt: { tag: 'unverified_details', sev: 2 } }, result: 'Bob, wherever you are, we assume you said yes.' },
-        { label: 'Find out what Bob used to check', kind: 'prepare',
-          then: { text: 'A retired colleague, reached by phone, laughs. "Bob? Bob called the client before anything was finalized. Just to ask if anything had changed, and whether anyone else should be in the room. Took him five minutes."',
+        { label: 'Plan to an age that feels comfortable', kind: 'through', hint: 'A tidy number. People keep outliving tidy numbers.', eff: { momentum: 1, debt: { tag: 'guessed_key', sev: 1 } }, result: 'You pick a reasonable-sounding age. The plan looks lovely, right up to the edge of the page.' },
+        { label: 'Show them the long version, gently', kind: 'prepare', eff: (s) => (comm(s) || PP.skill(s, 'judgment') > 0 ? { insight: 2, trust: 1 } : { insight: 2, trust: -1 }), result: (s) => (comm(s) || PP.skill(s, 'judgment') > 0 ? `You walk to the ledge together. "Good news: you might get a long life. Let's make sure the money gets one too." ${C(s)} smiles at that.` : `The numbers are right, but they land like a lecture. ${C(s)} looks tired.`) },
+        { label: 'Ask what a long life would look like for them', kind: 'prepare',
+          then: { text: (s) => { const g = s.client.checkin && s.client.checkin.goal; return `${C(s)} sits on the ledge. ` + (g ? g.text : '"I don\'t know. Being useful? Not being a burden?"'); },
             choices: [
-              { label: 'Do what Bob did: call and ask', kind: 'prepare', eff: (s) => { R.bob = K(s, s.client.stakeholderFact) ? s.client.keyFact : s.client.stakeholderFact; return { energy: -1, trust: 1, insight: 1, fact: R.bob }; }, result: (s) => `Five minutes, like Bob said. ${C(s)} mentions something that matters: ${label(s, R.bob)}.` },
-              { label: 'Rename step 17 "Confirm with the client" and move on', kind: 'around', eff: { insight: 1 }, result: 'A small fix for every agent after you. You do not actually make the call today.' }
+              { label: '"Then that is what we plan for."', kind: 'prepare', eff: (s) => { const g = s.client.checkin && s.client.checkin.goal; return Object.assign({ trust: 2, insight: 1 }, g && g.fact ? { fact: g.fact } : {}); }, result: 'It is the first time the plan sounds like their life instead of a spreadsheet.' },
+              { label: 'Write it down and keep walking', kind: 'around', eff: { insight: 1 }, result: 'One line in your notes. You will come back to it.' }
             ] } },
-        { label: 'Do all forty steps exactly as written', kind: 'around', eff: { energy: -2, days: 1 }, result: 'You do all forty steps, including leaving a voicemail for Bob at a number that now belongs to a bakery.' },
-        { label: 'Check Olu\'s checklist', kind: 'help', item: 'checklist', show: holding('checklist'), eff: (s) => ({ insight: 1, momentum: 1, clearDebt: oldestDebt(s) }), result: 'Olu\'s version has step 17 crossed out and "CALL THE CLIENT" written in. Of course it does.' }
+        { label: 'Check Olu\'s checklist', kind: 'help', item: 'checklist', show: holding('checklist'), eff: (s) => ({ insight: 1, momentum: 1, clearDebt: oldestDebt(s) }), result: 'Line 12 of Olu\'s checklist: "Did you plan for a long life? Longer than that?" You fix the one thing you had glossed over.' }
       ]
     },
     {
-      id: 'caves_family_way', title: '"That\'s how we\'ve always done it"', at: ['caves'],
-      text: (s) => `${C(s)} mentions, almost in passing, that they have always handled money a certain way "because that's how my family did it." When you ask why their family did it that way, they look genuinely puzzled. "I... don't know, actually."`,
+      id: 'caves_family_way', title: 'What if someone needs you?', at: ['caves'],
+      text: (s) => `The tunnel narrows into what looks like a kitchen: a parent at the table, a pill organizer, a calendar full of appointments. A sign reads WHAT IF SOMEONE YOU LOVE NEEDS CARE? ${C(s)} goes quiet.`,
       choices: [
-        { label: 'Explain why it may not fit anymore', kind: 'through', hint: 'Maybe right. It is also their family.', eff: (s) => (comm(s) ? { trust: 1, insight: 1 } : { trust: -2, insight: 1 }), result: (s) => (comm(s) ? 'You say it carefully. They hear it.' : `"My family did fine, thanks." ${C(s)} folds their arms.`) },
-        { label: 'Ask for the story behind it', kind: 'prepare',
-          then: { text: (s) => `${C(s)} tells you about a parent, a hard year, and a rule that came out of it. "I guess it was about never getting caught out again." They sound surprised to hear themselves say it.`,
+        { label: 'Explain what care costs, with numbers', kind: 'through', hint: 'Useful. Possibly too much, too soon.', eff: (s) => (comm(s) ? { trust: 1, insight: 1 } : { trust: -2, insight: 1 }), result: (s) => (comm(s) ? 'You keep it short and human. They take it in.' : `${C(s)} folds their arms. "Can we not do this part right now?"`) },
+        { label: 'Ask about the people in their life', kind: 'prepare',
+          then: { text: (s) => `${C(s)} talks about family: who looks after whom, who never calls, who would drop everything. ` + (worry(s) ? `Then, almost to themselves: ${open(s) ? worry(s).text : (worry(s).guarded || worry(s).text)}` : '"I suppose I\'ve never really thought about it."'),
             choices: [
-              { label: '"What would feeling safe look like now?"', kind: 'prepare', preview: 'With Curiosity or Trust 6+, they connect it to what is happening now.',
-                eff: (s) => { const w = worry(s); R.fam = open(s) && !!(w && w.fact); return R.fam ? { trust: 2, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; },
-                result: (s) => (R.fam ? `They make the connection themselves: ${label(s, worry(s).fact)}.` : 'They think about it. "I\'ll get back to you on that." You believe them.') },
-              { label: 'Keep the rule, build the plan around it', kind: 'around', eff: { trust: 1, momentum: 1 }, result: 'It costs a little efficiency. It buys a lot of sleep. Fair trade.' }
+              { label: '"Thank you for telling me that."', kind: 'prepare', preview: 'With Curiosity or Trust 6+, you learn what is really on their mind.',
+                eff: (s) => { const w = worry(s); R.fam = open(s) && !!(w && w.fact); return R.fam ? { trust: 2, insight: 2, fact: w.fact } : { trust: 1, insight: 1, fact: s.client.stakeholderFact }; },
+                result: (s) => (R.fam ? `Now you know what this plan really has to handle: ${label(s, worry(s).fact)}.` : `You learn who matters most here: ${s.client.stakeholder}. The rest can wait for another day.`) },
+              { label: 'Keep it light and move on', kind: 'around', eff: { trust: 1 }, result: 'They seem relieved to step back into the light.' }
             ] } },
-        { label: 'Go along with it, it\'s not your business', kind: 'around', eff: { trust: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: 'Easy. Pleasant. The rule stays, unexamined, holding up more than it should.' }
+        { label: 'Leave that tunnel for another day', kind: 'around', eff: { trust: 1, debt: { tag: 'guessed_key', sev: 1 }, style: { avoid: 1 } }, result: 'Easier today. The tunnel will still be there, and so will whatever is in it.' }
       ]
     },
 
@@ -749,10 +741,13 @@
       ]
     },
 
-    /* ================= Back-Channel Bridge ================= */
+    /* ================= Back channels, on the trail =================
+     * The Back-Channel Bridge is gone; Steve's back channels are now hidden passages
+     * around obstacles (see passages.js). These moments happen between landmarks. */
     {
-      id: 'backchannel_nobody_asked', title: 'Nobody asked', at: ['backchannel'],
-      text: (s) => `Halfway across the quiet bridge, ${C(s)} leans on the railing. "You know, it's funny. You never asked who else is involved in all this." They say it lightly. They do not mean it lightly.`,
+      id: 'backchannel_nobody_asked', title: 'Nobody asked', at: ['travel'],
+      when: (s) => s.day >= 5 && !K(s, s.client.stakeholderFact),
+      text: (s) => `Halfway across a quiet footbridge, ${C(s)} leans on the railing. "You know, it's funny. You never asked who else is involved in all this." They say it lightly. They do not mean it lightly.`,
       choices: [
         { label: 'Ask now', kind: 'prepare', eff: (s) => ({ momentum: -1, insight: 2, trust: 1, fact: s.client.stakeholderFact }), result: (s) => `It turns out ${s.client.stakeholder} matters a great deal. Good thing there is still time.` },
         { label: '"We\'ll get to that"', kind: 'through', eff: (s) => ({ momentum: 1, debt: { tag: 'unknown_stakeholder', sev: 2 }, missed: s.client.stakeholderFact }), result: '"Sure," they say. The river keeps moving underneath.' },
@@ -760,22 +755,13 @@
       ]
     },
     {
-      id: 'backchannel_no_toll', title: 'No toll here', at: ['backchannel'],
-      text: 'There is no toll booth on this bridge. No troll, no review, nobody checking the file. Just a quiet stone arch and the sound of water.',
-      choices: [
-        { label: 'Enjoy it and keep moving', kind: 'through', eff: { momentum: 2, debt: { tag: 'stale_info', sev: 1 } }, result: 'Nobody checks. It is very peaceful, not being checked.' },
-        { label: 'Review the file yourself, on the railing', kind: 'prepare', eff: (s) => (s.debt.length ? { energy: -2, clearDebt: oldestDebt(s), insight: 1 } : { energy: -1, insight: 2 }), result: 'You go through the file line by line. You find one thing you would have liked to know earlier, and fix it.' },
-        { label: 'Ask the client to go through it with you', kind: 'around', eff: { days: 1, trust: 1, insight: 1 }, result: (s) => `${C(s)} corrects two small things and one not-so-small thing. Worth the day.` },
-        { label: 'Ask Olu to check the file remotely', kind: 'help', contact: 'operator', show: ready('operator'), eff: { insight: 1, momentum: 1 }, result: '"Two things are out of date," says Olu. "I fixed one. You fix the other." Fair.' }
-      ]
-    },
-    {
-      id: 'backchannel_cousin', title: 'Steve\'s cousin', at: ['backchannel'], cut: 'steve',
-      text: 'A man in a cardigan is fishing off the bridge. He looks a lot like Steve. "Steve\'s cousin," he says, without looking up. "There\'s an even shorter way from here. Straight across the water to the X. Skips the last bit entirely."',
+      id: 'backchannel_cousin', title: 'Steve\'s cousin', at: ['travel'], cut: 'steve', weight: 0.7,
+      when: (s) => s.password && s.day >= 3,
+      text: 'A man in a cardigan is fishing off a footbridge. He looks a lot like Steve. "Steve\'s cousin," he says, without looking up. "Steve\'s back channels get you around things. Mine skips the next landmark entirely. Straight across the water."',
       choices: [
         { label: 'Take the even shorter way', kind: 'through', hint: 'You are already short on what you know.', eff: { momentum: 3, debt: [{ tag: 'rushed_pace', sev: 2 }, { tag: 'guessed_key', sev: 1 }] }, result: 'You hop across the stepping stones. Fast. Very fast. Your client is a little out of breath and a lot unsure.' },
         { label: '"What usually happens at the end of it?"', kind: 'prepare',
-          then: { text: 'He reels in nothing. "People get to the X quick. Then the client asks them something, and they don\'t know the answer. Then they walk all the way back." He casts again. "Steve thinks that\'s funny."',
+          then: { text: 'He reels in nothing. "People get across quick. Then the client asks them something, and they don\'t know the answer. Then they walk all the way back." He casts again. "Steve thinks that\'s funny."',
             choices: [
               { label: 'Thank him and take the proper way', kind: 'prepare', eff: (s) => (PP.skill(s, 'judgment') < 2 ? { skill: { judgment: 1 } } : { insight: 1 }), result: 'He nods. "Smart. Steve would\'ve taken it."' },
               { label: 'Take it anyway, you\'ll figure it out', kind: 'through', eff: { momentum: 2, debt: { tag: 'guessed_key', sev: 2 } }, result: 'You figure you will figure it out. That is a plan, technically.' }
@@ -784,16 +770,17 @@
       ]
     },
     {
-      id: 'backchannel_too_fast', title: '"Was that too fast?"', at: ['backchannel'],
-      text: (s) => `${C(s)} watches the water for a while. "That was quicker than I expected. Is that... good? It feels like we skipped some things."`,
+      id: 'backchannel_too_fast', title: '"Was that too fast?"', at: ['travel'],
+      when: (s) => s.pace !== 'steady' && s.day >= 4,
+      text: (s) => `${C(s)} stops to catch their breath and watches a stream for a while. "That was quicker than I expected. Is that... good? It feels like we skipped some things."`,
       choices: [
-        { label: '"It\'s good! We\'re nearly there."', kind: 'through', eff: { momentum: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: (s) => `${C(s)} nods, a little unsure. You both look at the X.` },
+        { label: '"It\'s good! We\'re nearly there."', kind: 'through', eff: { momentum: 1, debt: { tag: 'unchallenged_assumption', sev: 2 } }, result: (s) => `${C(s)} nods, a little unsure. You both keep walking.` },
         { label: '"Honestly, we did. Let\'s slow down."', kind: 'prepare', eff: { trust: 2, momentum: -2, pace: 'steady', insight: 1 }, result: 'Saying it out loud is a relief for both of you. The X can wait a few days.' },
         { label: '"What do you think we skipped?"', kind: 'prepare', eff: (s) => { R.tf = open(s); return { energy: -1 }; },
           then: { text: (s) => { const w = worry(s); if (!w) return `${C(s)} counts on their fingers. "Well, you never really asked what I'm worried about."`; return `${C(s)} hesitates, then: ` + (R.tf ? w.text : (w.guarded || w.text)); },
             choices: [
-              { label: 'Thank them, and really listen', kind: 'prepare', eff: (s) => { const w = worry(s); return R.tf && w && w.fact ? { trust: 1, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; }, result: () => (R.tf ? 'Everything the shortcut skipped, in one honest minute. The bridge was worth it after all.' : 'They do not tell you everything. But now you know there is more, and they know you will ask.') },
-              { label: 'Promise to cover it all at the end', kind: 'through', eff: { momentum: 1, debt: { tag: 'assumed_goal', sev: 1 } }, result: '"At the end." They nod. The end is very close.' }
+              { label: 'Thank them, and really listen', kind: 'prepare', eff: (s) => { const w = worry(s); return R.tf && w && w.fact ? { trust: 1, insight: 2, fact: w.fact } : { trust: 1, insight: 1 }; }, result: () => (R.tf ? 'Everything the hurry skipped, in one honest minute. Worth slowing down for.' : 'They do not tell you everything. But now you know there is more, and they know you will ask.') },
+              { label: 'Promise to cover it all at the end', kind: 'through', eff: { momentum: 1, debt: { tag: 'assumed_goal', sev: 1 } }, result: '"At the end." They nod. The end keeps getting closer.' }
             ] } }
       ]
     }

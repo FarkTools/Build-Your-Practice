@@ -296,7 +296,8 @@ kbd { font-family: var(--mono); font-size: 0.68rem; border: 1px solid currentCol
 @keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 .scene-title { font-size: 1.5rem; font-weight: 700; color: var(--navy); }
 .scene-text { font-size: 1.04rem; max-width: 64ch; }
-.scene-sub { font-size: 0.86rem; color: var(--red); font-style: italic; }
+.scene-sub { font-size: 0.86rem; color: var(--ink-2); font-style: italic; }
+.scene-debt .scene-sub { color: var(--red); }
 .scene-debt .scene-title { color: var(--red); }
 .skeptic-note { background: var(--ink); color: var(--parch); padding: 8px 12px; border-radius: 6px; font-size: 0.92rem; }
 .choices { display: grid; gap: 8px; counter-reset: ch; }
@@ -965,3 +966,4 @@ input, select, textarea { font-size: 16px; }
 .stages-end li.done strong { color: var(--green); font-weight: 600; font-size: 0.85rem; text-align: right; }
 .stages-end li.missed strong { color: var(--ink-3); }
 .prospect-card.followup { box-shadow: inset 4px 0 0 var(--orange); }
+.town-map .t-small { font-size: 9px; }
