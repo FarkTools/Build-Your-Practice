@@ -1505,9 +1505,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.11.0';
+  PP.VERSION = '0.11.1';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.11.1', 'Doing something at a place keeps you there and shows the result right at that place'],
     ['0.11.0', 'The trail follows the relationship: stage tracker, hidden passages at every obstacle, follow-up journeys when clients\' lives change, a Trailhead in town, and place-specific sounds'],
     ['0.10.2', 'Music keeps playing when you tap: effects and music now share one mixer'],
     ['0.10.1', 'Music fix for iPhone: unlocks with sound on your first tap and restarts on any tap if it stopped'],
@@ -10932,7 +10933,7 @@ window.PP = window.PP || {};
         PP.content.applyPortDay(c, eff, { noTick: true }).forEach((n) => notes.push(n));
         if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
         PP.career.save(c);
-        port(G.tab, notes);
+        port(G.place, notes);
       } }, ch.label))));
   }
 
@@ -10943,9 +10944,10 @@ window.PP = window.PP || {};
     if (want) G.place = want;
     if (!G.place) G.place = c.pipeline.length || (c.followUps || []).length ? 'trailhead' : 'office';
     PP.audio && PP.audio.bed('town:' + G.place);
-    const panel = h('div', { class: 'place-panel', id: 'place-panel' }, placePanel(G.place));
+    const flashBox = flash && flash.length ? h('div', { class: 'flash', role: 'status' }, flash.map((n) => h('p', { class: 'fl-' + (n.kind || 'info') }, n.text))) : null;
+    const panel = h('div', { class: 'place-panel', id: 'place-panel' }, flashBox, placePanel(G.place));
     const map = PP.ui.townMap(c, G.place, (id) => {
-      G.place = id;
+      G.place = id; G.lastPlace = id;
       PP.audio && PP.audio.bed('town:' + id);
       map.querySelectorAll('.tp').forEach((g) => g.classList.toggle('on', g.dataset.id === id));
       panel.innerHTML = ''; panel.appendChild(placePanel(id));
@@ -10956,10 +10958,12 @@ window.PP = window.PP || {};
       h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Home base'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
         h('p', { class: 'muted' }, 'Every activity here takes a day, and every day costs money. Balance prospecting, looking after clients, and time on the trail.')),
       practicePanel(c),
-      flash && flash.length ? h('div', { class: 'flash', role: 'status' }, flash.map((n) => h('p', { class: 'fl-' + (n.kind || 'info') }, n.text))) : null,
       todayCard(c),
       h('p', { class: 'coach' }, h('span', { class: 'eyebrow' }, 'What now? '), coach(c)),
       h('div', { class: 'town-layout' }, h('div', { class: 'town-wrap' }, h('p', { class: 'pick-prompt' }, 'Tap a place in town'), map), panel)));
+    // After doing something, stay where you were: show the result at the top of this place.
+    if (flashBox && G.lastPlace === G.place) requestAnimationFrame(() => panel.scrollIntoView({ block: 'start' }));
+    G.lastPlace = G.place;
   }
 
   function placePanel(id) {
@@ -10995,7 +10999,7 @@ window.PP = window.PP || {};
     }
     if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
     PP.career.save(c);
-    port(tab || G.tab, lines);
+    port(tab || G.place, lines);
   }
 
   /* ---- Prospecting ---- */
@@ -11071,7 +11075,7 @@ window.PP = window.PP || {};
     const c = G.career;
     if (!c.pipeline.length) return h('div', { class: 'stack' }, followUpBox(), h('div', { class: 'panel' }, h('p', null, 'No new prospects waiting. Prospects you meet show up here, ready to be guided along the trail.'), h('button', { class: 'btn primary', onclick: () => port('prospect') }, 'Go prospecting')));
     const nurture = h('div', { class: 'panel row between' }, h('div', null, h('h3', null, 'Keep your pipeline warm'), h('p', { class: 'small muted' }, 'Prospects go cold if you leave them waiting. A day of follow-up notes and calls buys everyone another week.')),
-      h('button', { class: 'btn', onclick: () => spendDay(() => { c.pipeline.forEach((p) => (p.expires += 7)); return `You spend the day following up with ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''}. Everyone gets another week.`; }, 'pipeline') }, 'Nurture your pipeline (1 day)'));
+      h('button', { class: 'btn', onclick: () => spendDay(() => { c.pipeline.forEach((p) => (p.expires += 7)); return `You spend the day following up with ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''}. Everyone gets another week.`; }) }, 'Nurture your pipeline (1 day)'));
     return h('div', { class: 'stack' }, followUpBox(), h('h4', { class: 'place-sub' }, 'New prospects'), nurture, h('div', { class: 'pipeline-grid' }, c.pipeline.slice().sort((a, b) => a.expires - b.expires).map((p) => {
       const cl = PP.content.clients[p.archetype];
       const left = p.expires - c.days;
@@ -11130,15 +11134,15 @@ window.PP = window.PP || {};
     const activeCount = c.book.filter((b) => ['life', 'steady'].includes(b.status)).length;
     const ws = h('div', { class: 'panel' }, h('h3', null, 'Workspace'), h('div', { class: 'option-list' }, Object.entries(pr.workspaces).map(([id, w]) => h('div', { class: 'option' + (c.workspace === id ? ' current' : '') },
       h('div', null, h('strong', null, w.name), h('div', { class: 'small' }, w.blurb), h('div', { class: 'small muted' }, w.rent ? `${money(w.rent)}/day rent` : 'No rent')),
-      c.workspace === id ? h('span', { class: 'pill good' }, 'Current') : h('button', { class: 'btn', onclick: () => spendDay(() => { c.workspace = id; return `You move into: ${w.name}.`; }, 'build') }, 'Move here (1 day)')))));
+      c.workspace === id ? h('span', { class: 'pill good' }, 'Current') : h('button', { class: 'btn', onclick: () => spendDay(() => { c.workspace = id; return `You move into: ${w.name}.`; }) }, 'Move here (1 day)')))));
 
     const partner = c.partner ? pr.partners.find((x) => x.id === c.partner) : null;
     const pt = h('div', { class: 'panel' }, h('h3', null, 'Partner with another agent'), h('p', { class: 'small' }, pr.partnerTerms),
       partner ? h('div', { class: 'option current' }, h('div', null, h('strong', null, partner.name), h('div', { class: 'small' }, partner.blurb)),
-        h('button', { class: 'btn ghost', onclick: () => spendDay(() => { c.partner = null; return `You and ${partner.name} part ways, amicably.`; }, 'build') }, 'Part ways'))
+        h('button', { class: 'btn ghost', onclick: () => spendDay(() => { c.partner = null; return `You and ${partner.name} part ways, amicably.`; }) }, 'Part ways'))
         : activeCount < pr.partnerNeeds ? h('p', { class: 'small muted' }, `Agents will only partner with you once you have ${pr.partnerNeeds} paying clients. You have ${activeCount}.`)
           : h('div', { class: 'option-list' }, pr.partners.map((p) => h('div', { class: 'option' }, h('div', null, h('strong', null, p.name), h('div', { class: 'small' }, p.blurb)),
-            h('button', { class: 'btn', onclick: () => spendDay(() => { c.partner = p.id; return `You and ${p.name} shake on it. Partners.`; }, 'build') }, 'Partner up (1 day)')))));
+            h('button', { class: 'btn', onclick: () => spendDay(() => { c.partner = p.id; return `You and ${p.name} shake on it. Partners.`; }) }, 'Partner up (1 day)')))));
 
     const rc = h('div', { class: 'panel' }, h('h3', null, 'Recruit and train agents'),
       h('p', { class: 'small' }, `Bring on new agents and train them. Once trained, they pay you an override every day. They need mentoring at least every ${pr.mentorEvery} days or they may quit.`),
@@ -11147,9 +11151,9 @@ window.PP = window.PP || {};
         const mine = c.recruits.find((x) => x.id === r.id);
         const canHire = c.workspace === 'office' && activeCount >= pr.recruitNeeds && c.savings >= pr.hireCost;
         let action;
-        if (!mine) action = h('button', { class: 'btn', disabled: !canHire, onclick: () => spendDay(() => { c.savings -= pr.hireCost; c.recruits.push({ id: r.id, name: r.name, override: r.override, quit: r.quit, trained: false, training: 0, lastMentor: c.days }); return `${r.name} joins your practice. Licensing costs ${money(pr.hireCost)}. Now they need training.`; }, 'build') }, `Recruit (${money(pr.hireCost)}, 1 day)`);
-        else if (!mine.trained) action = h('button', { class: 'btn', onclick: () => spendDay(() => { mine.training++; mine.lastMentor = c.days; if (mine.training >= pr.trainDays) { mine.trained = true; return `${r.name} is trained and working on their own. +${money(r.override)}/day override.`; } return `A day of training with ${r.name} (${mine.training}/${pr.trainDays}).`; }, 'build') }, `Train (${mine.training}/${pr.trainDays})`);
-        else action = h('button', { class: 'btn', onclick: () => spendDay(() => { mine.lastMentor = c.days; mine.override += 5; return `A mentoring day with ${r.name}. They are growing (+${money(5)}/day override).`; }, 'build') }, `Mentor (last ${c.days - mine.lastMentor}d ago)`);
+        if (!mine) action = h('button', { class: 'btn', disabled: !canHire, onclick: () => spendDay(() => { c.savings -= pr.hireCost; c.recruits.push({ id: r.id, name: r.name, override: r.override, quit: r.quit, trained: false, training: 0, lastMentor: c.days }); return `${r.name} joins your practice. Licensing costs ${money(pr.hireCost)}. Now they need training.`; }) }, `Recruit (${money(pr.hireCost)}, 1 day)`);
+        else if (!mine.trained) action = h('button', { class: 'btn', onclick: () => spendDay(() => { mine.training++; mine.lastMentor = c.days; if (mine.training >= pr.trainDays) { mine.trained = true; return `${r.name} is trained and working on their own. +${money(r.override)}/day override.`; } return `A day of training with ${r.name} (${mine.training}/${pr.trainDays}).`; }) }, `Train (${mine.training}/${pr.trainDays})`);
+        else action = h('button', { class: 'btn', onclick: () => spendDay(() => { mine.lastMentor = c.days; mine.override += 5; return `A mentoring day with ${r.name}. They are growing (+${money(5)}/day override).`; }) }, `Mentor (last ${c.days - mine.lastMentor}d ago)`);
         return h('div', { class: 'option' + (mine ? ' current' : '') }, h('div', null, h('strong', null, r.name), h('div', { class: 'small' }, r.blurb), h('div', { class: 'small muted' }, mine && mine.trained ? `Earning you ${money(mine.override)}/day` : `Will earn about ${money(r.override)}/day once trained`)), action);
       })));
 
@@ -11159,7 +11163,7 @@ window.PP = window.PP || {};
         const has = c.systems[id], mark = c.marks[sy.mark];
         return h('div', { class: 'option' + (has ? ' current' : '') + (mark ? '' : ' locked') },
           h('div', null, h('strong', null, sy.name), h('div', { class: 'small' }, sy.blurb), h('div', { class: 'small muted' }, mark ? `Mark earned at ${PP.content.nodes[sy.mark].name}` : `Earn the Mark at ${PP.content.nodes[sy.mark].name}`)),
-          has ? h('span', { class: 'pill good' }, 'Built') : h('button', { class: 'btn', disabled: !mark || c.savings < sy.cost, onclick: () => spendDay(() => { c.savings -= sy.cost; c.systems[id] = true; return `You build your ${sy.name.toLowerCase()}.`; }, 'build') }, `Build (${money(sy.cost)}, 1 day)`));
+          has ? h('span', { class: 'pill good' }, 'Built') : h('button', { class: 'btn', disabled: !mark || c.savings < sy.cost, onclick: () => spendDay(() => { c.savings -= sy.cost; c.systems[id] = true; return `You build your ${sy.name.toLowerCase()}.`; }) }, `Build (${money(sy.cost)}, 1 day)`));
       })));
     return { ws, pt, rc, sys };
   }
