@@ -6,8 +6,9 @@
   PP.ui.KIND = KIND;
 
   PP.ui.avatar = function (client, size = 44) {
-    const initials = client.name.split(' ').map((w) => w[0]).join('').slice(0, 2);
-    return h('span', { class: 'avatar', style: { width: size + 'px', height: size + 'px', fontSize: size * 0.4 + 'px', '--h': client.hue }, 'aria-hidden': 'true' }, initials);
+    let n = client.hue || 0;
+    for (const ch of client.name) n = (n * 31 + ch.charCodeAt(0)) % 9973;
+    return h('span', { class: 'avatar face', style: { width: size + 'px', height: size + 'px' }, 'aria-hidden': 'true', html: PP.art ? PP.art.face({ mood: 1, hue: n }) : '' });
   };
 
   PP.ui.gauges = function (s, prevRes) {

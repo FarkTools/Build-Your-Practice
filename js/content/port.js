@@ -23,7 +23,7 @@
     {
       id: 'olu', name: 'Olu', role: 'Operations, keeper of all forms', contact: 'operator',
       greet: '"Ninety percent of disasters are paperwork that someone was sure about."',
-      quest: { id: 'olu_dash', label: 'Practice: Document Dash', minigame: 'documentDash', text: 'Olu dumps a practice inbox on the desk. "Sort it. Use, verify, discard, or ask. Go."', pass: 5, reward: { skill: { preparation: 1 } } }
+      quest: { id: 'olu_dash', label: 'Practice: Shoebox Fact Find', minigame: 'factFind', text: 'Olu drops a shoebox on the desk. "A real client brought this in last year. Sort it. Go."', pass: 5, reward: { skill: { preparation: 1 } } }
     },
     {
       id: 'priya', name: 'Priya', role: 'Knows everyone at the port', contact: 'connector',
@@ -34,7 +34,7 @@
     {
       id: 'kenji', name: 'Kenji', role: 'Technology whisperer', contact: 'whisperer',
       greet: '"Have you tried turning the client off and on again? Kidding. Mostly."',
-      quest: { id: 'kenji_fraud', label: 'Practice: Fraud or Friend?', minigame: 'fraudOrFriend', text: 'Kenji forwards you a week of his strangest messages. "Which of these would you act on?"', pass: 4, reward: { skill: { curiosity: 1 } } }
+      quest: { id: 'kenji_fraud', label: 'Practice: Monday Morning Inbox', minigame: 'inbox', text: 'Kenji forwards you last Monday\'s inbox. "Handle it, book it, hand it off, or verify it. One of these is a scam."', pass: 5, reward: { skill: { curiosity: 1 } } }
     },
     {
       id: 'gus', name: 'Gus', role: 'Professional pessimist, end of the bar', contact: 'skeptic',

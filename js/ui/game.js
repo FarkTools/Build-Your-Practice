@@ -120,7 +120,14 @@
   /* ---- Prospecting ---- */
   function tabProspect() {
     const c = G.career;
-    return h('div', { class: 'activity-grid' }, PP.content.prospecting.map((a) => {
+    const plan = h('article', { class: 'panel activity' },
+      h('h3', null, 'Plan your week'), h('p', { class: 'small' }, 'Fit client meetings, prep, prospecting and the specialist into your calendar. A well-planned week gives your next journey a head start.'),
+      c.weekPlan ? h('p', { class: 'small good' }, 'Ready: ' + weekLabel(c.weekPlan)) : null,
+      h('div', { class: 'row between' }, h('span', { class: 'small muted' }, '1 day · mini-game'),
+        h('button', { class: 'btn primary', onclick: () => overlayGame(PP.minigames.calendar, { state: { skills: c.skills, res: { trust: 5 } }, names: c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).map((b) => b.name), prep: c.skills.preparation || 0 }, (res) => {
+          spendDay(() => { c.weekPlan = res.week; return 'Calendar Tetris: ' + weekLabel(res.week) + ' This carries into your next journey.'; }, 'prospect');
+        }, 'Calendar Tetris · 1 day') }, 'Play')));
+    return h('div', { class: 'activity-grid' }, plan, ...PP.content.prospecting.map((a) => {
       const blocked = a.id === 'warm' && c.market <= 0;
       return h('article', { class: 'panel activity' },
         h('h3', null, a.name), h('p', { class: 'small' }, a.blurb),
@@ -140,6 +147,15 @@
         return got.length ? `${a.name}: ${got.length} new prospect${got.length > 1 ? 's' : ''} for your pipeline (${got.map((p) => `${p.name}, ${p.temp}`).join('; ')}).` : `${a.name}: no new prospects this time.`;
       }, got0(res) ? 'pipeline' : 'prospect');
     }, `${a.name} · ${a.cost ? money(a.cost) + ' · ' : ''}1 day`);
+  }
+  function weekBuff(w) {
+    return { momentum: w.prepared >= 2 ? 1 : 0, insight: w.prepared >= 3 ? 1 : 0, energy: w.overbooked ? -w.overbooked : 1, trust: w.prospecting >= 2 ? 1 : 0 };
+  }
+  function weekLabel(w) {
+    const e = weekBuff(w), parts = [];
+    if (e.momentum) parts.push('+1 Momentum'); if (e.insight) parts.push('+1 Insight'); if (e.trust) parts.push('+1 Trust');
+    parts.push(e.energy > 0 ? '+1 Energy' : `${e.energy} Energy`);
+    return parts.join(', ') + '.';
   }
   const got0 = (res) => (res.prospects || []).length > 0;
 
@@ -177,6 +193,28 @@
     })));
   }
 
+  /* Service days are mini-games. result.sat = { name: change } lands on the book. */
+  function applySat(c, sat, active) {
+    const touched = [];
+    Object.entries(sat || {}).forEach(([name, d]) => { const b = active.find((x) => x.name === name); if (b) { const ch = Math.max(-3, Math.min(4, d)) + 1; b.sat = Math.max(0, Math.min(10, b.sat + ch)); touched.push(`${name} ${ch >= 0 ? '+' : ''}${ch}`); } });
+    active.forEach((b) => { if (!sat || sat[b.name] == null) b.sat = Math.min(10, b.sat + 1); });
+    return touched;
+  }
+  function serviceCard(id, title, blurb, active) {
+    const c = G.career;
+    return h('div', { class: 'option' }, h('div', null, h('strong', null, title), h('div', { class: 'small' }, blurb)),
+      h('button', { class: 'btn primary', disabled: !active.length, onclick: () => {
+        const mg = PP.minigames[id];
+        overlayGame(mg, { state: { skills: c.skills, res: { trust: 5 } }, names: active.map((b) => b.name), prep: c.skills.preparation || 0 }, (res) => {
+          spendDay(() => {
+            const touched = applySat(c, res.sat, active);
+            c.lastService = c.days;
+            return `${mg.title}: ${touched.length ? 'satisfaction ' + touched.join(', ') + '.' : 'everyone feels a little more looked after.'}`;
+          }, 'book');
+        }, `${mg.title} · 1 day`);
+      } }, 'Play (1 day)'));
+  }
+
   /* ---- Book ---- */
   function tabBook() {
     const c = G.career;
@@ -184,8 +222,11 @@
     const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
     return h('div', { class: 'stack' },
       h('div', { class: 'panel' },
-        h('div', { class: 'row between' }, h('div', null, h('h3', null, 'Look after your clients'), h('p', { class: 'small muted' }, 'Satisfaction slips a little every day. Below 4, clients start to cancel. A service day checks in with everyone.' + (c.partner ? ' Your partner looks after them while you are on the trail.' : ''))),
-          h('button', { class: 'btn primary', disabled: !active.length, onclick: () => spendDay(() => { active.forEach((b) => (b.sat = Math.min(10, b.sat + 4))); c.lastService = c.days; return `You spend the day on reviews and check-in calls. ${active.length} client${active.length > 1 ? 's' : ''} feel looked after.`; }, 'book') }, 'Service day (1 day)'))),
+        h('h3', null, 'Look after your clients'),
+        h('p', { class: 'small muted' }, 'Satisfaction slips a little every day. Below 4, clients start to cancel. Spend a day on service to keep them close.' + (c.partner ? ' Your partner looks after them while you are on the trail.' : '')),
+        h('div', { class: 'service-row' },
+          serviceCard('inbox', 'Work through the inbox', 'Questions, paperwork, life news, and the occasional scam.', active),
+          serviceCard('lifeHappens', 'Check in on everyone', 'Respond to what is happening in your clients\' lives.', active))),
       list.length ? h('div', { class: 'book-grid' }, list.map((b) => h('article', { class: 'panel client-row b-' + b.status },
         h('div', { class: 'row between' }, h('strong', null, b.name), h('span', { class: 'pill' }, { life: 'client for life', steady: 'steady', 'at-risk': 'might cancel', door: 'not yet', cancelled: 'cancelled' }[b.status])),
         h('div', { class: 'small muted' }, `Journey ${b.journey}` + (b.perDay ? ` · ${money(b.perDay)}/day` : '')),
@@ -312,6 +353,7 @@
     PP.apply(s, { trust: trustMod });
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
     if (s.pack.includes('cards')) { PP.apply(s, { trust: 1 }); PP.useItem(s, 'cards'); }
+    if (c.weekPlan) { PP.apply(s, weekBuff(c.weekPlan)); PP.log(s, 'Your planned week: ' + weekLabel(c.weekPlan), 'info'); c.weekPlan = null; }
     G.s = s;
     PP.career.save(c);
     G.root.innerHTML = '';

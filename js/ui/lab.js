@@ -228,7 +228,7 @@
       });
     }
     root._stop = () => running && running.stop();
-    root.append(intro('Mini-games', 'Each mini-game is a real judgment risk, and its result feeds back into the journey: insight, trust, momentum, and sometimes hidden risk debt. Document Dash, The Conversation and Fraud or Friend are judgment games from the concept doc. Call-a-thon, the Mixer and the Farmers Market are prospecting games played at the port. Inbox Rapids and the Snake Pit are the action games.'), opts, cards, stage);
+    root.append(intro('Mini-games', 'Each mini-game is a real judgment risk, and its result feeds back into the journey: insight, trust, momentum, and sometimes hidden risk debt. Call-a-thon, the Mixer and the Farmers Market are prospecting games played at the port. The Conversation and Shoebox Fact Find happen with a client on the trail. Monday Morning Inbox and Life Happens are service days for the clients you already have. Calendar Tetris plans your week.'), opts, cards, stage);
     root.parentNode && (root.parentNode._stop = root._stop);
   }
 

@@ -102,7 +102,7 @@
       text: (s) => `The trail curves, and curves, and curves. A sign: "Please re-enter all of ${C(s)}'s information." You entered it two days ago. And at the port. And on a napkin.`,
       choices: [
         { label: 'Copy-paste everything from last time', kind: 'through', hint: 'Fast, if last time was right.', eff: () => (PP.chance(0.4) ? { momentum: -1, days: 1, debt: { tag: 'stale_info', sev: 2 } } : { momentum: 1, debt: { tag: 'stale_info', sev: 2 } }), preview: 'Quick, adds hidden risk, and 40% of the time the loop sends you round again (lose a day).', result: (s) => 'Pasted. The trail straightens out. Or did it loop? You can\'t tell.' },
-        { label: 'Sort the paperwork properly', kind: 'prepare', minigame: 'documentDash', hint: 'Speed helps, rushing hurts.', result: 'The pile is handled. The trail straightens out.' },
+        { label: 'Go through the shoebox of paperwork properly', kind: 'prepare', minigame: 'factFind', hint: 'Sort what\'s current, what needs updating, and what to ask about.', result: 'The paperwork is sorted. The trail straightens out.' },
         { label: 'Re-type everything, checking as you go', kind: 'prepare', eff: { energy: -2, insight: 1 }, result: 'Slow. Tedious. You catch an old address in the process.' },
         { label: 'Ask Olu if there is a way out of the loop', kind: 'help', contact: 'operator', show: (s) => PP.contactReady(s, 'operator'), eff: { momentum: 1, insight: 1 }, result: 'Olu: "There\'s a button. Nobody uses the button." There is a button.' }
       ]
@@ -148,9 +148,9 @@
     /* ---- Snake Pit of Unreturned Calls (side trail) ---- */
     {
       id: 'snakepit_calls', title: 'The Snake Pit of Unreturned Calls', at: ['snakepit'], first: true, cut: 'phones',
-      text: 'The pit is full of ringing phones, coiled like snakes. Some are your client. Some are robocalls about your car\'s extended warranty. All of them want an answer.',
+      text: 'The pit is full of ringing phones, coiled like snakes. Your other clients have been busy living: a new baby, a layoff, a birthday you nearly forgot. All of them want to hear from you.',
       choices: [
-        { label: 'Climb in and return the calls', kind: 'prepare', minigame: 'phoneTag', hint: 'Answer the real ones. Ignore the junk.', result: 'You climb out with a sore ear and a cleaner conscience.' },
+        { label: 'Climb in and get back to everyone', kind: 'prepare', minigame: 'lifeHappens', hint: 'Hard news needs a call. Big plans need a review. Celebrations get a card.', result: 'You climb out with a sore ear and a lot of grateful clients.' },
         { label: 'Let them ring', kind: 'through', eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } }, result: 'The ringing fades behind you. For now.' },
         { label: 'Send one group text to everyone', kind: 'around', eff: { momentum: 1, trust: -1 }, result: '"Hi all! Circling back!" Three people reply "who is this?"' }
       ]
@@ -240,7 +240,7 @@
       id: 'isles_message', title: 'Suspicious messages', at: ['isles', 'travel'],
       text: (s) => `Your inbox lights up. Some of these are from ${C(s)}. Some of them only claim to be.`,
       choices: [
-        { label: 'Work through them carefully', kind: 'prepare', minigame: 'fraudOrFriend', hint: 'Verification protects you, but caution is not free.', result: 'Inbox cleared.' },
+        { label: 'Work through the inbox carefully', kind: 'prepare', minigame: 'inbox', hint: 'Quick ones now, big news gets a call, paperwork to your assistant, verify anything odd.', result: 'Inbox cleared.' },
         { label: 'Act on everything, it\'s probably fine', kind: 'through', hint: 'It is probably fine.', eff: { momentum: 2, debt: { tag: 'fraud', sev: 3 } }, result: 'Everything is done. Very efficient. Hmm.' },
         { label: 'Escalate the whole lot to Operations', kind: 'around', eff: { momentum: -2, energy: 1 }, result: 'Operations sighs and sorts it. Safe, slow, slightly embarrassing.' },
         { label: 'Call Kenji', kind: 'help', contact: 'whisperer', show: (s) => PP.contactReady(s, 'whisperer'), eff: { insight: 1 }, result: 'Kenji glances at the headers. "That one\'s fake. Those are fine." Done.' }
@@ -341,12 +341,12 @@
       ]
     },
     {
-      id: 'enc_storm', title: 'A storm of emails', at: ['travel'], cut: 'emails',
-      text: 'The sky darkens. Then it starts raining envelopes. Reply-alls, newsletters, a calendar invite to a meeting about meetings, and somewhere in there, the messages that actually matter.',
+      id: 'enc_storm', title: 'Your week falls apart', at: ['travel'], cut: 'emails',
+      text: 'The sky darkens and it starts raining calendar invites. Three clients want to move their meetings, the specialist can only do Tuesday, and your kid\'s game is Thursday at four.',
       choices: [
-        { label: 'Steer through it and grab the important ones', kind: 'prepare', minigame: 'inboxRapids', hint: 'Catch the gold ones. Dodge the rest.', result: 'You come out the other side, damp but caught up.' },
+        { label: 'Rebuild the week, block by block', kind: 'prepare', minigame: 'calendar', hint: 'Prep before meetings. Specialist on Tue/Thu. Don\'t overbook.', result: 'The week holds together. Mostly.' },
         { label: 'Pull over and wait it out', kind: 'around', eff: { days: 1, momentum: -1, energy: 1 }, result: 'A day under a tarp. It passes.' },
-        { label: 'Close the laptop and keep walking', kind: 'through', eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } }, result: 'Out of sight, out of mind. Mostly out of mind.' }
+        { label: 'Double-book and hope for the best', kind: 'through', eff: { momentum: 1, debt: { tag: 'missed_message', sev: 2 } }, result: 'Everything is on the calendar. Some of it twice.' }
       ]
     },
     {

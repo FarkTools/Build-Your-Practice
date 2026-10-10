@@ -35,7 +35,7 @@ This repo is a **playable concept prototype**, plus an Element Lab where each me
 | 40+ events, multi-step conversations, risk-debt checks | `js/content/events.js` |
 | Clients, hidden facts, check-in answers | `js/content/clients.js` |
 | Port people, practice quests, contacts, pack items | `js/content/port.js` |
-| Mini-games: Call-a-thon, Mixer, Farmers Market, Document Dash, The Conversation, Fraud or Friend?, Inbox Rapids, the Snake Pit | `js/minigames/` |
+| Mini-games: Call-a-thon, Mixer, Farmers Market, The Conversation, Shoebox Fact Find, Monday Morning Inbox, Calendar Tetris, Life Happens | `js/minigames/` |
 | Game feel: instant pops, bursts, stamps, flying cards, live meters, sound, character art | `js/minigames/fx.js` |
 | Element Lab: every mechanic in isolation | `js/ui/lab.js` |
 

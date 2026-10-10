@@ -121,55 +121,139 @@
     return b;
   };
 
-  /* ---------- Character art ---------- */
-  const SKIN = ['#f2c79a', '#e8b48a', '#c98d62', '#a86f48', '#7a4f33', '#f5d3b5'];
-  const HAIR = ['#4a2e14', '#1f1a17', '#b07a43', '#d9a441', '#7a3b1e', '#9a9a9a'];
+  /* ---------- Character art ----------
+   * Drawn like the map: flat muted fills, one even dark-brown line, no gradients,
+   * small simple features. Faces are head-and-shoulders busts that react (mood -2..2). */
+  const INK = '#4a2c12', SW = 2.2;
+  const SKIN = ['#f3d6b6', '#e6bb93', '#cf9a70', '#ad7752', '#83583a', '#f6e0c8'];
+  const HAIR = ['#4a2c12', '#2e241d', '#9c6a3c', '#cfa15a', '#8a4a2a', '#bdb1a2'];
+  const COAT = ['#2f5a9c', '#7f9f5a', '#b0763c', '#9cc2e6', '#c86f4f', '#e6b85c', '#6f6a9a', '#5f8f86'];
   const pickBy = (arr, n) => arr[Math.abs(Math.round(n)) % arr.length];
-  PP.art = {};
+  const ln = (d, w) => `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${w || SW}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const sh = (d, fill, w) => `<path d="${d}" fill="${fill}" stroke="${INK}" stroke-width="${w || SW}" stroke-linejoin="round"/>`;
+  PP.art = { INK, SKIN, HAIR, COAT };
+
+  /* Hair styles for the bust, drawn over a head centred at 50,44 (rx 21, ry 24). */
+  const BUST_HAIR = [
+    (c) => sh('M28,44 Q26,18 50,17 Q74,18 72,44 Q70,30 60,28 Q50,33 36,29 Q30,33 28,44z', c), // short
+    (c) => sh('M28,46 Q24,16 52,16 Q76,18 72,46 L70,34 Q58,32 46,24 Q40,32 30,34z', c), // side part
+    (c) => sh('M28,40 Q30,18 50,18 Q70,18 72,40 Q66,27 50,27 Q34,27 28,40z', c) + sh('M44,16 a7,6 0 1 1 12,0 a7,6 0 1 1 -12,0z', c), // bun
+    (c) => sh('M27,70 Q20,40 30,24 Q40,14 54,16 Q76,18 74,44 L74,70 Q70,58 70,42 Q64,30 50,28 Q36,30 31,42 Q30,58 27,70z', c), // long
+    (c) => sh('M29,42 Q28,34 32,30 L34,40z', c) + sh('M71,42 Q72,34 68,30 L66,40z', c), // bald
+    (c) => sh('M27,46 Q22,22 38,18 Q50,10 64,18 Q78,24 73,46 Q72,34 66,30 Q60,36 50,30 Q40,36 34,30 Q28,36 27,46z', c) // curly
+  ];
+
   PP.art.face = function (o = {}) {
     const mood = Math.max(-2, Math.min(2, o.mood || 0));
-    const skin = o.skin || pickBy(SKIN, (o.hue || 0) / 37);
-    const hair = o.hair || pickBy(HAIR, (o.hue || 0) / 53);
-    const brow = mood * -3;
-    const mouth = o.surprised ? '<ellipse cx="50" cy="70" rx="6" ry="8" fill="#4a2e14"/>'
-      : `<path d="M36,${68 - mood} Q50,${68 + mood * 6} 64,${68 - mood}" fill="none" stroke="#4a2e14" stroke-width="3.5" stroke-linecap="round"/>`;
-    const blush = mood >= 2 ? '<circle cx="31" cy="62" r="5" fill="#f28b82" opacity=".5"/><circle cx="69" cy="62" r="5" fill="#f28b82" opacity=".5"/>' : '';
-    const sweat = mood <= -2 ? '<path d="M76,36 q4,8 0,12 q-4,-4 0,-12z" fill="#7cc4ff" stroke="#4a2e14" stroke-width="1.5"/>' : '';
+    const n = o.hue || 0;
+    const skin = o.skin || pickBy(SKIN, n / 37);
+    const hair = o.hair || pickBy(HAIR, n / 53);
+    const coat = o.coat || pickBy(COAT, n / 29);
+    const style = BUST_HAIR[o.style != null ? o.style : Math.abs(Math.round(n / 41)) % BUST_HAIR.length];
+    const browY = 36 - (mood > 0 ? 1 : 0), tilt = mood * -1.6;
+    const brows = ln(`M37,${browY + tilt} l8,${-tilt * 0.6}`, 2) + ln(`M63,${browY + tilt} l-8,${-tilt * 0.6}`, 2);
+    const eyes = mood >= 2
+      ? ln('M38,45 q3,-3.5 6,0', 2) + ln('M56,45 q3,-3.5 6,0', 2)
+      : `<circle cx="41" cy="45" r="${o.surprised ? 2.6 : 2}" fill="${INK}"/><circle cx="59" cy="45" r="${o.surprised ? 2.6 : 2}" fill="${INK}"/>`;
+    const mouth = o.surprised ? `<ellipse cx="50" cy="58" rx="3.2" ry="4" fill="${INK}"/>`
+      : mood >= 2 ? sh('M42,55 Q50,64 58,55z', '#fbf1e1', 2)
+      : ln(`M43,${57 - mood * 0.6} Q50,${57 + mood * 3} 57,${57 - mood * 0.6}`, 2);
+    const cheeks = mood >= 1 ? '<circle cx="35" cy="53" r="3.5" fill="#e79a7a" opacity=".45"/><circle cx="65" cy="53" r="3.5" fill="#e79a7a" opacity=".45"/>' : '';
+    const sweat = mood <= -2 ? sh('M74,30 q3.5,6 0,9 q-3.5,-3 0,-9z', '#cfe3f7', 1.6) : '';
+    const glasses = o.glasses || (Math.round(n / 67) % 4 === 1) ? ln('M35,45 a5.5,5 0 1 0 11,0 a5.5,5 0 1 0 -11,0 M54,45 a5.5,5 0 1 0 11,0 a5.5,5 0 1 0 -11,0 M46,45 h8', 1.6) : '';
     return `<svg viewBox="0 0 100 100" class="art-face" aria-hidden="true">
-      <circle cx="50" cy="54" r="34" fill="${skin}" stroke="#4a2e14" stroke-width="3"/>
-      <path d="M16,50 Q18,14 50,16 Q82,14 84,50 Q74,30 50,30 Q26,30 16,50z" fill="${hair}" stroke="#4a2e14" stroke-width="3"/>
-      <path d="M33,${42 - brow * 0.3} l12,${brow}" stroke="#4a2e14" stroke-width="3" stroke-linecap="round"/>
-      <path d="M67,${42 - brow * 0.3} l-12,${brow}" stroke="#4a2e14" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="39" cy="52" r="3.6" fill="#4a2e14"/><circle cx="61" cy="52" r="3.6" fill="#4a2e14"/>
-      ${blush}${mouth}${sweat}</svg>`;
+      <circle cx="50" cy="50" r="48" fill="#fbf1e1"/>
+      <clipPath id="cf${n | 0}${mood + 2}"><circle cx="50" cy="50" r="48"/></clipPath>
+      <g clip-path="url(#cf${n | 0}${mood + 2})">
+        ${sh('M12,104 Q14,78 50,76 Q86,78 88,104z', coat)}
+        ${sh('M43,64 L43,76 Q50,82 57,76 L57,64z', skin)}
+        ${ln('M40,77 L50,90 L60,77', 1.8)}
+      </g>
+      ${sh('M28,46 a3.5,5 0 1 0 0.1,0z', skin, 1.8)}${sh('M72,46 a3.5,5 0 1 1 -0.1,0z', skin, 1.8)}
+      <ellipse cx="50" cy="44" rx="21" ry="24" fill="${skin}" stroke="${INK}" stroke-width="${SW}"/>
+      ${style(hair)}
+      ${brows}${eyes}${glasses}${cheeks}${mouth}${sweat}
+      <circle cx="50" cy="50" r="48" fill="none" stroke="${INK}" stroke-width="1.6"/>
+    </svg>`;
   };
 
-  /* Full figures for the market and the mixer. kind picks clothes and props. */
+  /* Full figures for the market, the mixer, the trail. Same line and palette as the map.
+   * viewBox 0 0 70 100, feet on y=96. */
+  const KIND_COAT = { family: '#7f9f5a', retiree: '#9a8fc0', vendor: '#e9dcc0', couple: '#9cc2e6', jogger: '#c86f4f', kid: '#e6b85c', dog: '#9aa3b5', phone: '#5f8f86', owner: '#b0763c', rival: '#3a3430', mlm: '#a77bb8', president: '#2f5a9c', connector: '#3f7a2f', numbers: '#8fa9b3', guest: '#b0763c', agent: '#000a62', client: '#7f9f5a' };
   PP.art.figure = function (kind, o = {}) {
-    const skin = pickBy(SKIN, o.seed || 1), hair = pickBy(HAIR, (o.seed || 1) * 3);
-    const coat = o.coat || { family: '#6f9a54', retiree: '#c9a0dc', vendor: '#e8dcc0', couple: '#7cc4ff', jogger: '#ff7262', kid: '#f2b544', dog: '#9aa3b5', phone: '#5a6b8a', owner: '#c4532d', rival: '#2a2a2a', mlm: '#b46ad8', president: '#10196b', connector: '#3f8a4a', numbers: '#6b8f9e', guest: '#8a6a44' }[kind] || '#8a6a44';
-    let extra = '';
-    if (kind === 'family') extra = '<g transform="translate(40 58)"><rect x="0" y="0" width="22" height="14" rx="4" fill="#4a6fb0" stroke="#4a2e14" stroke-width="2"/><circle cx="4" cy="20" r="4" fill="#4a2e14"/><circle cx="18" cy="20" r="4" fill="#4a2e14"/><path d="M0,2 l-8,-10" stroke="#4a2e14" stroke-width="2"/></g>';
-    if (kind === 'retiree') extra = '<ellipse cx="30" cy="12" rx="20" ry="5" fill="#f2d28a" stroke="#4a2e14" stroke-width="2"/><rect x="21" y="2" width="18" height="10" rx="4" fill="#f2d28a" stroke="#4a2e14" stroke-width="2"/>';
-    if (kind === 'vendor') extra = '<rect x="20" y="40" width="20" height="26" fill="#fff" stroke="#4a2e14" stroke-width="2"/><circle cx="46" cy="52" r="6" fill="#d9a441" stroke="#4a2e14" stroke-width="2"/>';
-    if (kind === 'jogger') extra = '<path d="M18,22 q12,-8 24,0" fill="none" stroke="#1f1a17" stroke-width="3"/><circle cx="18" cy="24" r="3" fill="#1f1a17"/><circle cx="42" cy="24" r="3" fill="#1f1a17"/>';
-    if (kind === 'kid') extra = '<path d="M44,40 L52,6" stroke="#4a2e14" stroke-width="1.5"/><ellipse cx="53" cy="4" rx="7" ry="9" fill="#ff7262" stroke="#4a2e14" stroke-width="2"/>';
-    if (kind === 'dog') extra = '<g transform="translate(38 70)"><ellipse cx="10" cy="6" rx="14" ry="8" fill="#b07a43" stroke="#4a2e14" stroke-width="2"/><circle cx="24" cy="0" r="6" fill="#b07a43" stroke="#4a2e14" stroke-width="2"/></g><path d="M40,48 L60,70" stroke="#4a2e14" stroke-width="1.5"/>';
-    if (kind === 'phone') extra = '<rect x="38" y="16" width="7" height="13" rx="2" fill="#2a2a2a" stroke="#4a2e14" stroke-width="1.5"/><path d="M48,14 q6,4 0,10 M52,11 q9,7 0,16" fill="none" stroke="#4a2e14" stroke-width="1.5"/>';
-    if (kind === 'couple') extra = '<rect x="42" y="44" width="16" height="12" fill="#fff" stroke="#4a2e14" stroke-width="2"/><path d="M45,48 h10 M45,52 h7" stroke="#4a2e14" stroke-width="1.2"/>';
-    if (kind === 'rival') extra = '<path d="M22,14 Q30,2 42,12" fill="none" stroke="#1f1a17" stroke-width="5"/><path d="M28,38 l2,18 l2,-18z" fill="#d9a441"/>';
-    if (kind === 'mlm') extra = '<rect x="42" y="44" width="10" height="16" rx="3" fill="#b9a0e8" stroke="#4a2e14" stroke-width="2"/><rect x="44" y="40" width="6" height="5" fill="#4a2e14"/>';
-    if (kind === 'president') extra = '<path d="M30,36 l-4,22 l4,4 l4,-4z" fill="#c4321f"/>';
-    if (kind === 'numbers') extra = '<rect x="40" y="42" width="16" height="20" fill="#e4f0d4" stroke="#4a2e14" stroke-width="2"/><path d="M40,48 h16 M40,54 h16 M48,42 v20" stroke="#4a2e14" stroke-width="1"/>';
-    const legs = kind === 'jogger' ? '<path d="M26,72 l-8,20 M34,72 l10,18" stroke="#4a2e14" stroke-width="5" stroke-linecap="round"/>' : '<path d="M26,72 l-2,22 M34,72 l2,22" stroke="#4a2e14" stroke-width="5" stroke-linecap="round"/>';
-    const scale = kind === 'kid' ? 'transform="translate(8 26) scale(.7)"' : '';
-    return `<svg viewBox="0 0 70 100" class="art-figure" aria-hidden="true"><g ${scale}>
-      ${legs}
-      <path d="M16,36 Q30,28 44,36 L42,74 L18,74z" fill="${coat}" stroke="#4a2e14" stroke-width="2.5"/>
-      <circle cx="30" cy="22" r="12" fill="${skin}" stroke="#4a2e14" stroke-width="2.5"/>
-      <path d="M18,20 Q20,6 30,8 Q40,6 42,20 Q36,13 30,14 Q24,13 18,20z" fill="${hair}"/>
-      <circle cx="26" cy="23" r="1.6" fill="#4a2e14"/><circle cx="34" cy="23" r="1.6" fill="#4a2e14"/>
-      <path d="M26,28 q4,3 8,0" fill="none" stroke="#4a2e14" stroke-width="1.6" stroke-linecap="round"/>
-      ${extra}</g></svg>`;
+    const seed = o.seed || 1;
+    const skin = o.skin || pickBy(SKIN, seed), hair = o.hair || pickBy(HAIR, seed * 3);
+    const coat = o.coat || KIND_COAT[kind] || pickBy(COAT, seed);
+    const pants = kind === 'jogger' ? '#3a3430' : '#6b5a48';
+    let back = '', front = '', hat = '';
+    const arms = { l: 'M22,42 L16,62', r: 'M48,42 L54,62' };
+    switch (kind) {
+      case 'family':
+        front = sh('M50,70 h16 v10 h-16z', '#9cc2e6', 2) + ln('M50,71 L46,60', 2) + `<circle cx="53" cy="84" r="3" fill="${INK}"/><circle cx="63" cy="84" r="3" fill="${INK}"/>`;
+        arms.r = 'M48,42 L47,60'; break;
+      case 'retiree':
+        hat = sh('M20,18 Q35,12 50,18 L46,20 Q35,17 24,20z', '#e6c98a', 2) + sh('M27,17 Q28,8 35,8 Q42,8 43,17z', '#e6c98a', 2);
+        front = ln('M54,62 L58,96', 2.4); arms.r = 'M48,42 L55,62'; break;
+      case 'vendor':
+        front = sh('M24,46 h22 v26 h-22z', '#fbf1e1', 1.8) + sh('M50,56 a6,6 0 1 0 0.1,0z', '#e6b85c', 1.8);
+        arms.r = 'M48,42 L52,56'; break;
+      case 'jogger':
+        hat = ln('M24,16 Q35,8 46,16', 2.4) + `<circle cx="24" cy="20" r="2.6" fill="${INK}"/><circle cx="46" cy="20" r="2.6" fill="${INK}"/>`;
+        arms.l = 'M22,42 L14,52 L20,58'; arms.r = 'M48,42 L56,50 L60,42'; break;
+      case 'kid':
+        front = ln('M50,52 L56,14', 1.4) + sh('M56,4 a7,9 0 1 0 0.1,0z', '#c86f4f', 1.8);
+        arms.r = 'M48,42 L52,52'; break;
+      case 'dog':
+        front = ln('M48,46 L58,78', 1.4) + sh('M48,84 q2,-8 12,-8 h4 l4,-6 l4,4 l-2,6 q2,4 0,8z', '#c79a6a', 1.8) + ln('M52,84 v8 M62,84 v8', 2);
+        arms.r = 'M48,42 L50,50'; break;
+      case 'phone':
+        front = sh('M44,22 h6 v11 h-6z', '#3a3430', 1.4) + ln('M53,20 q4,4 0,9 M56,17 q7,7 0,15', 1.4);
+        arms.r = 'M48,42 L48,30'; break;
+      case 'couple':
+        front = sh('M44,48 h16 v12 h-16z', '#fbf1e1', 1.8) + ln('M47,52 h10 M47,56 h7', 1.2);
+        arms.r = 'M48,42 L48,52'; break;
+      case 'rival':
+        hat = sh('M21,17 Q35,4 49,17z', '#3a3430', 2);
+        front = sh('M33,34 l2,14 l2,-14z', '#c86f4f', 1.2) + sh('M50,60 h14 v10 h-14z', '#7a5a3a', 1.8);
+        arms.r = 'M48,42 L52,60'; break;
+      case 'mlm':
+        front = sh('M48,52 h9 v14 h-9z', '#c9b3e8', 1.8) + sh('M50,48 h5 v4 h-5z', INK, 1);
+        arms.r = 'M48,42 L50,52'; break;
+      case 'president':
+        front = sh('M33,34 l-2,16 l4,4 l4,-4 l-2,-16z', '#c86f4f', 1.2); break;
+      case 'numbers':
+        front = sh('M44,46 h16 v20 h-16z', '#dce6bc', 1.8) + ln('M44,52 h16 M44,58 h16 M52,46 v20', 1);
+        arms.r = 'M48,42 L48,54'; break;
+      case 'connector':
+        front = ln('M48,42 L58,34', SW) + sh('M57,30 a4,4 0 1 0 0.1,0z', skin, 1.6); arms.r = ''; break;
+      case 'owner':
+        back = sh('M18,44 Q35,38 52,44 L50,76 L20,76z', '#fbf1e1', 1.8); break;
+      case 'agent':
+        back = sh('M12,40 Q12,34 18,34 h6 v30 h-12z', '#f39c12', 1.8);
+        front = ln('M50,40 L60,96', 2.2); arms.r = 'M48,42 L56,58'; break;
+      case 'client':
+        front = sh('M46,48 h14 v10 h-14z', '#fbf1e1', 1.6) + ln('M50,48 v10 M55,48 v10', 1);
+        arms.r = 'M48,42 L48,52'; break;
+    }
+    const step = kind === 'jogger' || o.walk;
+    const legs = step ? ln('M30,74 L22,96', 4.5) + ln('M40,74 L50,94', 4.5) : ln('M30,74 L29,96', 4.5) + ln('M40,74 L41,96', 4.5);
+    const legsFill = step ? ln('M30,74 L22,96', 2.2).replace(INK, pants) + ln('M40,74 L50,94', 2.2).replace(INK, pants) : ln('M30,74 L29,96', 2.2).replace(INK, pants) + ln('M40,74 L41,96', 2.2).replace(INK, pants);
+    const hairShape = Math.round(seed) % 3 === 1
+      ? sh('M23,22 Q22,8 35,8 Q48,8 47,22 L47,30 Q44,20 35,18 Q26,20 23,30z', hair, 2)
+      : sh('M23,22 Q23,9 35,9 Q47,9 47,22 Q42,15 35,15 Q28,15 23,22z', hair, 2);
+    const g = `
+      <ellipse cx="35" cy="96" rx="16" ry="2.6" fill="${INK}" opacity=".12"/>
+      ${back}${legs}${legsFill}
+      ${arms.l ? ln(arms.l, 5) + ln(arms.l, 2.4).replace(INK, coat) : ''}
+      ${sh('M22,40 Q35,32 48,40 L46,76 L24,76z', coat)}
+      ${arms.r ? ln(arms.r, 5) + ln(arms.r, 2.4).replace(INK, coat) : ''}
+      ${sh('M31,30 h8 v6 h-8z', skin, 1.6)}
+      <circle cx="35" cy="21" r="11" fill="${skin}" stroke="${INK}" stroke-width="${SW}"/>
+      ${hairShape}${hat}
+      <circle cx="31.5" cy="22" r="1.4" fill="${INK}"/><circle cx="38.5" cy="22" r="1.4" fill="${INK}"/>
+      ${ln('M32,26.5 q3,2.2 6,0', 1.5)}
+      ${front}`;
+    const t = kind === 'kid' ? 'transform="translate(10 30) scale(.7)"' : '';
+    return `<svg viewBox="0 0 70 100" class="art-figure" aria-hidden="true"><g ${t}>${g}</g></svg>`;
   };
 })(window.PP);
