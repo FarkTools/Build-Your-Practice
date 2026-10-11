@@ -32,6 +32,7 @@ This repo is a **playable concept prototype**. Players get the game only; the El
 | Practice: costs, book, pipeline, workspace, partner, recruits, systems | `js/content/career.js` |
 | Prospecting activities | `js/content/prospecting.js` |
 | Map: 15 landmarks grouped into relationship stages, trails in days, side trails, hidden passages at every obstacle | `js/content/world.js`, `js/ui/map.js` |
+| Full-screen map viewer: zoom, drag, tap a place | `js/ui/mapview.js` |
 | Trail scene and cut scenes (canvas, two hikers) | `js/ui/trailscene.js` |
 | Journey loop: days, pace, menu, forks, check-ins, finale | `js/ui/trail.js` |
 | 40+ events, multi-step conversations, risk-debt checks | `js/content/events.js` |

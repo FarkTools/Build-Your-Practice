@@ -795,7 +795,8 @@
           reckoned ? h('p', { class: 'small muted' }, `${reckoned} unresolved shortcut${reckoned > 1 ? 's' : ''} rolled one last time when you arrived.`) : null),
         h('div', { class: 'panel' }, h('h3', null, `What you never found out about ${cl.name}`),
           unknown.length ? h('ul', { class: 'facts' }, unknown.map((f) => h('li', { class: cl.facts[f].key ? 'key' : '' }, cl.facts[f].label + (cl.facts[f].key ? ' (this changes the destination)' : '')))) : h('p', null, 'Nothing. You got the full picture.')),
-        h('div', { class: 'panel' }, h('h3', null, 'Your route'), h('div', { class: 'map-host small-map', id: 'end-map' })))));
+        h('div', { class: 'panel' }, h('div', { class: 'panel-head' }, h('h3', null, 'Your route'), h('button', { class: 'btn small', onclick: () => PP.ui.mapViewer(s, { title: 'Your route', eyebrow: `${cl.name} · ${s.day} days`, fit: true }) }, 'Open map')),
+          h('button', { class: 'map-host small-map map-open', id: 'end-map', 'aria-label': 'Open your route on the full map', onclick: () => PP.ui.mapViewer(s, { title: 'Your route', eyebrow: `${cl.name} · ${s.day} days`, fit: true }) })))));
     s.map.beam = true;
     PP.ui.renderMap(document.getElementById('end-map'), s, {});
   }

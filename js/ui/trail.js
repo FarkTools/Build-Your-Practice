@@ -591,18 +591,7 @@
     focusFirst();
   }
 
-  function openMap() {
-    const s = T.s;
-    const host = h('div', { class: 'map-host big', id: 'trail-map' });
-    const ov = h('div', { class: 'overlay map-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Map', onclick: (e) => { if (e.target === ov) ov.remove(); } },
-      h('div', { class: 'map-card' },
-        h('div', { class: 'row between' }, h('div', null, h('div', { class: 'eyebrow' }, 'Day ' + s.day), h('h3', null, 'The territory')), h('button', { class: 'btn', onclick: () => ov.remove() }, 'Close (Esc)')),
-        host,
-        h('p', { class: 'small map-legend' }, h('span', { class: 'lg dot' }), ' Main trail  ', h('span', { class: 'lg dash' }), ' Side trail (dead end)  ', h('span', { class: 'lg road' }), ' Hidden passage  ', h('span', { class: 'lg walked' }), ' Where you have been')));
-    document.body.appendChild(ov);
-    PP.ui.renderMap(host, s, {});
-    ov.querySelector('.btn').focus();
-  }
+  function openMap() { PP.ui.mapViewer(T.s); }
 
   /* ---------- Ending conditions ---------- */
   function checkEnd() {

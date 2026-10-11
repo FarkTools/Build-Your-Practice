@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.14.2';
+  PP.VERSION = '0.15.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.15.0', 'A map you can actually read: it fills the screen, opens zoomed in on you, pinch or scroll to zoom, drag to move, and tap any place for a card about it'],
     ['0.14.2', 'Tidier start screen: just your name and practice name'],
     ['0.14.1', 'Calendar Tetris: prep now shows up a few blocks after its meeting, so keep the 📋 slot on top clear while you book everything else'],
     ['0.14.0', 'Calendar Tetris you can read at a glance: icons instead of sentences, each client and their prep share a colour, house rules drawn on the calendar, and green/amber/red outlines show where each block will land before you drop it'],

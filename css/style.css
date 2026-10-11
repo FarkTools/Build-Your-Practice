@@ -1054,3 +1054,45 @@ input, select, textarea { font-size: 16px; }
   .profile-form { grid-template-columns: minmax(0, 1fr); }
   .ending-head .row .btn { flex: 1 1 100%; }
 }
+
+/* ---------- Full-screen map viewer ---------- */
+.map-viewer { padding: 0; place-items: stretch; display: flex; flex-direction: column; background: var(--navy); overflow: hidden; }
+.mv-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; color: var(--parch); }
+.mv-top h3 { color: var(--parch); font-size: 1.15rem; margin: 0; }
+.mv-top .eyebrow { color: var(--orange); }
+.mv-top .btn { color: var(--parch); border-color: var(--parch); background: transparent; }
+.mv-stage { position: relative; flex: 1; min-height: 0; }
+.mv-map { position: absolute; inset: 0; touch-action: none; cursor: grab; overflow: hidden; }
+.mv-map.dragging { cursor: grabbing; }
+.mv-map .pmap { width: 100%; height: 100%; }
+.mv-zoom { position: absolute; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; z-index: 2; }
+.mv-btn { width: 46px; height: 46px; border-radius: 12px; border: 2px solid var(--ink); background: var(--fog); color: var(--ink); font: 700 1.35rem var(--sans); display: grid; place-items: center; cursor: pointer; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, .6); padding: 0; }
+.mv-btn:hover, .mv-btn:focus-visible { background: #fff; outline: none; box-shadow: 0 0 0 3px var(--orange); }
+.mv-btn.mv-me { color: #d9472b; }
+.mv-left { position: absolute; left: 12px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 2; display: grid; gap: 8px; justify-items: start; }
+.mv-keybtn { width: auto; padding: 0 14px; font-size: 0.9rem; }
+.mv-key { background: var(--fog); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 12px; font-size: 0.85rem; color: var(--ink); display: grid; gap: 4px; order: -1; }
+.mv-key[hidden] { display: none; }
+.mv-key p { margin: 0; display: flex; align-items: center; gap: 6px; }
+.mv-key .lg { border-top-color: var(--ink); }
+.mv-key .lg.dot { border-top: 4px dotted var(--route); }
+.mv-key .lg.dash { border-top: 3px dashed var(--ink); }
+.mv-key .lg.road { border-top: 5px solid #c8a27a; }
+.mv-key .lg.walked { border-top: 7px solid rgba(243, 156, 18, .55); }
+.mv-key .lg.pin { width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #d9472b; margin: 0 10px; }
+.mv-hint { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); margin: 0; background: rgba(0, 10, 98, .75); color: var(--parch); font-size: 0.78rem; padding: 4px 12px; border-radius: 999px; white-space: nowrap; pointer-events: none; transition: opacity .4s; z-index: 2; }
+.map-viewer.zoomed .mv-hint { opacity: 0; }
+.mv-card { position: absolute; left: 12px; right: 70px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); max-width: 420px; background: var(--fog); color: var(--ink); border: 2px solid var(--ink); border-radius: 14px; padding: 10px 12px; display: grid; gap: 3px; z-index: 3; box-shadow: 0 10px 24px -10px rgba(0, 0, 0, .7); animation: rise .18s ease-out; }
+.mv-card[hidden] { display: none; }
+.mv-card strong { font-size: 1.1rem; color: var(--navy); }
+.mv-card p { margin: 0; font-size: 0.9rem; line-height: 1.35; }
+.mv-card .mv-sub { font-family: var(--hand); color: var(--ink-2); }
+.mv-card .mv-near { font-size: 0.8rem; color: var(--ink-2); font-style: italic; }
+.mv-card-head { display: flex; justify-content: space-between; align-items: center; }
+.mv-st { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; background: var(--parch-3); }
+.mv-st.st-here { background: #d9472b; color: #fff; }
+.mv-st.st-visited { background: var(--meadow); color: var(--green); }
+.mv-x { background: none; border: 0; font-size: 1.4rem; line-height: 1; color: var(--ink-2); cursor: pointer; padding: 0 4px; }
+.pmap .mv-sel { fill: rgba(243, 156, 18, .18); stroke: var(--orange); stroke-width: 4; stroke-dasharray: 8 6; pointer-events: none; }
+.map-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+@media (min-width: 900px) { .mv-card { left: 50%; transform: translateX(-50%); right: auto; width: 420px; } }
