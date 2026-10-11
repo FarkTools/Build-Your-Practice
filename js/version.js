@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.15.0';
+  PP.VERSION = '0.16.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.16.0', 'Add it to your home screen: app icon, full-screen launch with no browser bars, and offline play once opened. On iPhone: Share, then Add to Home Screen'],
     ['0.15.0', 'A map you can actually read: it fills the screen, opens zoomed in on you, pinch or scroll to zoom, drag to move, and tap any place for a card about it'],
     ['0.14.2', 'Tidier start screen: just your name and practice name'],
     ['0.14.1', 'Calendar Tetris: prep now shows up a few blocks after its meeting, so keep the 📋 slot on top clear while you book everything else'],

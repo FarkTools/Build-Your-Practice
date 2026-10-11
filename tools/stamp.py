@@ -10,3 +10,8 @@ for page in ['index.html'] + [p.name for p in root.glob('admin-*.html')]:
     html = re.sub(r'((?:src|href)="(?:js|css)/[^"?]+)(?:\?v=[^"]*)?"', lambda m: f'{m.group(1)}?v={ver}"', html)
     f.write_text(html)
     print('stamped', page, ver)
+
+sw = root / 'sw.js'
+if sw.exists():
+    sw.write_text(re.sub(r"const VERSION = '[^']*';", f"const VERSION = '{ver}';", sw.read_text()))
+    print('stamped sw.js', ver)

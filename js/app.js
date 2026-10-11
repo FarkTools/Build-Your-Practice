@@ -84,3 +84,45 @@
   document.addEventListener('DOMContentLoaded', () => { setTimeout(check, 3000); setInterval(check, 5 * 60 * 1000); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
 })(window.PP);
+
+/* Home screen app: offline support once installed, and a one-time tip on how to install.
+ * iPhone/iPad Safari: Share → Add to Home Screen (Apple gives no install button to call).
+ * Android/desktop Chrome and Edge: a real Install button via beforeinstallprompt. */
+(function (PP) {
+  const h = PP.h;
+  const standalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  if (standalone()) document.documentElement.classList.add('is-app');
+  if ('serviceWorker' in navigator && (/^https:/.test(location.protocol) || location.hostname === 'localhost')) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* not critical */ }); });
+  }
+  let deferred = null;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; document.querySelectorAll('.install-tip').forEach((t) => t.replaceWith(PP.ui.installTip() || '')); });
+  window.addEventListener('appinstalled', () => { PP.store.set('installTip', 'done'); document.querySelectorAll('.install-tip').forEach((t) => t.remove()); });
+
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const iOSSafari = iOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(ua);
+
+  PP.ui.installTip = function () {
+    if (standalone() || PP.store.get('installTip', '') === 'done') return null;
+    const close = (tip) => { PP.store.set('installTip', 'done'); tip.remove(); };
+    const shareIcon = h('span', { class: 'it-share', 'aria-label': 'the Share button' });
+    shareIcon.innerHTML = '<svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 2v13M5.5 6.5 10 2l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10H3.5v11.5h13V10H14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+    let tip = null;
+    if (deferred) {
+      tip = h('div', { class: 'install-tip' },
+        h('img', { src: 'icons/icon-192.png', alt: '', width: 44, height: 44 }),
+        h('div', null, h('strong', null, 'Play it like an app'), h('span', null, 'Install it for full screen and offline play.')),
+        h('button', { class: 'btn primary small', onclick: async () => { deferred.prompt(); const r = await deferred.userChoice; deferred = null; if (r.outcome === 'accepted') close(tip); } }, 'Install'),
+        h('button', { class: 'it-x', 'aria-label': 'Dismiss', onclick: () => close(tip) }, '×'));
+    } else if (iOS) {
+      tip = h('div', { class: 'install-tip' },
+        h('img', { src: 'icons/apple-touch-icon.png', alt: '', width: 44, height: 44 }),
+        h('div', null, h('strong', null, 'Play it like an app'),
+          iOSSafari ? h('span', null, 'Tap ', shareIcon, ' Share, then ', h('b', null, 'Add to Home Screen'), '.')
+            : h('span', null, 'Open this page in Safari, tap Share, then ', h('b', null, 'Add to Home Screen'), '.')),
+        h('button', { class: 'it-x', 'aria-label': 'Dismiss', onclick: () => close(tip) }, '×'));
+    }
+    return tip;
+  };
+})(window.PP);

@@ -27,6 +27,7 @@
         h('p', { class: 'lede' }, 'You are a new agent at Port Prospect with some savings and a lot to learn. Find prospects, guide them through the wild terrain to a plan that actually suits them, look after the clients you have, and grow a practice that pays the bills before the money runs out.'),
         ladder(saved ? PP.career.level(saved) : 'survivable', true),
         G.challenge ? challengeCard(G.challenge, !!saved) : null,
+        PP.ui.installTip ? PP.ui.installTip() : null,
         h('div', { class: 'row' },
           saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; port(null); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
           h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: chooseAgent }, saved ? 'Start a new career' : 'Start your career'))),

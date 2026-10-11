@@ -1096,3 +1096,17 @@ input, select, textarea { font-size: 16px; }
 .pmap .mv-sel { fill: rgba(243, 156, 18, .18); stroke: var(--orange); stroke-width: 4; stroke-dasharray: 8 6; pointer-events: none; }
 .map-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
 @media (min-width: 900px) { .mv-card { left: 50%; transform: translateX(-50%); right: auto; width: 420px; } }
+
+/* ---------- Home screen app ---------- */
+/* The status bar is see-through when installed (black-translucent), so keep content clear of it and of the notch. */
+.app { padding-top: env(safe-area-inset-top, 0px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+html { background: var(--navy); }
+.is-app body { overscroll-behavior-y: none; }
+.is-app .topbar { -webkit-user-select: none; user-select: none; }
+.install-tip { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; background: var(--fog); border: 1.5px solid var(--ink-3); border-radius: 14px; padding: 10px 12px; margin: 12px 0 4px; }
+.install-tip img { border-radius: 10px; display: block; }
+.install-tip strong { display: block; color: var(--navy); }
+.install-tip span { font-size: 0.88rem; color: var(--ink-2); }
+.install-tip .it-share { display: inline-block; width: 15px; height: 18px; vertical-align: -3px; color: #0a7aff; }
+.install-tip .it-share svg { width: 100%; height: 100%; display: block; }
+.it-x { background: none; border: 0; font-size: 1.4rem; line-height: 1; color: var(--ink-2); cursor: pointer; padding: 2px 4px; }

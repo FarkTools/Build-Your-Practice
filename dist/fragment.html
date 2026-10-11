@@ -1,5 +1,14 @@
 <title>Build Your Practice</title>
 <meta name="description" content="Build Your Practice: a light adventure game about growing a client practice, one trail at a time.">
+<meta name="theme-color" content="#000a62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Your Practice">
+<meta name="application-name" content="Your Practice">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Build Your Practice">
 <meta property="og:description" content="A light adventure game about building a client practice. Guide prospects to the plan that fits before your savings run out. Can you beat my score?">
@@ -1112,6 +1121,20 @@ input, select, textarea { font-size: 16px; }
 .map-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
 @media (min-width: 900px) { .mv-card { left: 50%; transform: translateX(-50%); right: auto; width: 420px; } }
 
+/* ---------- Home screen app ---------- */
+/* The status bar is see-through when installed (black-translucent), so keep content clear of it and of the notch. */
+.app { padding-top: env(safe-area-inset-top, 0px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+html { background: var(--navy); }
+.is-app body { overscroll-behavior-y: none; }
+.is-app .topbar { -webkit-user-select: none; user-select: none; }
+.install-tip { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; background: var(--fog); border: 1.5px solid var(--ink-3); border-radius: 14px; padding: 10px 12px; margin: 12px 0 4px; }
+.install-tip img { border-radius: 10px; display: block; }
+.install-tip strong { display: block; color: var(--navy); }
+.install-tip span { font-size: 0.88rem; color: var(--ink-2); }
+.install-tip .it-share { display: inline-block; width: 15px; height: 18px; vertical-align: -3px; color: #0a7aff; }
+.install-tip .it-share svg { width: 100%; height: 100%; display: block; }
+.it-x { background: none; border: 0; font-size: 1.4rem; line-height: 1; color: var(--ink-2); cursor: pointer; padding: 2px 4px; }
+
 </style>
 <style>
 /* Mini-game additions and phone layout.
@@ -1734,9 +1757,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.15.0';
+  PP.VERSION = '0.16.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.16.0', 'Add it to your home screen: app icon, full-screen launch with no browser bars, and offline play once opened. On iPhone: Share, then Add to Home Screen'],
     ['0.15.0', 'A map you can actually read: it fills the screen, opens zoomed in on you, pinch or scroll to zoom, drag to move, and tap any place for a card about it'],
     ['0.14.2', 'Tidier start screen: just your name and practice name'],
     ['0.14.1', 'Calendar Tetris: prep now shows up a few blocks after its meeting, so keep the 📋 slot on top clear while you book everything else'],
@@ -12291,6 +12315,7 @@ window.PP = window.PP || {};
         h('p', { class: 'lede' }, 'You are a new agent at Port Prospect with some savings and a lot to learn. Find prospects, guide them through the wild terrain to a plan that actually suits them, look after the clients you have, and grow a practice that pays the bills before the money runs out.'),
         ladder(saved ? PP.career.level(saved) : 'survivable', true),
         G.challenge ? challengeCard(G.challenge, !!saved) : null,
+        PP.ui.installTip ? PP.ui.installTip() : null,
         h('div', { class: 'row' },
           saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; port(null); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
           h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: chooseAgent }, saved ? 'Start a new career' : 'Start your career'))),
@@ -13189,6 +13214,48 @@ window.PP = window.PP || {};
   }
   document.addEventListener('DOMContentLoaded', () => { setTimeout(check, 3000); setInterval(check, 5 * 60 * 1000); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+})(window.PP);
+
+/* Home screen app: offline support once installed, and a one-time tip on how to install.
+ * iPhone/iPad Safari: Share → Add to Home Screen (Apple gives no install button to call).
+ * Android/desktop Chrome and Edge: a real Install button via beforeinstallprompt. */
+(function (PP) {
+  const h = PP.h;
+  const standalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  if (standalone()) document.documentElement.classList.add('is-app');
+  if ('serviceWorker' in navigator && (/^https:/.test(location.protocol) || location.hostname === 'localhost')) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* not critical */ }); });
+  }
+  let deferred = null;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; document.querySelectorAll('.install-tip').forEach((t) => t.replaceWith(PP.ui.installTip() || '')); });
+  window.addEventListener('appinstalled', () => { PP.store.set('installTip', 'done'); document.querySelectorAll('.install-tip').forEach((t) => t.remove()); });
+
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const iOSSafari = iOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(ua);
+
+  PP.ui.installTip = function () {
+    if (standalone() || PP.store.get('installTip', '') === 'done') return null;
+    const close = (tip) => { PP.store.set('installTip', 'done'); tip.remove(); };
+    const shareIcon = h('span', { class: 'it-share', 'aria-label': 'the Share button' });
+    shareIcon.innerHTML = '<svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 2v13M5.5 6.5 10 2l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10H3.5v11.5h13V10H14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+    let tip = null;
+    if (deferred) {
+      tip = h('div', { class: 'install-tip' },
+        h('img', { src: 'icons/icon-192.png', alt: '', width: 44, height: 44 }),
+        h('div', null, h('strong', null, 'Play it like an app'), h('span', null, 'Install it for full screen and offline play.')),
+        h('button', { class: 'btn primary small', onclick: async () => { deferred.prompt(); const r = await deferred.userChoice; deferred = null; if (r.outcome === 'accepted') close(tip); } }, 'Install'),
+        h('button', { class: 'it-x', 'aria-label': 'Dismiss', onclick: () => close(tip) }, '×'));
+    } else if (iOS) {
+      tip = h('div', { class: 'install-tip' },
+        h('img', { src: 'icons/apple-touch-icon.png', alt: '', width: 44, height: 44 }),
+        h('div', null, h('strong', null, 'Play it like an app'),
+          iOSSafari ? h('span', null, 'Tap ', shareIcon, ' Share, then ', h('b', null, 'Add to Home Screen'), '.')
+            : h('span', null, 'Open this page in Safari, tap Share, then ', h('b', null, 'Add to Home Screen'), '.')),
+        h('button', { class: 'it-x', 'aria-label': 'Dismiss', onclick: () => close(tip) }, '×'));
+    }
+    return tip;
+  };
 })(window.PP);
 
 </script>

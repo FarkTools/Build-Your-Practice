@@ -71,6 +71,14 @@ tools/bundle.py       optional: build a single-file version into dist/
 
 
 
+## Home screen app
+
+The game installs like an app. On iPhone or iPad, open it in Safari, tap Share, then **Add to Home Screen**; on Android or desktop Chrome/Edge, use the Install button the title screen offers. It launches full screen with its own icon and works offline after the first visit.
+
+- `manifest.webmanifest`: name, colours and icons
+- `sw.js`: offline cache (the page is network-first so updates still arrive; `tools/stamp.py` bumps its version)
+- `icons/`: rendered from the compass logo by `python3 tools/icons.py`
+
 ## Playtesting
 
 `.github/ISSUE_TEMPLATE/playtest-feedback.md` turns the seven questions from the concept doc into a feedback form. The key signal is whether people start a second run without being asked.
