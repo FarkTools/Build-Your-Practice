@@ -981,6 +981,54 @@ input, select, textarea { font-size: 16px; }
 .town-map .t-small { font-size: 9px; }
 .update-bar { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--navy); color: var(--parch); border: 2px solid var(--orange); border-radius: 12px; padding: 10px 12px; font-weight: 600; font-size: 0.9rem; box-shadow: 0 10px 24px -10px #000; }
 
+/* ---------- Compact summaries (phone) ----------
+ * On phones the trail ledger and the port's practice panel fold into one tappable line,
+ * so the menu of things to do sits near the top. Tap the line to see everything. */
+.ledger-compact, .practice-compact { display: none; }
+.goal > summary { display: none; }
+@media (max-width: 560px) {
+  .ledger { padding-bottom: 8px; }
+  .ledger:not(.open) > :not(.ledger-compact) { display: none; }
+  .ledger.open .ledger-compact { margin-bottom: 4px; }
+  .ledger-compact, .practice-compact { display: grid; gap: 6px; width: 100%; text-align: left; background: rgba(255, 255, 255, .4); border: 1.5px solid var(--ink-3); border-radius: 10px; padding: 7px 10px; color: var(--ink); font: inherit; cursor: pointer; }
+  .ledger-compact:active, .practice-compact:active { background: rgba(255, 255, 255, .7); }
+  .lc-top { display: flex; align-items: baseline; gap: 10px; font-size: 0.86rem; min-width: 0; }
+  .lc-day strong { font-size: 1rem; }
+  .lc-money strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+  .lc-money.lvl-survivable strong { color: var(--red); }
+  .lc-money.lvl-profitable strong { color: var(--green); }
+  .lc-money .warn { color: var(--red); font-weight: 600; }
+  .lc-stage { margin-left: auto; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1.3px solid var(--orange); background: var(--orange-2); white-space: nowrap; }
+  .lc-chev { font-size: 0.8rem; color: var(--ink-2); transition: transform .2s; }
+  .ledger.open .lc-chev, .practice.open .lc-chev { transform: rotate(180deg); }
+  .lc-gauges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .lc-g { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px; font-size: 0.78rem; position: relative; }
+  .lc-gl { font-size: 0.66rem; font-weight: 700; color: var(--ink-2); }
+  .lc-g strong { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+  .lc-track { height: 6px; border-radius: 3px; background: var(--parch-3); overflow: hidden; }
+  .lc-track .gauge-fill { display: block; }
+  .lc-g .gauge-delta { position: absolute; right: -2px; top: -12px; font-size: 0.68rem; font-weight: 700; }
+  /* Goals fold into one line */
+  .goal { padding-bottom: 6px; }
+  .goal > summary { display: block; list-style: none; cursor: pointer; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .goal > summary::-webkit-details-marker { display: none; }
+  .goal > summary::after { content: " ▾"; color: var(--ink-2); }
+  .goal[open] > summary::after { content: " ▴"; }
+  .goal[open] > summary .goal-peek { display: none; }
+  /* Practice panel at the port */
+  .practice { gap: 8px; margin-bottom: 10px; }
+  .practice:not(.open) > :not(.practice-compact) { display: none; }
+  .practice-compact { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+  .pc-level { display: grid; line-height: 1.15; }
+  .pc-day { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-2); }
+  .pc-level strong { font-size: 1.05rem; color: var(--navy); }
+  .pc-level.lvl-survivable strong { color: var(--red); }
+  .pc-level.lvl-profitable strong { color: var(--green); }
+  .pc-nums { font-size: 0.82rem; color: var(--ink-2); line-height: 1.3; }
+  .pc-nums strong { color: var(--ink); font-size: 0.98rem; font-variant-numeric: tabular-nums; }
+  .pc-nums strong.warn { color: var(--red); }
+}
+
 </style>
 <style>
 /* Mini-game additions and phone layout.
@@ -1506,9 +1554,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.12.0';
+  PP.VERSION = '0.12.1';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.12.1', 'Walk back into Port Prospect mid-journey and you can head into town, then pick the journey up later. On phones, the journey and practice details fold into one tappable line so your choices sit near the top'],
     ['0.12.0', 'The trail goes mythical: every obstacle is a creature (Hydra, Sphinx, Kraken, Djinn, Dragon and more) with its own art, events and ways past'],
     ['0.11.2', 'Always loads the newest files after an update, and offers an Update now button when a newer version is out'],
     ['0.11.1', 'Doing something at a place keeps you there and shows the result right at that place'],
@@ -10868,7 +10917,7 @@ window.PP = window.PP || {};
     T.keys = onKey; document.addEventListener('keydown', T.keys);
     renderLedger(); renderSide();
     if (s.followUp) say(s.client.followCall || `${s.client.name} called. Life has changed.`);
-    say(s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
+    say(s.resumed ? `Day ${s.day}. You and ${s.client.name} head out of Port Prospect again, picking up where you left off.` : s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
     showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
   };
@@ -10878,7 +10927,10 @@ window.PP = window.PP || {};
   function say(text, cls) { T.narr.push({ text, cls }); if (T.narr.length > 40) T.narr.shift(); }
   function goalLine() {
     const s = T.s;
-    return h('div', { class: 'goal' },
+    const narrow = window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
+    const open = narrow ? !!PP.store.get('goalOpen', false) : true;
+    return h('details', { class: 'goal', open, ontoggle: (e) => { if (narrow) PP.store.set('goalOpen', e.target.open); } },
+      h('summary', null, h('span', { class: 'eyebrow' }, 'Goals'), h('span', { class: 'goal-peek' }, ` Guide ${s.client.name} to the plan that fits`)),
       h('div', null, h('span', { class: 'eyebrow' }, 'This journey'), s.followUp ? ` ${s.client.name}'s life changed: ${s.followUp.title.toLowerCase()}. Find out what it really means for them, and see the relationship through to the next plan.` : ` Build rapport, find the facts, understand the risks, and guide ${s.client.name} to the plan that truly fits, with their trust intact.`),
       s.career ? h('div', null, h('span', { class: 'eyebrow' }, 'Your career'), ` Build a Profitable practice before your savings run out. Every day away costs ${PP.career.money(PP.career.costs(s.career))}, and your clients and prospects back at the port are waiting.`) : null);
   }
@@ -10920,7 +10972,9 @@ window.PP = window.PP || {};
   function renderLedger(prev) {
     const s = T.s;
     T.ledger.innerHTML = '';
+    T.ledger.classList.toggle('open', !!PP.store.get('ledgerOpen', false));
     put(T.ledger,
+      compactLedger(s, prev),
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Day'), h('strong', null, String(s.day))),
       h('div', { class: 'ledger-cell wide' }, h('span', { class: 'lk' }, s.seg ? 'Next landmark' : 'Location'), h('strong', null, nextLandmarkText())),
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Pace'), h('strong', null, PACE[s.pace].label)),
@@ -10929,6 +10983,30 @@ window.PP = window.PP || {};
       PP.ui.gauges(s, prev),
       stageStrip(s));
     T.lastSavings = s.career ? s.career.savings : 0;
+  }
+
+  /* Phone: one tappable line with the essentials. Tap it to see the full ledger. */
+  function compactLedger(s, prev) {
+    const c = s.career, st = PP.stageStatus(s), done = st.filter((x) => x.done).length;
+    const cur = st.find((x) => x.current);
+    const runway = c ? PP.career.runway(c) : Infinity;
+    const lvl = c ? PP.career.levelInfo(c) : null;
+    const toggle = () => { const open = !T.ledger.classList.contains('open'); T.ledger.classList.toggle('open', open); PP.store.set('ledgerOpen', open); btn.setAttribute('aria-expanded', String(open)); };
+    const btn = h('button', { class: 'ledger-compact', 'aria-expanded': String(T.ledger.classList.contains('open')), 'aria-label': 'Show or hide journey details', onclick: toggle },
+      h('span', { class: 'lc-top' },
+        h('span', { class: 'lc-day' }, 'Day ', h('strong', null, String(s.day))),
+        c ? h('span', { class: 'lc-money lvl-' + lvl.id }, h('strong', null, PP.career.money(c.savings)), runway !== Infinity ? h('span', { class: runway <= 5 ? 'warn' : '' }, ` · ${runway}d left`) : null) : null,
+        h('span', { class: 'lc-stage' }, cur ? cur.label : 'All stages', ` ${done}/${st.length}`),
+        h('span', { class: 'lc-chev', 'aria-hidden': 'true' }, '▾')),
+      h('span', { class: 'lc-gauges' }, PP.RES.map((r) => {
+        const v = s.res[r.id], d = prev ? v - prev[r.id] : 0;
+        return h('span', { class: 'lc-g g-' + r.id, title: r.label },
+          h('span', { class: 'lc-gl' }, r.label.slice(0, 1)),
+          h('span', { class: 'lc-track' }, h('span', { class: 'gauge-fill', style: { width: v * 10 + '%' } })),
+          h('strong', null, String(v)),
+          d ? h('span', { class: 'gauge-delta ' + (d > 0 ? 'up' : 'down') }, (d > 0 ? '+' : '') + d) : null);
+      })));
+    return btn;
   }
 
   function stageStrip(s) {
@@ -10992,6 +11070,8 @@ window.PP = window.PP || {};
     const people = here && (PEOPLE[here] || []).filter((p, i) => !s.talked[here + i]);
     const items = [];
     items.push({ label: s.seg ? 'Continue on the trail' : 'Continue on the trail', note: s.seg ? nextLandmarkText() : 'See where the trail goes from here', go: s.seg ? travel : forks, primary: true });
+    // Walked back into town? You can pause the journey and pick it up later from the Trailhead.
+    if (here === 'port' && s.career && s.trail.length > 1) items.push({ label: 'Head into town', note: `Pause this journey. ${C()} waits at the Trailhead and remembers everything so far.`, go: goHome });
     const openHere = here ? PP.passagesAt(here).filter((p) => PP.passageOpen(s, p)) : [];
     if (here && openHere.length && !s.passageTaken[here] && !s.faced[here]) items.push({ label: 'Take a hidden passage', note: openHere.map((p) => p.name).join(' or '), go: () => passageFork(here, PP.content.nodes[here], openHere, PP.passagesAt(here).filter((p) => !openHere.includes(p)), () => menu()) });
     items.push({ label: `Check in with ${C()}`, note: s.lastCheckin === s.day ? 'Already talked today' : 'Ask questions, learn what matters', go: checkin });
@@ -11028,6 +11108,10 @@ window.PP = window.PP || {};
     return `${usable} item${usable === 1 ? '' : 's'}, ${ready} contact${ready === 1 ? '' : 's'} on call`;
   }
   function back() { return h('button', { class: 'btn ghost', onclick: () => menu() }, 'Back'); }
+  function goHome() {
+    say(`You walk ${C()} back into Port Prospect. "Call me when you're ready to pick this up," they say.`);
+    finish('home');
+  }
 
   /* ---------- Forks ---------- */
   function forks() {
@@ -11521,7 +11605,16 @@ window.PP = window.PP || {};
   function practicePanel(c) {
     const inc = PP.career.income(c), cost = PP.career.costs(c), runway = PP.career.runway(c);
     const lvl = PP.career.level(c);
-    return h('div', { class: 'panel practice' },
+    const clients = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).length;
+    const panel = h('div', { class: 'panel practice' + (PP.store.get('practiceOpen', false) ? ' open' : '') },
+      // Phone: one tappable line with the essentials; tap for the full numbers and the ladder.
+      h('button', { class: 'practice-compact', 'aria-label': 'Show or hide practice details', onclick: () => { const o = !panel.classList.contains('open'); panel.classList.toggle('open', o); PP.store.set('practiceOpen', o); } },
+        h('span', { class: 'pc-level lvl-' + lvl }, h('span', { class: 'pc-day' }, `Day ${c.days + 1}`), h('strong', null, PP.career.levelInfo(c).label)),
+        h('span', { class: 'pc-nums' },
+          h('strong', { class: c.savings < 1000 ? 'warn' : '' }, money(c.savings)),
+          h('span', null, runway === Infinity ? ' · covered' : ` · ${runway}d left`),
+          h('span', null, ` · ${c.pipeline.length} waiting · ${clients} client${clients === 1 ? '' : 's'}`)),
+        h('span', { class: 'lc-chev', 'aria-hidden': 'true' }, '▾')),
       h('div', { class: 'practice-top' },
         h('div', null, h('div', { class: 'eyebrow' }, `Day ${c.days + 1} · ${PP.career.agent(c).name}`), h('h3', null, PP.career.levelInfo(c).label)),
         h('div', { class: 'practice-nums' },
@@ -11530,9 +11623,10 @@ window.PP = window.PP || {};
           stat('Costs', money(cost) + '/day'),
           stat('Runway', runway === Infinity ? 'Covered' : runway + ' days'),
           stat('Pipeline', String(c.pipeline.length)),
-          stat('Clients', String(c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).length)))),
+          stat('Clients', String(clients)))),
       ladder(lvl),
       h('p', { class: 'small' }, `Income: ${money(PP.career.bookIncome(c))}/day from clients` + (PP.career.overrides(c) ? ` + ${money(PP.career.overrides(c))}/day from your recruits` : '') + `. Costs: ${money(c.living)}/day living` + (PP.career.rent(c) ? ` + ${money(PP.career.rent(c))}/day rent` : '') + '.'));
+    return panel;
   }
 
   /* Today at the port: a small happening most mornings. */
@@ -11709,8 +11803,9 @@ window.PP = window.PP || {};
         h('div', { class: 'row tight' }, PP.ui.avatar({ name: p.name, hue: cl.hue }, 44), h('div', null, h('h3', null, p.name), h('div', { class: 'small muted' }, cl.title))),
         h('div', { class: 'row tight' }, h('span', { class: 'pill temp-' + p.temp }, p.temp), h('span', { class: 'small muted' }, `From ${p.source}`)),
         h('p', { class: 'small' }, cl.surface + ' ' + (p.temp === 'hot' ? 'Starts with +2 Trust.' : p.temp === 'cold' ? 'Starts with −1 Trust.' : '')),
+        p.carry ? h('p', { class: 'small good-text' }, `Paused on day ${p.carry.day} of your journey. You'll pick up where you left off: trust ${p.carry.trust}, everything you learned, and any shortcuts still owed.`) : null,
         h('p', { class: 'small ' + (left <= 4 ? 'warn' : 'muted') }, `Goes cold in ${left} day${left === 1 ? '' : 's'}.`),
-        h('button', { class: 'btn primary', onclick: () => packScreen(p) }, `Guide ${p.name} on the trail`));
+        h('button', { class: 'btn primary', onclick: () => packScreen(p) }, p.carry ? `Pick up with ${p.name}` : `Guide ${p.name} on the trail`));
     })));
   }
 
@@ -12007,6 +12102,7 @@ window.PP = window.PP || {};
     return h('article', { class: 'panel prospect-card followup' },
       h('div', { class: 'row tight' }, PP.ui.avatar({ name: b.name, hue: cl.hue }, 44), h('div', null, h('div', { class: 'eyebrow' }, `Follow-up · lap ${(b.laps || 1) + 1}`), h('h3', null, b.name), h('div', { class: 'small muted' }, f.title))),
       h('p', { class: 'small' }, `${b.name} trusts you already, so the trail is shorter. Find out what this change really means for them.`),
+      f.carry ? h('p', { class: 'small good-text' }, `Paused on day ${f.carry.day}. You'll pick up where you left off.`) : null,
       h('p', { class: 'small ' + (left <= 5 ? 'warn' : 'muted') }, `They'll wait about ${left} more day${left === 1 ? '' : 's'}.`),
       h('button', { class: 'btn primary', onclick: () => packScreen({ id: f.id, name: b.name, archetype: b.archetype, temp: 'warm', source: 'a follow-up call', followUp: f }) }, `Meet ${b.name} again`));
   }
@@ -12023,8 +12119,20 @@ window.PP = window.PP || {};
     s.phase = 'journey';
     c.pipeline = c.pipeline.filter((x) => x.id !== p.id);
     if (p.followUp) c.followUps = c.followUps.filter((f) => f.id !== p.followUp.id);
-    const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
-    PP.apply(s, { trust: trustMod });
+    s.origin = p;
+    const carry = p.carry || (p.followUp && p.followUp.carry);
+    if (carry) {
+      // Picking up a paused journey: same day count, what you learned, where you have been, shortcuts still owed.
+      Object.assign(s.facts, carry.facts); Object.assign(s.askedTopics, carry.askedTopics); Object.assign(s.seenEvents, carry.seenEvents);
+      Object.assign(s.map.visited, carry.visited); Object.assign(s.faced, carry.faced); Object.assign(s.passageTaken, carry.passageTaken);
+      s.res.trust = carry.trust; s.res.insight = carry.insight; s.res.momentum = Math.max(s.res.momentum, carry.momentum || 0);
+      s.debt = (carry.debt || []).slice(); s.settled = (carry.settled || []).slice();
+      s.day = carry.day; s.turn = carry.turn; s.trail = (carry.trail || ['port']).slice(); s.walked = (carry.walked || []).slice();
+      s.resumed = true;
+    } else {
+      const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
+      PP.apply(s, { trust: trustMod });
+    }
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
     if (s.pack.includes('cards')) { PP.apply(s, { trust: 1 }); PP.useItem(s, 'cards'); }
     if (c.perks && c.perks.stamina) PP.apply(s, { energy: 2 });
@@ -12038,7 +12146,29 @@ window.PP = window.PP || {};
   }
 
   /* ---------------- Journey report ---------------- */
+  /* Walked back into town mid-journey: the prospect goes back to the Trailhead, remembering everything. */
+  function pauseJourney() {
+    const s = G.s, c = G.career, cl = s.client, p = s.origin || {};
+    Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
+    const carry = {
+      facts: s.facts, askedTopics: s.askedTopics, seenEvents: s.seenEvents, visited: s.map.visited, faced: s.faced, passageTaken: s.passageTaken,
+      trust: s.res.trust, insight: s.res.insight, momentum: s.res.momentum, debt: s.debt, settled: s.settled,
+      day: s.day, turn: s.turn, trail: s.trail, walked: s.walked
+    };
+    if (s.followUp && p.followUp) {
+      c.followUps = (c.followUps || []).filter((f) => f.id !== p.followUp.id);
+      c.followUps.push(Object.assign({}, p.followUp, { carry, expires: Math.max(p.followUp.expires, c.days + 10) }));
+    } else {
+      const temp = s.res.trust >= 7 ? 'hot' : p.temp === 'cold' && s.res.trust < 5 ? 'cold' : 'warm';
+      c.pipeline.push({ id: p.id || PP.uid('p'), archetype: p.archetype || cl.id, name: cl.name, temp, source: p.source || 'a paused journey', expires: c.days + P().life[temp], carry });
+    }
+    if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
+    PP.career.save(c);
+    port('trailhead', [{ text: `Back in town after ${s.day} day${s.day === 1 ? "" : "s"} on the trail. ${cl.name} is waiting at the Trailhead whenever you're ready to pick up where you left off.`, kind: 'info' }]);
+  }
+
   function journeyEnd(kind, reckoned) {
+    if (kind === 'home') return pauseJourney();
     const s = G.s, c = G.career, cl = s.client;
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;

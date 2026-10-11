@@ -73,7 +73,16 @@
   function practicePanel(c) {
     const inc = PP.career.income(c), cost = PP.career.costs(c), runway = PP.career.runway(c);
     const lvl = PP.career.level(c);
-    return h('div', { class: 'panel practice' },
+    const clients = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).length;
+    const panel = h('div', { class: 'panel practice' + (PP.store.get('practiceOpen', false) ? ' open' : '') },
+      // Phone: one tappable line with the essentials; tap for the full numbers and the ladder.
+      h('button', { class: 'practice-compact', 'aria-label': 'Show or hide practice details', onclick: () => { const o = !panel.classList.contains('open'); panel.classList.toggle('open', o); PP.store.set('practiceOpen', o); } },
+        h('span', { class: 'pc-level lvl-' + lvl }, h('span', { class: 'pc-day' }, `Day ${c.days + 1}`), h('strong', null, PP.career.levelInfo(c).label)),
+        h('span', { class: 'pc-nums' },
+          h('strong', { class: c.savings < 1000 ? 'warn' : '' }, money(c.savings)),
+          h('span', null, runway === Infinity ? ' · covered' : ` · ${runway}d left`),
+          h('span', null, ` · ${c.pipeline.length} waiting · ${clients} client${clients === 1 ? '' : 's'}`)),
+        h('span', { class: 'lc-chev', 'aria-hidden': 'true' }, '▾')),
       h('div', { class: 'practice-top' },
         h('div', null, h('div', { class: 'eyebrow' }, `Day ${c.days + 1} · ${PP.career.agent(c).name}`), h('h3', null, PP.career.levelInfo(c).label)),
         h('div', { class: 'practice-nums' },
@@ -82,9 +91,10 @@
           stat('Costs', money(cost) + '/day'),
           stat('Runway', runway === Infinity ? 'Covered' : runway + ' days'),
           stat('Pipeline', String(c.pipeline.length)),
-          stat('Clients', String(c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).length)))),
+          stat('Clients', String(clients)))),
       ladder(lvl),
       h('p', { class: 'small' }, `Income: ${money(PP.career.bookIncome(c))}/day from clients` + (PP.career.overrides(c) ? ` + ${money(PP.career.overrides(c))}/day from your recruits` : '') + `. Costs: ${money(c.living)}/day living` + (PP.career.rent(c) ? ` + ${money(PP.career.rent(c))}/day rent` : '') + '.'));
+    return panel;
   }
 
   /* Today at the port: a small happening most mornings. */
@@ -261,8 +271,9 @@
         h('div', { class: 'row tight' }, PP.ui.avatar({ name: p.name, hue: cl.hue }, 44), h('div', null, h('h3', null, p.name), h('div', { class: 'small muted' }, cl.title))),
         h('div', { class: 'row tight' }, h('span', { class: 'pill temp-' + p.temp }, p.temp), h('span', { class: 'small muted' }, `From ${p.source}`)),
         h('p', { class: 'small' }, cl.surface + ' ' + (p.temp === 'hot' ? 'Starts with +2 Trust.' : p.temp === 'cold' ? 'Starts with −1 Trust.' : '')),
+        p.carry ? h('p', { class: 'small good-text' }, `Paused on day ${p.carry.day} of your journey. You'll pick up where you left off: trust ${p.carry.trust}, everything you learned, and any shortcuts still owed.`) : null,
         h('p', { class: 'small ' + (left <= 4 ? 'warn' : 'muted') }, `Goes cold in ${left} day${left === 1 ? '' : 's'}.`),
-        h('button', { class: 'btn primary', onclick: () => packScreen(p) }, `Guide ${p.name} on the trail`));
+        h('button', { class: 'btn primary', onclick: () => packScreen(p) }, p.carry ? `Pick up with ${p.name}` : `Guide ${p.name} on the trail`));
     })));
   }
 
@@ -559,6 +570,7 @@
     return h('article', { class: 'panel prospect-card followup' },
       h('div', { class: 'row tight' }, PP.ui.avatar({ name: b.name, hue: cl.hue }, 44), h('div', null, h('div', { class: 'eyebrow' }, `Follow-up · lap ${(b.laps || 1) + 1}`), h('h3', null, b.name), h('div', { class: 'small muted' }, f.title))),
       h('p', { class: 'small' }, `${b.name} trusts you already, so the trail is shorter. Find out what this change really means for them.`),
+      f.carry ? h('p', { class: 'small good-text' }, `Paused on day ${f.carry.day}. You'll pick up where you left off.`) : null,
       h('p', { class: 'small ' + (left <= 5 ? 'warn' : 'muted') }, `They'll wait about ${left} more day${left === 1 ? '' : 's'}.`),
       h('button', { class: 'btn primary', onclick: () => packScreen({ id: f.id, name: b.name, archetype: b.archetype, temp: 'warm', source: 'a follow-up call', followUp: f }) }, `Meet ${b.name} again`));
   }
@@ -575,8 +587,20 @@
     s.phase = 'journey';
     c.pipeline = c.pipeline.filter((x) => x.id !== p.id);
     if (p.followUp) c.followUps = c.followUps.filter((f) => f.id !== p.followUp.id);
-    const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
-    PP.apply(s, { trust: trustMod });
+    s.origin = p;
+    const carry = p.carry || (p.followUp && p.followUp.carry);
+    if (carry) {
+      // Picking up a paused journey: same day count, what you learned, where you have been, shortcuts still owed.
+      Object.assign(s.facts, carry.facts); Object.assign(s.askedTopics, carry.askedTopics); Object.assign(s.seenEvents, carry.seenEvents);
+      Object.assign(s.map.visited, carry.visited); Object.assign(s.faced, carry.faced); Object.assign(s.passageTaken, carry.passageTaken);
+      s.res.trust = carry.trust; s.res.insight = carry.insight; s.res.momentum = Math.max(s.res.momentum, carry.momentum || 0);
+      s.debt = (carry.debt || []).slice(); s.settled = (carry.settled || []).slice();
+      s.day = carry.day; s.turn = carry.turn; s.trail = (carry.trail || ['port']).slice(); s.walked = (carry.walked || []).slice();
+      s.resumed = true;
+    } else {
+      const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
+      PP.apply(s, { trust: trustMod });
+    }
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
     if (s.pack.includes('cards')) { PP.apply(s, { trust: 1 }); PP.useItem(s, 'cards'); }
     if (c.perks && c.perks.stamina) PP.apply(s, { energy: 2 });
@@ -590,7 +614,29 @@
   }
 
   /* ---------------- Journey report ---------------- */
+  /* Walked back into town mid-journey: the prospect goes back to the Trailhead, remembering everything. */
+  function pauseJourney() {
+    const s = G.s, c = G.career, cl = s.client, p = s.origin || {};
+    Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
+    const carry = {
+      facts: s.facts, askedTopics: s.askedTopics, seenEvents: s.seenEvents, visited: s.map.visited, faced: s.faced, passageTaken: s.passageTaken,
+      trust: s.res.trust, insight: s.res.insight, momentum: s.res.momentum, debt: s.debt, settled: s.settled,
+      day: s.day, turn: s.turn, trail: s.trail, walked: s.walked
+    };
+    if (s.followUp && p.followUp) {
+      c.followUps = (c.followUps || []).filter((f) => f.id !== p.followUp.id);
+      c.followUps.push(Object.assign({}, p.followUp, { carry, expires: Math.max(p.followUp.expires, c.days + 10) }));
+    } else {
+      const temp = s.res.trust >= 7 ? 'hot' : p.temp === 'cold' && s.res.trust < 5 ? 'cold' : 'warm';
+      c.pipeline.push({ id: p.id || PP.uid('p'), archetype: p.archetype || cl.id, name: cl.name, temp, source: p.source || 'a paused journey', expires: c.days + P().life[temp], carry });
+    }
+    if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
+    PP.career.save(c);
+    port('trailhead', [{ text: `Back in town after ${s.day} day${s.day === 1 ? "" : "s"} on the trail. ${cl.name} is waiting at the Trailhead whenever you're ready to pick up where you left off.`, kind: 'info' }]);
+  }
+
   function journeyEnd(kind, reckoned) {
+    if (kind === 'home') return pauseJourney();
     const s = G.s, c = G.career, cl = s.client;
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;

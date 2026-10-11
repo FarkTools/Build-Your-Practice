@@ -968,3 +968,51 @@ input, select, textarea { font-size: 16px; }
 .prospect-card.followup { box-shadow: inset 4px 0 0 var(--orange); }
 .town-map .t-small { font-size: 9px; }
 .update-bar { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--navy); color: var(--parch); border: 2px solid var(--orange); border-radius: 12px; padding: 10px 12px; font-weight: 600; font-size: 0.9rem; box-shadow: 0 10px 24px -10px #000; }
+
+/* ---------- Compact summaries (phone) ----------
+ * On phones the trail ledger and the port's practice panel fold into one tappable line,
+ * so the menu of things to do sits near the top. Tap the line to see everything. */
+.ledger-compact, .practice-compact { display: none; }
+.goal > summary { display: none; }
+@media (max-width: 560px) {
+  .ledger { padding-bottom: 8px; }
+  .ledger:not(.open) > :not(.ledger-compact) { display: none; }
+  .ledger.open .ledger-compact { margin-bottom: 4px; }
+  .ledger-compact, .practice-compact { display: grid; gap: 6px; width: 100%; text-align: left; background: rgba(255, 255, 255, .4); border: 1.5px solid var(--ink-3); border-radius: 10px; padding: 7px 10px; color: var(--ink); font: inherit; cursor: pointer; }
+  .ledger-compact:active, .practice-compact:active { background: rgba(255, 255, 255, .7); }
+  .lc-top { display: flex; align-items: baseline; gap: 10px; font-size: 0.86rem; min-width: 0; }
+  .lc-day strong { font-size: 1rem; }
+  .lc-money strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+  .lc-money.lvl-survivable strong { color: var(--red); }
+  .lc-money.lvl-profitable strong { color: var(--green); }
+  .lc-money .warn { color: var(--red); font-weight: 600; }
+  .lc-stage { margin-left: auto; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1.3px solid var(--orange); background: var(--orange-2); white-space: nowrap; }
+  .lc-chev { font-size: 0.8rem; color: var(--ink-2); transition: transform .2s; }
+  .ledger.open .lc-chev, .practice.open .lc-chev { transform: rotate(180deg); }
+  .lc-gauges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .lc-g { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px; font-size: 0.78rem; position: relative; }
+  .lc-gl { font-size: 0.66rem; font-weight: 700; color: var(--ink-2); }
+  .lc-g strong { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+  .lc-track { height: 6px; border-radius: 3px; background: var(--parch-3); overflow: hidden; }
+  .lc-track .gauge-fill { display: block; }
+  .lc-g .gauge-delta { position: absolute; right: -2px; top: -12px; font-size: 0.68rem; font-weight: 700; }
+  /* Goals fold into one line */
+  .goal { padding-bottom: 6px; }
+  .goal > summary { display: block; list-style: none; cursor: pointer; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .goal > summary::-webkit-details-marker { display: none; }
+  .goal > summary::after { content: " ▾"; color: var(--ink-2); }
+  .goal[open] > summary::after { content: " ▴"; }
+  .goal[open] > summary .goal-peek { display: none; }
+  /* Practice panel at the port */
+  .practice { gap: 8px; margin-bottom: 10px; }
+  .practice:not(.open) > :not(.practice-compact) { display: none; }
+  .practice-compact { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+  .pc-level { display: grid; line-height: 1.15; }
+  .pc-day { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-2); }
+  .pc-level strong { font-size: 1.05rem; color: var(--navy); }
+  .pc-level.lvl-survivable strong { color: var(--red); }
+  .pc-level.lvl-profitable strong { color: var(--green); }
+  .pc-nums { font-size: 0.82rem; color: var(--ink-2); line-height: 1.3; }
+  .pc-nums strong { color: var(--ink); font-size: 0.98rem; font-variant-numeric: tabular-nums; }
+  .pc-nums strong.warn { color: var(--red); }
+}

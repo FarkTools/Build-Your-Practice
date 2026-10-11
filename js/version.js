@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.12.0';
+  PP.VERSION = '0.12.1';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.12.1', 'Walk back into Port Prospect mid-journey and you can head into town, then pick the journey up later. On phones, the journey and practice details fold into one tappable line so your choices sit near the top'],
     ['0.12.0', 'The trail goes mythical: every obstacle is a creature (Hydra, Sphinx, Kraken, Djinn, Dragon and more) with its own art, events and ways past'],
     ['0.11.2', 'Always loads the newest files after an update, and offers an Update now button when a newer version is out'],
     ['0.11.1', 'Doing something at a place keeps you there and shows the result right at that place'],

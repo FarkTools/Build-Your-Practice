@@ -54,7 +54,7 @@
     T.keys = onKey; document.addEventListener('keydown', T.keys);
     renderLedger(); renderSide();
     if (s.followUp) say(s.client.followCall || `${s.client.name} called. Life has changed.`);
-    say(s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
+    say(s.resumed ? `Day ${s.day}. You and ${s.client.name} head out of Port Prospect again, picking up where you left off.` : s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
     showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
   };
@@ -64,7 +64,10 @@
   function say(text, cls) { T.narr.push({ text, cls }); if (T.narr.length > 40) T.narr.shift(); }
   function goalLine() {
     const s = T.s;
-    return h('div', { class: 'goal' },
+    const narrow = window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
+    const open = narrow ? !!PP.store.get('goalOpen', false) : true;
+    return h('details', { class: 'goal', open, ontoggle: (e) => { if (narrow) PP.store.set('goalOpen', e.target.open); } },
+      h('summary', null, h('span', { class: 'eyebrow' }, 'Goals'), h('span', { class: 'goal-peek' }, ` Guide ${s.client.name} to the plan that fits`)),
       h('div', null, h('span', { class: 'eyebrow' }, 'This journey'), s.followUp ? ` ${s.client.name}'s life changed: ${s.followUp.title.toLowerCase()}. Find out what it really means for them, and see the relationship through to the next plan.` : ` Build rapport, find the facts, understand the risks, and guide ${s.client.name} to the plan that truly fits, with their trust intact.`),
       s.career ? h('div', null, h('span', { class: 'eyebrow' }, 'Your career'), ` Build a Profitable practice before your savings run out. Every day away costs ${PP.career.money(PP.career.costs(s.career))}, and your clients and prospects back at the port are waiting.`) : null);
   }
@@ -106,7 +109,9 @@
   function renderLedger(prev) {
     const s = T.s;
     T.ledger.innerHTML = '';
+    T.ledger.classList.toggle('open', !!PP.store.get('ledgerOpen', false));
     put(T.ledger,
+      compactLedger(s, prev),
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Day'), h('strong', null, String(s.day))),
       h('div', { class: 'ledger-cell wide' }, h('span', { class: 'lk' }, s.seg ? 'Next landmark' : 'Location'), h('strong', null, nextLandmarkText())),
       h('div', { class: 'ledger-cell' }, h('span', { class: 'lk' }, 'Pace'), h('strong', null, PACE[s.pace].label)),
@@ -115,6 +120,30 @@
       PP.ui.gauges(s, prev),
       stageStrip(s));
     T.lastSavings = s.career ? s.career.savings : 0;
+  }
+
+  /* Phone: one tappable line with the essentials. Tap it to see the full ledger. */
+  function compactLedger(s, prev) {
+    const c = s.career, st = PP.stageStatus(s), done = st.filter((x) => x.done).length;
+    const cur = st.find((x) => x.current);
+    const runway = c ? PP.career.runway(c) : Infinity;
+    const lvl = c ? PP.career.levelInfo(c) : null;
+    const toggle = () => { const open = !T.ledger.classList.contains('open'); T.ledger.classList.toggle('open', open); PP.store.set('ledgerOpen', open); btn.setAttribute('aria-expanded', String(open)); };
+    const btn = h('button', { class: 'ledger-compact', 'aria-expanded': String(T.ledger.classList.contains('open')), 'aria-label': 'Show or hide journey details', onclick: toggle },
+      h('span', { class: 'lc-top' },
+        h('span', { class: 'lc-day' }, 'Day ', h('strong', null, String(s.day))),
+        c ? h('span', { class: 'lc-money lvl-' + lvl.id }, h('strong', null, PP.career.money(c.savings)), runway !== Infinity ? h('span', { class: runway <= 5 ? 'warn' : '' }, ` · ${runway}d left`) : null) : null,
+        h('span', { class: 'lc-stage' }, cur ? cur.label : 'All stages', ` ${done}/${st.length}`),
+        h('span', { class: 'lc-chev', 'aria-hidden': 'true' }, '▾')),
+      h('span', { class: 'lc-gauges' }, PP.RES.map((r) => {
+        const v = s.res[r.id], d = prev ? v - prev[r.id] : 0;
+        return h('span', { class: 'lc-g g-' + r.id, title: r.label },
+          h('span', { class: 'lc-gl' }, r.label.slice(0, 1)),
+          h('span', { class: 'lc-track' }, h('span', { class: 'gauge-fill', style: { width: v * 10 + '%' } })),
+          h('strong', null, String(v)),
+          d ? h('span', { class: 'gauge-delta ' + (d > 0 ? 'up' : 'down') }, (d > 0 ? '+' : '') + d) : null);
+      })));
+    return btn;
   }
 
   function stageStrip(s) {
@@ -178,6 +207,8 @@
     const people = here && (PEOPLE[here] || []).filter((p, i) => !s.talked[here + i]);
     const items = [];
     items.push({ label: s.seg ? 'Continue on the trail' : 'Continue on the trail', note: s.seg ? nextLandmarkText() : 'See where the trail goes from here', go: s.seg ? travel : forks, primary: true });
+    // Walked back into town? You can pause the journey and pick it up later from the Trailhead.
+    if (here === 'port' && s.career && s.trail.length > 1) items.push({ label: 'Head into town', note: `Pause this journey. ${C()} waits at the Trailhead and remembers everything so far.`, go: goHome });
     const openHere = here ? PP.passagesAt(here).filter((p) => PP.passageOpen(s, p)) : [];
     if (here && openHere.length && !s.passageTaken[here] && !s.faced[here]) items.push({ label: 'Take a hidden passage', note: openHere.map((p) => p.name).join(' or '), go: () => passageFork(here, PP.content.nodes[here], openHere, PP.passagesAt(here).filter((p) => !openHere.includes(p)), () => menu()) });
     items.push({ label: `Check in with ${C()}`, note: s.lastCheckin === s.day ? 'Already talked today' : 'Ask questions, learn what matters', go: checkin });
@@ -214,6 +245,10 @@
     return `${usable} item${usable === 1 ? '' : 's'}, ${ready} contact${ready === 1 ? '' : 's'} on call`;
   }
   function back() { return h('button', { class: 'btn ghost', onclick: () => menu() }, 'Back'); }
+  function goHome() {
+    say(`You walk ${C()} back into Port Prospect. "Call me when you're ready to pick this up," they say.`);
+    finish('home');
+  }
 
   /* ---------- Forks ---------- */
   function forks() {
