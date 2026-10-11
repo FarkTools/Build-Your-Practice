@@ -8,7 +8,7 @@
   const money = (n) => PP.career.money(n);
   const P = () => PP.content.practice;
 
-  PP.ui.mountGame = function (root) { G.root = root; intro(); };
+  PP.ui.mountGame = function (root) { G.root = root; G.challenge = PP.challenge ? PP.challenge.read() : null; intro(); };
 
   function screen(...kids) {
     G.root.innerHTML = '';
@@ -26,6 +26,7 @@
         h('h1', { class: 'display' }, 'Build Your Practice'),
         h('p', { class: 'lede' }, 'You are a new agent at Port Prospect with some savings and a lot to learn. Find prospects, guide them through the wild terrain to a plan that actually suits them, look after the clients you have, and grow a practice that pays the bills before the money runs out.'),
         ladder(saved ? PP.career.level(saved) : 'survivable', true),
+        G.challenge ? challengeCard(G.challenge, !!saved) : null,
         h('div', { class: 'row' },
           saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; port(null); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
           h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: chooseAgent }, saved ? 'Start a new career' : 'Start your career'))),
@@ -35,11 +36,48 @@
     PP.ui.renderMap(document.getElementById('intro-map'), demo, {});
   }
 
-  function chooseAgent() {
+  /* A friend's challenge link: same agent type, same first prospect, their score to beat. */
+  function challengeCard(ch, hasSave) {
+    const cl = PP.content.clients[ch.arch], ag = PP.content.agentTypes.find((a) => a.id === ch.agent);
+    return h('div', { class: 'panel challenge-card' },
+      h('div', { class: 'eyebrow' }, 'You have been challenged'),
+      h('h3', null, `${ch.by} challenged you`),
+      h('p', null, `Start as a ${ag.name} and guide ${ch.client || cl.name}, ${cl.title.replace(/^The /, 'the ')}. ${ch.by} ${ch.stars ? `earned ${ch.stars} of 7 stars in ${ch.days} day${ch.days === 1 ? '' : 's'}` : `lost them after ${ch.days} days`}${ch.dest ? `, landing at ${ch.dest}` : ''}. Can you do better?`),
+      hasSave ? h('p', { class: 'small muted' }, 'Accepting starts a new career. Your current one will be replaced.') : null,
+      h('div', { class: 'row' }, h('button', { class: 'btn primary big', onclick: () => chooseAgent(ch) }, 'Accept the challenge'),
+        h('button', { class: 'btn ghost', onclick: () => { G.challenge = null; PP.challenge.clear(); intro(); } }, 'No thanks')));
+  }
+
+  function chooseAgent(ch) {
+    if (!ch || !ch.agent) ch = null;
+    const prof = PP.profile.get();
+    const nameIn = h('input', { type: 'text', id: 'you-name', autocomplete: 'name', maxlength: '40', placeholder: 'e.g. Sam Rivera', value: prof.name });
+    const pracIn = h('input', { type: 'text', id: 'you-practice', autocomplete: 'organization', maxlength: '48', placeholder: 'e.g. Rivera Financial', value: prof.practice });
+    const start = (a) => {
+      PP.profile.set({ name: nameIn.value, practice: pracIn.value });
+      const pf = PP.profile.get();
+      G.career = PP.newCareer(a.id);
+      G.career.you = pf.name; G.career.practiceName = pf.practice;
+      let flash = `Day 1. You hang ${pf.name ? pf.name + "'s" : 'your'} license on the wall at Port Prospect${pf.practice ? `, under a hand-painted sign: ${pf.practice}` : ''}. Time to find some people to help.`;
+      if (ch) {
+        const p = PP.career.addProspect(G.career, { archetype: ch.arch, temp: ch.temp, source: `${ch.by}'s challenge` });
+        if (ch.client) p.name = ch.client;
+        G.career.challenge = Object.assign({}, ch, { pid: p.id });
+        flash += ` ${p.name} is already waiting at the Trailhead: ${ch.by}'s challenge.`;
+        G.challenge = null; PP.challenge.clear();
+      }
+      PP.career.save(G.career); G.place = null;
+      port(ch ? 'trailhead' : 'office', [{ text: flash, kind: 'info' }]);
+    };
+    const agents = PP.content.agentTypes.filter((a) => !ch || a.id === ch.agent);
     screen(h('section', { class: 'choose' },
-      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Who are you?'), h('h2', { class: 'display-sm' }, 'Choose your agent')),
-        h('p', { class: 'muted' }, 'Each starting point trades money, skills and the size of your natural market (people you already know).')),
-      h('div', { class: 'agent-grid' }, PP.content.agentTypes.map((a) => h('article', { class: 'panel agent-card' },
+      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Who are you?'), h('h2', { class: 'display-sm' }, ch ? 'Your challenge' : 'Choose your agent')),
+        h('p', { class: 'muted' }, ch ? `${ch.by} played as this agent. Same starting point, same first prospect.` : 'Each starting point trades money, skills and the size of your natural market (people you already know).')),
+      h('div', { class: 'panel profile-form' },
+        h('div', { class: 'field' }, h('label', { for: 'you-name' }, 'Your name'), nameIn),
+        h('div', { class: 'field' }, h('label', { for: 'you-practice' }, 'Practice name ', h('span', { class: 'muted' }, '(optional)')), pracIn),
+        h('p', { class: 'small muted' }, 'Clients will call you by name, and it goes on your share card. It stays in this browser.')),
+      h('div', { class: 'agent-grid' }, agents.map((a) => h('article', { class: 'panel agent-card' },
         h('h3', null, a.name), h('p', { class: 'agent-tag' }, a.tagline),
         h('dl', { class: 'kv' },
           h('dt', null, 'Savings'), h('dd', null, money(a.savings)),
@@ -49,7 +87,7 @@
           h('dt', null, 'Skills'), h('dd', null, Object.keys(a.skills).map((k) => PP.SKILLS.find((x) => x.id === k).label).join(', '))),
         h('p', { class: 'small' }, h('strong', null, a.perk + ': '), a.perkText),
         h('p', { class: 'small muted' }, a.cons),
-        h('button', { class: 'btn primary', onclick: () => { G.career = PP.newCareer(a.id); PP.career.save(G.career); G.place = null; port('office', [{ text: `Day 1. You hang your license on the wall at Port Prospect. Time to find some people to help.`, kind: 'info' }]); } }, `Start as a ${a.name}`))))));
+        h('button', { class: 'btn primary', onclick: () => start(a) }, `Start as a ${a.name}`))))));
   }
 
   function ladder(current, compact) {
@@ -143,7 +181,7 @@
       PP.fx && PP.fx.sfx('click');
     });
     screen(h('section', { class: 'port' },
-      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Home base'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
+      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, c.you ? `Home base · ${c.you}` : 'Home base'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
         h('p', { class: 'muted' }, 'Every activity here takes a day, and every day costs money. Balance prospecting, looking after clients, and time on the trail.')),
       practicePanel(c),
       todayCard(c),
@@ -171,7 +209,10 @@
       npcs.length ? h('h4', { class: 'place-sub' }, 'Who\'s here') : null,
       npcs.length ? h('div', { class: 'npc-grid' }, npcs.map(npcCard)) : null);
   }
-  function deskName(c) { return { kitchen: 'Your kitchen table', cowork: 'Your desk at the Co-op', office: 'Your office' }[c.workspace] || 'Your desk'; }
+  function deskName(c) {
+    const base = { kitchen: 'Your kitchen table', cowork: 'Your desk at the Co-op', office: 'Your office' }[c.workspace] || 'Your desk';
+    return c.practiceName ? `${c.practiceName} · ${base.replace(/^Your /, '')}` : base;
+  }
   const activeBook = () => G.career.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
 
   /* Spend a day at the port: do the thing, then the day passes. */
@@ -680,16 +721,52 @@
     const shortcuts = s.settled.concat(s.debt.map((d) => Object.assign({}, d, { outcome: 'never came due' })));
     const unknown = Object.keys(cl.facts).filter((f) => s.facts[f] == null);
     const newMarks = s.newMarks || [];
+    const destName = kind === 'landed' ? PP.content.destinations[s.destination].name : '';
+    const headline = firstProfitable ? 'Profitable!' : rating;
+
+    // Was this the prospect from a friend's challenge?
+    const ch = c.challenge && !c.challenge.done && s.origin && s.origin.id === c.challenge.pid ? c.challenge : null;
+    let beat = null;
+    if (ch) {
+      ch.done = true;
+      const mine = kind === 'landed' ? pts : -1, theirs = ch.stars || -1;
+      beat = mine > theirs || (mine === theirs && mine >= 0 && s.day < ch.days) ? 'won' : mine === theirs && s.day === ch.days ? 'tie' : 'lost';
+      PP.career.save(c);
+    }
+    const you = PP.you(c), full = PP.youFull(c), pr = PP.practiceName(c);
+    const result = {
+      name: full, agent: c.agent, archetype: cl.id, client: cl.name, temp: (s.origin && s.origin.temp) || 'warm',
+      stars: kind === 'landed' ? pts : 0, days: s.day, rating: headline, dest: destName,
+      eyebrow: [full || 'A new agent', pr].filter(Boolean).join(' · '),
+      headline: beat === 'won' ? `Beat ${ch.by}'s challenge!` : headline,
+      line: kind === 'landed' ? `Guided ${cl.name}, ${cl.title.replace(/^The /, 'the ')}, to ${destName} in ${s.day} day${s.day === 1 ? '' : 's'}.` + (beat ? ` ${ch.by}: ${ch.stars} star${ch.stars === 1 ? '' : 's'} in ${ch.days} day${ch.days === 1 ? '' : 's'}.` : '') : `${why}`,
+      stats: [['Days', s.day], ['Level', PP.career.levelInfo(c).label], ['Clients', String(activeBook().length)]],
+      gauges: s.res,
+      cta: kind === 'landed' ? `Can you beat ${pts} star${pts === 1 ? '' : 's'} with ${cl.name}?` : `Think you can win ${cl.name} over?`,
+      text: kind === 'landed'
+        ? `${beat === 'won' ? `I beat ${ch.by}'s challenge! ` : ''}I guided ${cl.name} to ${destName} in ${s.day} day${s.day === 1 ? '' : 's'} and earned ${pts} of 7 stars in Build Your Practice. Think you can do better?`
+        : `${cl.name} got away from me in Build Your Practice. Think you can win them over?`
+    };
+    if (kind !== 'landed') result.stars = null;
+    const shareBtn = h('button', { class: 'btn big share-cta', onclick: () => PP.share.open(Object.assign({}, result, { stars: kind === 'landed' ? pts : null })) }, beat === 'won' ? 'Share your win' : 'Share and challenge');
 
     screen(h('section', { class: 'ending' },
       h('header', { class: 'ending-head' },
         h('div', { class: 'eyebrow' }, `${s.followUp ? 'Follow-up · ' : ''}Journey ${c.journeys} · ${cl.name} · ${s.day} days on the trail`),
-        h('h2', { class: 'display' }, firstProfitable ? 'Profitable!' : rating),
+        h('h2', { class: 'display' }, headline),
         kind === 'landed' ? h('div', { class: 'stars', 'aria-label': `${pts} of 7` }, Array.from({ length: 7 }, (_, i) => h('span', { class: i < pts ? 'on' : '' }))) : null,
         h('p', { class: 'lede' }, firstProfitable ? `Your income now covers twice your costs. ${why}` : why),
         h('div', { class: 'row' },
           h('button', { class: 'btn primary big', onclick: () => port(c.pipeline.length ? 'pipeline' : 'prospect', [{ text: `Back at Port Prospect after ${s.day} days away.`, kind: 'info' }]) }, 'Back to Port Prospect'),
-          h('button', { class: 'btn ghost', onclick: intro }, 'Title screen'))),
+          shareBtn,
+          h('button', { class: 'btn ghost', onclick: intro }, 'Title screen')),
+        ch ? h('div', { class: 'panel challenge-result r-' + beat },
+          h('div', { class: 'eyebrow' }, `${ch.by}'s challenge`),
+          h('h3', null, beat === 'won' ? `You beat ${ch.by}${you ? ', ' + you : ''}!` : beat === 'tie' ? `Dead even with ${ch.by}.` : `${ch.by} still holds the record.`),
+          h('div', { class: 'vs' },
+            h('div', null, h('span', { class: 'lk' }, full || 'You'), h('strong', null, kind === 'landed' ? `${pts}★ · ${s.day} days` : `no sale · ${s.day} days`)),
+            h('div', null, h('span', { class: 'lk' }, ch.by), h('strong', null, ch.stars ? `${ch.stars}★ · ${ch.days} days` : `no sale · ${ch.days} days`))),
+          h('p', { class: 'small muted' }, beat === 'won' ? 'Send it back and see if they can beat you.' : 'Fewer days breaks a tie in stars.')) : null),
       h('div', { class: 'panel payday' },
         h('div', { class: 'eyebrow' }, 'What this journey did for your practice'),
         h('div', { class: 'practice-nums' },
@@ -733,7 +810,11 @@
         h('h2', { class: 'display' }, 'Unemployed'),
         h('p', { class: 'lede' }, 'Your savings ran out. You take a salaried job at the bank. It has excellent dental, and nobody ever asks you to find out what a client really needs.'),
         ladder('unemployed'),
-        h('div', { class: 'row' }, h('button', { class: 'btn primary big', onclick: chooseAgent }, 'Start a new career'))),
+        h('div', { class: 'row' }, h('button', { class: 'btn primary big', onclick: chooseAgent }, 'Start a new career'),
+          h('button', { class: 'btn big share-cta', onclick: () => PP.share.open({ challenge: false, name: PP.youFull(c), eyebrow: [PP.youFull(c) || 'A new agent', PP.practiceName(c)].filter(Boolean).join(' · '), headline: 'Unemployed', stars: null,
+            line: `${c.days} days, ${c.journeys} journey${c.journeys === 1 ? '' : 's'}, ${c.book.length} client${c.book.length === 1 ? '' : 's'}. The bank job has excellent dental.`,
+            stats: [['Days', c.days], ['Journeys', c.journeys], ['Clients', c.book.length]], cta: 'Can you keep a practice afloat?',
+            text: `My practice lasted ${c.days} days in Build Your Practice before the savings ran out. Can you keep yours afloat?` }) }, 'Share'))),
       h('div', { class: 'panel' }, h('h3', null, 'Your career'),
         c.history.length ? h('ol', { class: 'plain' }, c.history.map((x) => h('li', null, `Journey ${x.journey}: ${x.client} → ${x.outcome}${x.fit ? ` (${x.fit} fit)` : ''}, ${money(x.cash)}`))) : h('p', { class: 'muted' }, 'You never landed a client.'))));
   }

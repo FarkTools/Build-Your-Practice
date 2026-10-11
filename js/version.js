@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.12.1';
+  PP.VERSION = '0.13.0';
   PP.BUILT = '2026-10-10';
   PP.CHANGES = [
+    ['0.13.0', 'Make it yours: enter your name and practice name, share a result card from any device (share sheet, LinkedIn, Facebook, X, email, copy link, download image), and send friends a challenge link with the same agent and first prospect'],
     ['0.12.1', 'Walk back into Port Prospect mid-journey and you can head into town, then pick the journey up later. On phones, the journey and practice details fold into one tappable line so your choices sit near the top'],
     ['0.12.0', 'The trail goes mythical: every obstacle is a creature (Hydra, Sphinx, Kraken, Djinn, Dragon and more) with its own art, events and ways past'],
     ['0.11.2', 'Always loads the newest files after an update, and offers an Update now button when a newer version is out'],

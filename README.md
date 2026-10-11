@@ -16,6 +16,8 @@ This repo is a **playable concept prototype**. Players get the game only; the El
 - **Your clients:** satisfaction slips every day. Service days keep them happy; unhappy clients cancel.
 - **Build your practice:** a shared desk or your own office, partnering with another agent as equals, recruiting and training agents for override income, and systems earned on the trail.
 
+**Make it yours, then share it.** Enter your name and practice name when you start; clients call you by name and it goes on your desk sign. Every journey ends with a share card (an image) and a share box that works on phones and computers. The link you share is a challenge: your friend starts as the same agent with the same first prospect and sees your score to beat. Nothing leaves the player's browser; the challenge lives in the link.
+
 **The trail.** Choose a prospect and hike with them across the map, day by day, to Clients for Life. A numbered menu always shows the next move. Rivals try to take your client, you meet new prospects and mentors, and shortcuts become hidden risk debt that comes due later.
 
 **Navigation builds the practice.** Handle a landmark well and you earn its Mark. Each Mark unlocks a system at the port (a CRM, planning software, a specialist partnership...) that shortens trails or adds better options on future journeys. Places you have explored stay on your map.

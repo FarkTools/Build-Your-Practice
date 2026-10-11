@@ -1016,3 +1016,41 @@ input, select, textarea { font-size: 16px; }
   .pc-nums strong { color: var(--ink); font-size: 0.98rem; font-variant-numeric: tabular-nums; }
   .pc-nums strong.warn { color: var(--red); }
 }
+
+/* ---------- Your name, challenges, sharing ---------- */
+.profile-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin-bottom: 14px; }
+.profile-form .small { grid-column: 1 / -1; margin: 0; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-2); }
+.field label .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.field input { font: inherit; font-size: 16px; color: var(--ink); background: #fffaf2; border: 1.5px solid var(--ink-3); border-radius: 8px; padding: 9px 11px; min-width: 0; }
+.field input:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(243, 156, 18, .25); }
+.challenge-card { border-left: 5px solid var(--orange); display: grid; gap: 8px; margin: 10px 0 4px; }
+.challenge-card h3 { color: var(--navy); }
+.challenge-result { margin-top: 14px; display: grid; gap: 8px; border-left: 5px solid var(--ink-3); }
+.challenge-result.r-won { border-left-color: var(--green); background: #e6efd4; }
+.challenge-result.r-won h3 { color: var(--green); }
+.challenge-result .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.challenge-result .vs > div { display: grid; background: rgba(255, 255, 255, .45); border-radius: 8px; padding: 8px 10px; }
+.challenge-result .vs strong { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.share-cta { background: var(--orange); border-color: var(--ink); color: var(--ink); }
+.share-cta:hover { background: #f7b03a; }
+.share-card { width: min(900px, 100%); }
+.share-card .scene { display: grid; gap: 12px; }
+.share-layout { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.share-img { width: 100%; height: auto; display: block; border-radius: 10px; box-shadow: 0 8px 24px -12px rgba(0, 0, 0, .6); background: var(--navy); aspect-ratio: 4 / 5; }
+.share-actions { display: grid; gap: 10px; align-content: start; }
+.share-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.share-btn { justify-content: center; text-align: center; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.share-btn.s-li { background: #0a66c2; color: #fff; border-color: #0a66c2; }
+.share-btn.s-fb { background: #1877f2; color: #fff; border-color: #1877f2; }
+.share-btn.s-x { background: #111; color: #fff; border-color: #111; }
+.share-status:empty { display: none; }
+@media (max-width: 700px) {
+  .share-layout { grid-template-columns: minmax(0, 1fr); }
+  .share-preview { max-width: 260px; margin: 0 auto; width: 100%; }
+}
+@media (max-width: 560px) {
+  .profile-form { grid-template-columns: minmax(0, 1fr); }
+  .ending-head .row .btn { flex: 1 1 100%; }
+}

@@ -54,7 +54,7 @@
     T.keys = onKey; document.addEventListener('keydown', T.keys);
     renderLedger(); renderSide();
     if (s.followUp) say(s.client.followCall || `${s.client.name} called. Life has changed.`);
-    say(s.resumed ? `Day ${s.day}. You and ${s.client.name} head out of Port Prospect again, picking up where you left off.` : s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.`);
+    say(s.resumed ? `Day ${s.day}. You and ${s.client.name} head out of Port Prospect again, picking up where you left off.` : s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.` + (PP.you && PP.you(s.career) ? ` "Lead the way, ${PP.you(s.career)}."` : ''));
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
     showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
   };
@@ -502,7 +502,8 @@
     s.lastCheckin = s.day;
     let reply, eff = {};
     if (t.id === 'chat') {
-      reply = PP.pick([`You talk about nothing in particular. ${C()} laughs at your story about the fax machine.`, `${C()} shows you photos of their dog. The dog is excellent.`, `You swap stories about terrible bosses. It turns out you have one in common.`]);
+      const yn = PP.you && PP.you(s.career);
+      reply = PP.pick([`You talk about nothing in particular. ${C()} laughs at your story about the fax machine.` + (yn ? ` "You're all right, ${yn}."` : ''), `${C()} shows you photos of their dog. The dog is excellent.`, `You swap stories about terrible bosses. It turns out you have one in common.`]);
       eff = { trust: 1 };
     } else if (s.askedTopics[t.id]) {
       reply = `${C()}: "You asked me that already." They sound a little tired.`;
