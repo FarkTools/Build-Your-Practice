@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.14.1';
+  PP.VERSION = '0.14.2';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.14.2', 'Tidier start screen: just your name and practice name'],
     ['0.14.1', 'Calendar Tetris: prep now shows up a few blocks after its meeting, so keep the 📋 slot on top clear while you book everything else'],
     ['0.14.0', 'Calendar Tetris you can read at a glance: icons instead of sentences, each client and their prep share a colour, house rules drawn on the calendar, and green/amber/red outlines show where each block will land before you drop it'],
     ['0.13.0', 'Make it yours: enter your name and practice name, share a result card from any device (share sheet, LinkedIn, Facebook, X, email, copy link, download image), and send friends a challenge link with the same agent and first prospect'],
