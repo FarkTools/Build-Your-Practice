@@ -71,11 +71,16 @@
       { type: 'admin', len: 1, label: PP.pick(['Paperwork', 'Filing', 'Forms for Operations']), short: 'Admin', sub: 'any time' }
     ];
     rules.forEach((id) => (RULES[id].add || []).forEach((b) => rest.push(Object.assign({}, b))));
-    const mix = PP.shuffle(pairs.map((p) => ({ p })).concat(rest.map((b) => ({ b }))));
+    // Meetings and everything else in random order; each prep arrives 1-3 blocks after its meeting,
+    // so you have to keep the space above the meeting clear while you book other things.
+    const mix = PP.shuffle(pairs.map((p) => ({ b: p[0] })).concat(rest.map((b) => ({ b }))));
     const urgentName = PP.pick(CLIENTS.filter((n) => !who.includes(n)));
     mix.splice(Math.floor(mix.length * 0.55), 0, { b: { type: 'urgent', len: 1, label: `"Can we talk today?" (${urgentName})`, short: 'Today!', sub: 'today is ' + DAY_LONG[w.today], urgent: true } });
-    const out = [];
-    mix.forEach((m) => (m.p ? out.push(m.p[0], m.p[1]) : out.push(m.b)));
+    const out = mix.map((m) => m.b);
+    pairs.map((p) => ({ p, i: out.indexOf(p[0]) })).sort((a, b) => b.i - a.i).forEach(({ p, i }) => {
+      const gap = 1 + Math.floor(Math.random() * 3);
+      out.splice(Math.min(out.length, i + 1 + gap), 0, p[1]);
+    });
     return out;
   }
 
@@ -144,7 +149,7 @@
       const occ = DAYS.map(() => Array(ROWS).fill(null));
       const log = [];
       let cur = null, idx = -1, finished = false, raf = 0, last = performance.now(), balV = 10, prepared = 0, missed = 0, prospectAM = 0, armed = -1;
-      const over = {};
+      const over = {}, waiting = {};
       const speed = 0.85 - prep * 0.1; // rows per second: slow enough to read the outlines
       const timer = PP.mg.timer(ui.bar, 80 + prep * 8, () => finish());
       const hueOf = (b) => (b.hue ? ' ' + b.hue : '');
@@ -188,6 +193,8 @@
           if (!ruled || rank[v[0]] < rank[q]) { q = v[0]; text = v[1]; pop = v[2]; }
           ruled = true;
         });
+        const under = occ[col][row + b.len];
+        if (b.type !== 'prep' && under && under.type === 'client' && waiting[under.who] && q !== 'bad') { q = 'ok'; text = `${b.label} sits on ${under.who}'s prep spot. The prep has nowhere to go now.`; pop = 'Covers prep spot'; }
         const booked = occ[col].filter((x) => x && !x.fixed).length + b.len;
         const long = booked > MAX_HOURS && !over[col];
         if (long && q !== 'bad') { q = q === 'good' ? 'ok' : q; pop += ' · long day'; }
@@ -199,7 +206,7 @@
         const g = ruleFor[b.type];
         const r = g && rules.map((id) => RULES[id]).find((x) => x.group === g || (rules.includes(g) && x === RULES[g]));
         if (r && r.hint) return { icon: r.icon, text: fillJd(r.hint) };
-        if (b.type === 'client') return { icon: '👤', text: 'Any day. Leave room on top for prep' };
+        if (b.type === 'client') return { icon: '👤', text: 'Any day. Keep the slot on top clear: the prep comes later' };
         return { icon: '✓', text: 'Any time' };
       }
       function cardFor(b) {
@@ -281,6 +288,10 @@
         }
         el.classList.remove('falling'); el.classList.add('landed', 'q-' + v.q); el.style.top = row * rowH + 'px';
         for (let r = row; r < row + b.len; r++) occ[col][r] = b;
+        // A meeting waits for its prep: mark the open slot on top of it.
+        if (b.type === 'client') { const m = h('div', { class: 'cal-reserve ' + b.hue, title: 'Keep clear for ' + b.who + '\'s prep' }, '📋'); m.style.top = (row - 1) * rowH + 'px'; m.style.height = rowH - 3 + 'px'; if (row > 0) cols[col].appendChild(m); waiting[b.who] = m; }
+        if (b.type === 'prep' && waiting[b.who]) { waiting[b.who].remove(); delete waiting[b.who]; }
+        else { const under = occ[col][row + b.len]; if (under && under.type === 'client' && waiting[under.who]) { waiting[under.who].classList.add('lost'); setTimeout(() => { if (waiting[under.who]) waiting[under.who].remove(); }, 900); } }
         placedC.set(log.filter((l) => l.placed).length + 1);
         F.sfx('thump');
         if (b.type === 'prep' && v.q === 'good') { prepared++; prepC.set(prepared); F.burstOn(stage, el, 'good', 12); el.classList.add('snapped'); }

@@ -1427,6 +1427,15 @@ input, select, textarea { font-size: 16px; }
 .cal-ghost .cg-t { top: 50%; transform: translate(-50%, -50%); }
 .cal-ghost.aimed { z-index: 6; }
 @media (min-width: 641px) { .cal-stage { grid-template-columns: minmax(0, 1fr) 250px; } .cal-key { font-size: 0.75rem; } }
+/* Open prep slot on top of a meeting that's still waiting for its prep */
+.cal-reserve { position: absolute; left: 6px; right: 6px; border: 2px dashed rgba(74, 44, 18, .45); border-radius: 6px; display: grid; place-items: center; font-size: 0.8rem; pointer-events: none; z-index: 1; opacity: .85; animation: reservePulse 1.6s ease-in-out infinite alternate; }
+.cal-reserve.c1 { background: rgba(169, 205, 240, .35); border-color: #5b8fc4; }
+.cal-reserve.c2 { background: rgba(181, 224, 196, .35); border-color: #5aa274; }
+.cal-reserve.c3 { background: rgba(213, 196, 238, .35); border-color: #8e70bf; }
+.cal-reserve.lost { animation: none; opacity: 0; transition: opacity .8s; }
+@keyframes reservePulse { to { opacity: .45; } }
+.cal-reserve { z-index: 7; background-clip: padding-box; }
+.cal-ghost .cg-t { white-space: normal; width: max-content; max-width: 100%; text-align: center; line-height: 1.1; }
 
 </style>
 </head>
@@ -1690,9 +1699,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.14.0';
+  PP.VERSION = '0.14.1';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.14.1', 'Calendar Tetris: prep now shows up a few blocks after its meeting, so keep the 📋 slot on top clear while you book everything else'],
     ['0.14.0', 'Calendar Tetris you can read at a glance: icons instead of sentences, each client and their prep share a colour, house rules drawn on the calendar, and green/amber/red outlines show where each block will land before you drop it'],
     ['0.13.0', 'Make it yours: enter your name and practice name, share a result card from any device (share sheet, LinkedIn, Facebook, X, email, copy link, download image), and send friends a challenge link with the same agent and first prospect'],
     ['0.12.1', 'Walk back into Port Prospect mid-journey and you can head into town, then pick the journey up later. On phones, the journey and practice details fold into one tappable line so your choices sit near the top'],
@@ -8223,11 +8233,16 @@ window.PP = window.PP || {};
       { type: 'admin', len: 1, label: PP.pick(['Paperwork', 'Filing', 'Forms for Operations']), short: 'Admin', sub: 'any time' }
     ];
     rules.forEach((id) => (RULES[id].add || []).forEach((b) => rest.push(Object.assign({}, b))));
-    const mix = PP.shuffle(pairs.map((p) => ({ p })).concat(rest.map((b) => ({ b }))));
+    // Meetings and everything else in random order; each prep arrives 1-3 blocks after its meeting,
+    // so you have to keep the space above the meeting clear while you book other things.
+    const mix = PP.shuffle(pairs.map((p) => ({ b: p[0] })).concat(rest.map((b) => ({ b }))));
     const urgentName = PP.pick(CLIENTS.filter((n) => !who.includes(n)));
     mix.splice(Math.floor(mix.length * 0.55), 0, { b: { type: 'urgent', len: 1, label: `"Can we talk today?" (${urgentName})`, short: 'Today!', sub: 'today is ' + DAY_LONG[w.today], urgent: true } });
-    const out = [];
-    mix.forEach((m) => (m.p ? out.push(m.p[0], m.p[1]) : out.push(m.b)));
+    const out = mix.map((m) => m.b);
+    pairs.map((p) => ({ p, i: out.indexOf(p[0]) })).sort((a, b) => b.i - a.i).forEach(({ p, i }) => {
+      const gap = 1 + Math.floor(Math.random() * 3);
+      out.splice(Math.min(out.length, i + 1 + gap), 0, p[1]);
+    });
     return out;
   }
 
@@ -8296,7 +8311,7 @@ window.PP = window.PP || {};
       const occ = DAYS.map(() => Array(ROWS).fill(null));
       const log = [];
       let cur = null, idx = -1, finished = false, raf = 0, last = performance.now(), balV = 10, prepared = 0, missed = 0, prospectAM = 0, armed = -1;
-      const over = {};
+      const over = {}, waiting = {};
       const speed = 0.85 - prep * 0.1; // rows per second: slow enough to read the outlines
       const timer = PP.mg.timer(ui.bar, 80 + prep * 8, () => finish());
       const hueOf = (b) => (b.hue ? ' ' + b.hue : '');
@@ -8340,6 +8355,8 @@ window.PP = window.PP || {};
           if (!ruled || rank[v[0]] < rank[q]) { q = v[0]; text = v[1]; pop = v[2]; }
           ruled = true;
         });
+        const under = occ[col][row + b.len];
+        if (b.type !== 'prep' && under && under.type === 'client' && waiting[under.who] && q !== 'bad') { q = 'ok'; text = `${b.label} sits on ${under.who}'s prep spot. The prep has nowhere to go now.`; pop = 'Covers prep spot'; }
         const booked = occ[col].filter((x) => x && !x.fixed).length + b.len;
         const long = booked > MAX_HOURS && !over[col];
         if (long && q !== 'bad') { q = q === 'good' ? 'ok' : q; pop += ' · long day'; }
@@ -8351,7 +8368,7 @@ window.PP = window.PP || {};
         const g = ruleFor[b.type];
         const r = g && rules.map((id) => RULES[id]).find((x) => x.group === g || (rules.includes(g) && x === RULES[g]));
         if (r && r.hint) return { icon: r.icon, text: fillJd(r.hint) };
-        if (b.type === 'client') return { icon: '👤', text: 'Any day. Leave room on top for prep' };
+        if (b.type === 'client') return { icon: '👤', text: 'Any day. Keep the slot on top clear: the prep comes later' };
         return { icon: '✓', text: 'Any time' };
       }
       function cardFor(b) {
@@ -8433,6 +8450,10 @@ window.PP = window.PP || {};
         }
         el.classList.remove('falling'); el.classList.add('landed', 'q-' + v.q); el.style.top = row * rowH + 'px';
         for (let r = row; r < row + b.len; r++) occ[col][r] = b;
+        // A meeting waits for its prep: mark the open slot on top of it.
+        if (b.type === 'client') { const m = h('div', { class: 'cal-reserve ' + b.hue, title: 'Keep clear for ' + b.who + '\'s prep' }, '📋'); m.style.top = (row - 1) * rowH + 'px'; m.style.height = rowH - 3 + 'px'; if (row > 0) cols[col].appendChild(m); waiting[b.who] = m; }
+        if (b.type === 'prep' && waiting[b.who]) { waiting[b.who].remove(); delete waiting[b.who]; }
+        else { const under = occ[col][row + b.len]; if (under && under.type === 'client' && waiting[under.who]) { waiting[under.who].classList.add('lost'); setTimeout(() => { if (waiting[under.who]) waiting[under.who].remove(); }, 900); } }
         placedC.set(log.filter((l) => l.placed).length + 1);
         F.sfx('thump');
         if (b.type === 'prep' && v.q === 'good') { prepared++; prepC.set(prepared); F.burstOn(stage, el, 'good', 12); el.classList.add('snapped'); }
