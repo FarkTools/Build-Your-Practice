@@ -49,7 +49,8 @@ Plain HTML, CSS and JavaScript: no framework, no build step, no server. Scripts 
 
 ```
 index.html            the player page (play only)
-css/style.css         all styling
+css/style.css         all styling (phone first)
+css/desktop.css       wide-screen tidy-ups only (all inside min-width queries)
 js/core.js            state, effects, risk debt
 js/content/*.js       the game's data: edit these to change the game
 js/minigames/*.js     one file per mini-game, same interface
