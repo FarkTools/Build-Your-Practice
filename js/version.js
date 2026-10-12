@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.17.1';
+  PP.VERSION = '0.18.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.18.0', 'Clearer at the port: what each action did now pops up in a card (days, money, new prospects, client happiness) without the page jumping, and What now? is a card with a button that takes you there'],
     ['0.17.1', 'Sound tidied up: one speaker in the top bar mutes everything; sound effects and music each have a switch in the Menu'],
     ['0.17.0', 'Never lose your place: refreshing or reopening takes you right back to the port or the trail where you were, and a Menu in the top bar reaches the title screen or a new career from anywhere'],
     ['0.16.2', 'Snappier on iPhone: music is generated in the background so taps never wait on it, and the offline copy always prefers fresh files when you are online'],

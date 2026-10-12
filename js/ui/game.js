@@ -31,7 +31,7 @@
   function resumeJourney(snap) {
     const c = G.career, s = snap.s;
     s.career = c; s.skills = c.skills; s.contacts = c.contacts; s.met = c.met; s.quests = c.quests;
-    G.s = s;
+    G.s = s; G.snap = null;
     G.root.innerHTML = '';
     where('trail');
     PP.ui.startTrail(G.root, s, { onEnd: journeyEnd, checkpoint: checkpointer(s), restore: snap.narr || [] });
@@ -85,7 +85,7 @@
     const start = (a) => {
       PP.profile.set({ name: nameIn.value, practice: pracIn.value });
       const pf = PP.profile.get();
-      clearJourney();
+      clearJourney(); G.snap = null;
       G.career = PP.newCareer(a.id);
       G.career.you = pf.name; G.career.practiceName = pf.practice;
       let flash = `Day 1. You hang ${pf.name ? pf.name + "'s" : 'your'} license on the wall at Port Prospect${pf.practice ? `, under a hand-painted sign: ${pf.practice}` : ''}. Time to find some people to help.`;
@@ -132,9 +132,68 @@
     const active = c.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
     const unhappy = active.filter((b) => b.sat < 5);
     const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
-    if (!c.pipeline.length) return 'Nobody is waiting to set out. Find prospects: make calls from your desk, work the room at Chamber Hall, set up a tent in Market Square, or meet the boats at the Docks.';
-    if (unhappy.length) return `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. Visit Maple Row before you head out.`;
-    return `You have ${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting. ${soon.name} goes cold in ${soon.expires - c.days} day${soon.expires - c.days === 1 ? '' : 's'}. Head to the Trailhead to set out, or keep building.`;
+    const fus = (c.followUps || []).length;
+    if (!c.pipeline.length && !fus) return { head: 'Find someone to help', text: 'Nobody is waiting to set out. Make calls from your desk, work the room at Chamber Hall, set up a tent in Market Square, or meet the boats at the Docks.', go: 'office', label: 'Go to your desk' };
+    if (unhappy.length) return { head: `${unhappy.length > 1 ? 'Clients are' : unhappy[0].name + ' is'} getting restless`, text: `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. Visit Maple Row before you head out.`, go: 'homes', label: 'Go to Maple Row' };
+    if (!c.pipeline.length) return { head: 'A client is calling', text: `${fus > 1 ? 'Clients whose lives changed are' : 'A client whose life changed is'} waiting at the Trailhead.`, go: 'trailhead', label: 'Go to the Trailhead' };
+    const left = soon.expires - c.days;
+    return { head: `${c.pipeline.length} prospect${c.pipeline.length > 1 ? 's' : ''} waiting`, text: `${soon.name} goes cold in ${left} day${left === 1 ? '' : 's'}. Set out from the Trailhead, or keep building.`, go: 'trailhead', label: 'Go to the Trailhead', urgent: left <= 4 };
+  }
+  function coachCard(c, select) {
+    const k = coach(c), here = G.place === k.go;
+    return h('div', { class: 'coach-card' + (k.urgent ? ' urgent' : '') },
+      h('span', { class: 'cc-mark', 'aria-hidden': 'true', html: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#f5ddbb" stroke="#f39c12" stroke-width="2"/><path d="M20,5 L23.2,17 L20,20 L16.8,17z" fill="#f39c12" stroke="#4a2c12" stroke-width="1.1" stroke-linejoin="round"/><path d="M20,35 L23.2,23 L20,20 L16.8,23z" fill="#000a62" stroke="#4a2c12" stroke-width="1.1" stroke-linejoin="round"/><path d="M5,20 L17,16.8 L20,20 L17,23.2z M35,20 L23,16.8 L20,20 L23,23.2z" fill="#fbf1e1" stroke="#4a2c12" stroke-width="1.1" stroke-linejoin="round"/></svg>' }),
+      h('div', { class: 'cc-txt' }, h('span', { class: 'eyebrow' }, 'What now?'), h('strong', null, k.head), h('span', null, k.text)),
+      here ? null : h('button', { class: 'btn cc-go', onclick: () => select(k.go, true) }, k.label));
+  }
+
+  /* What changed since the port was last drawn: the chips on the result card. */
+  function snapOf(c) {
+    const pipe = {}, book = {};
+    c.pipeline.forEach((p) => (pipe[p.id] = { name: p.name, temp: p.temp }));
+    c.book.forEach((b) => (book[b.id] = { name: b.name, sat: b.sat, status: b.status }));
+    return { days: c.days, savings: c.savings, level: PP.career.level(c), pipe, book, fus: (c.followUps || []).length };
+  }
+  function diffChips(a, b) {
+    if (!a) return { chips: [], newPros: [] };
+    const chips = [], newPros = [];
+    const dd = b.days - a.days;
+    if (dd > 0) chips.push({ t: `${dd} day${dd > 1 ? 's' : ''} passed`, k: '' });
+    const dm = Math.round(b.savings - a.savings);
+    if (dm) chips.push({ t: (dm > 0 ? '+' : '−') + money(Math.abs(dm)), k: dm > 0 ? 'good' : 'bad' });
+    Object.entries(b.pipe).forEach(([id, p]) => { if (!a.pipe[id]) { newPros.push(p); chips.push({ t: `New prospect: ${p.name} (${p.temp})`, k: 'good' }); } });
+    Object.entries(a.pipe).forEach(([id, p]) => { if (!b.pipe[id]) chips.push({ t: `${p.name} went cold`, k: 'bad' }); });
+    if (b.fus > a.fus) chips.push({ t: 'A client is calling', k: 'good' });
+    const moved = [];
+    Object.entries(b.book).forEach(([id, x]) => {
+      const y = a.book[id]; if (!y) return;
+      if (y.status !== 'cancelled' && x.status === 'cancelled') chips.push({ t: `${x.name} cancelled`, k: 'bad' });
+      else if (x.sat !== y.sat) moved.push({ name: x.name, d: x.sat - y.sat });
+    });
+    const up = moved.filter((m) => m.d > 0), down = moved.filter((m) => m.d < 0);
+    const say = (list, good) => list.length > 2 ? chips.push({ t: `${list.length} clients ${good ? 'happier' : 'less happy'}`, k: good ? 'good' : 'bad' }) : list.forEach((m) => chips.push({ t: `${m.name} ${m.d > 0 ? '+' : ''}${m.d} happiness`, k: good ? 'good' : 'bad' }));
+    say(up, true); say(down, false);
+    if (a.level !== b.level) chips.push({ t: `Now ${P().levels.find((l) => l.id === b.level).label}`, k: ['survivable', 'unemployed'].includes(b.level) ? 'bad' : 'good' });
+    return { chips, newPros };
+  }
+  /* The result of an action, as a card over the page, so nothing jumps around underneath. */
+  function showResult(lines, d, select) {
+    const c = G.career, pl = PP.content.town.places[G.place];
+    const [main, ...rest] = lines;
+    const close = () => { ov.remove(); document.body.classList.remove('modal-open'); document.removeEventListener('keydown', onKey, true); };
+    const onKey = (e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); close(); } };
+    const go = d.newPros.length && G.place !== 'trailhead' ? h('button', { class: 'btn', onclick: () => { close(); select('trailhead', true); } }, d.newPros.length > 1 ? 'See them at the Trailhead' : `See ${d.newPros[0].name} at the Trailhead`) : null;
+    const ov = h('div', { class: 'overlay result-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'What happened', onclick: (e) => { if (e.target === ov) close(); } },
+      h('div', { class: 'result-card' },
+        h('div', { class: 'eyebrow' }, `Day ${c.days + 1} · ${G.place === 'office' ? deskName(c) : pl ? pl.name : 'Port Prospect'}`),
+        h('p', { class: 'rc-main fl-' + (main.kind || 'info') }, main.text),
+        d.chips.length ? h('div', { class: 'rc-chips' }, d.chips.map((x) => h('span', { class: 'rc-chip ' + x.k }, x.t))) : null,
+        rest.length ? h('div', { class: 'rc-more' }, h('div', { class: 'eyebrow' }, 'Also today'), h('ul', null, rest.map((n) => h('li', { class: 'fl-' + (n.kind || 'info') }, n.text)))) : null,
+        h('div', { class: 'rc-actions' }, h('button', { class: 'btn primary', onclick: close }, 'Continue'), go)));
+    document.body.appendChild(ov);
+    document.body.classList.add('modal-open');
+    document.addEventListener('keydown', onKey, true);
+    ov.querySelector('.btn.primary').focus({ preventScroll: true });
   }
 
   function practicePanel(c) {
@@ -200,25 +259,29 @@
     if (want) G.place = want;
     if (!G.place) G.place = c.pipeline.length || (c.followUps || []).length ? 'trailhead' : 'office';
     PP.audio && PP.audio.bed('town:' + G.place);
-    const flashBox = flash && flash.length ? h('div', { class: 'flash', role: 'status' }, flash.map((n) => h('p', { class: 'fl-' + (n.kind || 'info') }, n.text))) : null;
-    const panel = h('div', { class: 'place-panel', id: 'place-panel' }, flashBox, placePanel(G.place));
-    const map = PP.ui.townMap(c, G.place, (id) => {
+    const hasFlash = !!(flash && flash.length);
+    const stay = hasFlash && G.lastPlace === G.place ? window.scrollY : null; // did something here: keep the page where it was
+    const panel = h('div', { class: 'place-panel', id: 'place-panel' }, placePanel(G.place));
+    const select = (id, fromCoach) => {
       G.place = id; G.lastPlace = id;
       PP.audio && PP.audio.bed('town:' + id);
       map.querySelectorAll('.tp').forEach((g) => g.classList.toggle('on', g.dataset.id === id));
       panel.innerHTML = ''; panel.appendChild(placePanel(id));
+      const cc = document.querySelector('.coach-card'); if (cc) cc.replaceWith(coachCard(c, select));
       panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      PP.fx && PP.fx.sfx('click');
-    });
+      if (!fromCoach) PP.fx && PP.fx.sfx('click');
+    };
+    const map = PP.ui.townMap(c, G.place, (id) => select(id));
     screen(h('section', { class: 'port' },
       h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, c.you ? `Home base · ${c.you}` : 'Home base'), h('h2', { class: 'display-sm' }, 'Port Prospect')),
         h('p', { class: 'muted' }, 'Every activity here takes a day, and every day costs money. Balance prospecting, looking after clients, and time on the trail.')),
       practicePanel(c),
       todayCard(c),
-      h('p', { class: 'coach' }, h('span', { class: 'eyebrow' }, 'What now? '), coach(c)),
+      coachCard(c, select),
       h('div', { class: 'town-layout' }, h('div', { class: 'town-wrap' }, h('p', { class: 'pick-prompt' }, 'Tap a place in town'), map), panel)));
-    // After doing something, stay where you were: show the result at the top of this place.
-    if (flashBox && G.lastPlace === G.place) requestAnimationFrame(() => panel.scrollIntoView({ block: 'start' }));
+    if (stay != null) window.scrollTo(0, stay);
+    if (hasFlash) showResult(flash, diffChips(G.snap, snapOf(c)), select);
+    G.snap = snapOf(c);
     G.lastPlace = G.place;
   }
 
@@ -681,7 +744,7 @@
     G.s = s;
     PP.career.save(c);
     G.root.innerHTML = '';
-    where('trail');
+    where('trail'); G.snap = null;
     PP.ui.startTrail(G.root, s, { onEnd: journeyEnd, checkpoint: checkpointer(s) });
   }
 
