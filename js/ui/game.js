@@ -295,12 +295,25 @@
     const npcs = pl.npcs.map((nid) => PP.content.npcs.find((n) => n.id === nid)).filter(Boolean);
     return h('div', { class: 'place' },
       h('header', { class: 'place-head' }, h('div', { class: 'eyebrow' }, 'You are at'), h('h3', { class: 'place-title' }, name), h('p', { class: 'small muted' }, pl.blurb)),
+      id === 'trailhead' ? requestBoard(c) : null,
       acts.length || pl.sections.some((x) => ['plan', 'boats', 'courses'].includes(x)) ? h('h4', { class: 'place-sub' }, 'Things to do here') : null,
       pl.sections.filter((x) => ['plan', 'boats'].includes(x)).map((x) => sec[x]()),
       acts.length ? h('div', { class: 'activity-grid' }, acts.map(activityCard)) : null,
       pl.sections.filter((x) => !['plan', 'boats'].includes(x)).map((x) => sec[x]()),
       npcs.length ? h('h4', { class: 'place-sub' }, 'Who\'s here') : null,
       npcs.length ? h('div', { class: 'npc-grid' }, npcs.map(npcCard)) : null);
+  }
+  /* The signpost at the Trailhead: errands from town. Done when you visit the place on any journey. */
+  function requestBoard(c) {
+    if (!PP.refillRequests) return null;
+    if (!(c.requests || []).filter((q) => !q.done).length) { PP.refillRequests(c); PP.career.save(c); }
+    const open = (c.requests || []).filter((q) => !q.done);
+    if (!open.length) return null;
+    return h('div', { class: 'panel request-board' },
+      h('div', { class: 'eyebrow' }, '📜 Requests from town'),
+      h('ul', null, open.map((q) => h('li', null,
+        h('strong', null, PP.content.nodes[q.at].name), h('span', null, q.text), h('span', { class: 'rb-reward' }, 'Reward: ' + PP.rewardText(q.reward) + (q.noted ? ' · done, collect when you are back' : ''))))),
+      h('p', { class: 'small muted' }, 'Visit the place on any journey. New requests go up as you finish these.'));
   }
   function deskName(c) {
     const base = { kitchen: 'Your kitchen table', cowork: 'Your desk at the Co-op', office: 'Your office' }[c.workspace] || 'Your desk';
@@ -649,10 +662,24 @@
   }
 
   /* ---------------- Starting a journey ---------------- */
+  /* This journey's trail report, the open town requests, and keepsakes found so far. */
+  function trailReport(p, c) {
+    const rows = (p.conditions || []).map((o) => PP.conditionText(o));
+    (c.requests || []).filter((q) => !q.done).forEach((q) => rows.push({ icon: '📜', text: `${PP.content.nodes[q.at].name}: ${q.text} Reward: ${PP.rewardText(q.reward)}.` }));
+    const K = PP.content.keepsakes || {}, total = Object.keys(K).length, found = Object.keys(K).filter((id) => PP.keepsakeFound(c, id)).length;
+    if (!rows.length && !total) return null;
+    return h('div', { class: 'gear-sec trail-report' },
+      h('div', { class: 'gear-sec-head' }, h('h3', null, '🗞️ Trail report'), total ? h('span', { class: 'gear-count' + (found === total ? ' full' : '') }, `🎁 ${found} / ${total}`) : null),
+      h('ul', null, rows.map((r) => h('li', null, h('span', { class: 'tr-i', 'aria-hidden': 'true' }, r.icon), h('span', null, r.text)))),
+      total && found < total ? h('p', { class: 'small muted' }, `Keepsakes are hidden at every landmark, side trails too. You have found ${found} of ${total}.`) : null);
+  }
+
   /* ---- Getting ready: pack your bag, pick who's on call, visit the outfitter ---- */
   function packScreen(p) {
     const c = G.career;
     c.gear = c.gear || PP.career.starterGear(); c.bag = c.bag || PP.content.packSize;
+    if (!p.conditions && PP.rollConditions) { p.conditions = PP.rollConditions(c); PP.career.save(c); }
+    if (PP.refillRequests && !(c.requests || []).length) PP.refillRequests(c);
     const items = PP.content.items;
     const owned = () => Object.keys(items).filter((id) => c.gear[id]);
     const chosen = new Set((c.lastPack || []).filter((id) => c.gear[id]).slice(0, c.bag));
@@ -716,6 +743,7 @@
       screen(h('section', { class: 'pack v2' },
         h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, `${p.followUp ? 'Meeting ' + p.name + ' again' : 'Guiding ' + p.name}`), h('h2', { class: 'display-sm' }, 'Get ready to set out')),
           h('p', { class: 'muted' }, 'Pick what to carry and who to keep on call. Every day on the trail still costs money.')),
+        trailReport(p, c),
         h('div', { class: 'gear-sec' },
           h('div', { class: 'gear-sec-head' }, h('h3', null, '🎒 Your bag'), h('span', { class: 'gear-count' + (chosen.size === c.bag ? ' full' : '') }, `${chosen.size} / ${c.bag}`)),
           h('div', { class: 'gear-grid' }, owned().map(itemCard))),
@@ -796,6 +824,7 @@
     if (p.followUp) setupFollowUp(s, c, p.followUp);
     s.map.known = c.known;
     s.pack = pack;
+    s.conditions = p.conditions || (PP.rollConditions ? PP.rollConditions(c) : []);
     s.itemLv = {}; pack.forEach((id) => (s.itemLv[id] = (c.gear && c.gear[id]) || 1));
     s.phase = 'journey';
     c.pipeline = c.pipeline.filter((x) => x.id !== p.id);
@@ -840,6 +869,8 @@
     clearJourney();
     const s = G.s, c = G.career, cl = s.client, p = s.origin || {};
     keepFoundGear(s, c);
+    const reqLines = PP.settleRequests ? PP.settleRequests(c, s.map.visited) : [];
+    if (PP.refillRequests) PP.refillRequests(c);
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
     const carry = {
       facts: s.facts, askedTopics: s.askedTopics, seenEvents: s.seenEvents, visited: s.map.visited, faced: s.faced, passageTaken: s.passageTaken,
@@ -855,7 +886,7 @@
     }
     if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
     PP.career.save(c);
-    port('trailhead', [{ text: `Back in town after ${s.day} day${s.day === 1 ? "" : "s"} on the trail. ${cl.name} is waiting at the Trailhead whenever you're ready to pick up where you left off.`, kind: 'info' }]);
+    port('trailhead', [{ text: `Back in town after ${s.day} day${s.day === 1 ? "" : "s"} on the trail. ${cl.name} is waiting at the Trailhead whenever you're ready to pick up where you left off.`, kind: 'info' }].concat(reqLines.map((t) => ({ text: t, kind: 'good' }))));
   }
 
   /* Anything that joined your pack on the trail stays in your gear collection. */
@@ -870,6 +901,8 @@
     clearJourney(); where('port');
     const s = G.s, c = G.career, cl = s.client;
     const foundGear = keepFoundGear(s, c);
+    const requestLines = PP.settleRequests ? PP.settleRequests(c, s.map.visited) : [];
+    if (PP.refillRequests) PP.refillRequests(c);
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
@@ -968,6 +1001,7 @@
         pay ? h('p', null, pay.note) : h('p', null, 'No sale, nothing added to your book. The days on the trail still cost money.'),
         pay && pay.status === 'at-risk' ? h('p', { class: 'small warn' }, `This one may cancel later, and ${money(P().clawback)} would be clawed back.`) : null,
         pay && pay.referral ? h('p', { class: 'small good-text' }, 'They referred a friend. A hot prospect is waiting in your pipeline.') : null,
+        requestLines.map((t) => h('p', { class: 'small good-text' }, t)),
         foundGear.length ? h('p', { class: 'small good-text' }, `New gear for your collection: ${foundGear.map((id) => PP.content.items[id].icon + ' ' + PP.content.items[id].name).join(', ')}. Pack it on any journey.`) : null,
         newMarks.length ? h('p', { class: 'small good-text' }, `Marks earned: ${newMarks.map((m) => PP.content.nodes[m].name).join(', ')}. New systems are available under Build your practice.`) : null,
         ladder(levelAfter)),

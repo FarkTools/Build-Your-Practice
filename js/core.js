@@ -164,6 +164,7 @@ window.PP = window.PP || {};
     });
     if (eff.debt) [].concat(eff.debt).forEach((d) => PP.addDebt(s, d.tag, d.sev, source));
     if (eff.clearDebt) s.debt = s.debt.filter((d) => d.tag !== eff.clearDebt);
+    if (eff.clearOneDebt && s.debt.length) { const d = s.debt.slice().sort((x, y) => y.sev - x.sev)[0]; if (PP.settleDebt) PP.settleDebt(s, d, 'harmless', 'gear'); else s.debt = s.debt.filter((x) => x !== d); notes.push({ kind: 'debt-cleared' }); }
     if (eff.fact) [].concat(eff.fact).forEach((f) => { if (PP.learn(s, f)) notes.push({ kind: 'fact', fact: f }); });
     if (eff.missed && s.client && s.client.facts[eff.missed] && !s.facts[eff.missed]) s.missed[eff.missed] = s.map.current;
     if (eff.style) for (const k in eff.style) s.style[k] = Math.max(0, (s.style[k] || 0) + eff.style[k]);

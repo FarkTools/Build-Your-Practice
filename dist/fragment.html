@@ -1280,6 +1280,37 @@ html { background: var(--navy); }
 .outfitter > summary { flex-wrap: wrap; row-gap: 2px; }
 .outfitter > summary h3 { white-space: nowrap; }
 
+/* ---------- Exploring: detours, trail report, requests, map badges ---------- */
+.explore-box { background: rgba(255, 255, 255, .45); border: 1.5px solid var(--orange); border-radius: 12px; padding: 8px 12px; }
+.explore-box > summary { display: flex; gap: 8px; align-items: center; cursor: pointer; list-style: none; }
+.explore-box > summary::-webkit-details-marker { display: none; }
+.explore-box > summary .eyebrow { color: var(--orange); }
+.explore-box > summary::after { content: "▾"; margin-left: auto; color: var(--ink-2); font-size: 0.8rem; }
+.explore-box[open] > summary::after { content: "▴"; }
+.explore-box[open] .xb-peek { display: none; }
+.explore-box ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 5px; font-size: 0.9rem; }
+.explore-box li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; align-items: start; line-height: 1.35; }
+.explore-box li.xb-hunch { font-weight: 700; color: var(--navy); }
+.explore-box li.xb-closed { color: var(--red); }
+.trail-report ul { list-style: none; margin: 0; padding: 10px 12px; display: grid; gap: 6px; background: var(--fog); border: 1.5px solid var(--ink-3); border-radius: 12px; font-size: 0.9rem; }
+.trail-report li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; line-height: 1.35; }
+.request-board { border-left: 4px solid var(--orange); display: grid; gap: 6px; }
+.request-board ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.request-board li { display: grid; gap: 1px; }
+.request-board li strong { color: var(--navy); }
+.request-board li span { font-size: 0.88rem; }
+.request-board .rb-reward { color: var(--green); font-weight: 600; font-size: 0.82rem; }
+.pmap .m-badge circle { fill: var(--fog); stroke: var(--ink); stroke-width: 2; }
+.pmap .m-badge text { font-size: 17px; text-anchor: middle; }
+.pmap .m-badge.b-hunch circle { fill: var(--orange); }
+.pmap .m-badge.b-hunch text { fill: var(--ink); font-weight: 700; font-size: 20px; }
+.pmap .m-badge.b-closed circle { fill: #f6d5cc; stroke: var(--red); }
+.pmap .m-badge.b-fast circle { fill: #fff3c4; }
+.pmap .trail-main.washed { stroke: var(--red); opacity: .55; }
+.small-map .m-explore, .map-thumb .m-explore, .intro-map .m-explore { display: none; }
+.mv-x-line { color: var(--ink) !important; font-style: normal !important; }
+.mv-x-line.hunch { font-weight: 700; color: var(--navy) !important; }
+
 </style>
 <style>
 /* Mini-game additions and phone layout.
@@ -1821,6 +1852,7 @@ window.PP = window.PP || {};
     });
     if (eff.debt) [].concat(eff.debt).forEach((d) => PP.addDebt(s, d.tag, d.sev, source));
     if (eff.clearDebt) s.debt = s.debt.filter((d) => d.tag !== eff.clearDebt);
+    if (eff.clearOneDebt && s.debt.length) { const d = s.debt.slice().sort((x, y) => y.sev - x.sev)[0]; if (PP.settleDebt) PP.settleDebt(s, d, 'harmless', 'gear'); else s.debt = s.debt.filter((x) => x !== d); notes.push({ kind: 'debt-cleared' }); }
     if (eff.fact) [].concat(eff.fact).forEach((f) => { if (PP.learn(s, f)) notes.push({ kind: 'fact', fact: f }); });
     if (eff.missed && s.client && s.client.facts[eff.missed] && !s.facts[eff.missed]) s.missed[eff.missed] = s.map.current;
     if (eff.style) for (const k in eff.style) s.style[k] = Math.max(0, (s.style[k] || 0) + eff.style[k]);
@@ -1907,9 +1939,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.19.0';
+  PP.VERSION = '0.20.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.20.0', 'Reasons to explore the whole map: each client opens up at a place that fits their story, a keepsake hides at every landmark, trails wash out and new ferries run, and town requests send you to far-off places'],
     ['0.19.0', 'Get ready to set out: your gear is a growing collection with upgrades, a trail outfitter sells new gear and a bigger backpack, hints show what suits each prospect, and you pick who is on call right before you leave'],
     ['0.18.0', 'Clearer at the port: what each action did now pops up in a card (days, money, new prospects, client happiness) without the page jumping, and What now? is a card with a button that takes you there'],
     ['0.17.1', 'Sound tidied up: one speaker in the top bar mutes everything; sound effects and music each have a switch in the Menu'],
@@ -6979,6 +7012,177 @@ window.PP = window.PP || {};
 
 </script>
 <script>
+/* Reasons to explore the whole map.
+ *
+ *  1. Client places: each client's key fact comes out at one landmark that fits their story.
+ *     Check-ins hint at it ("maybe somewhere quieter"), then a Hunch names the place.
+ *  2. Keepsakes: every landmark hides one unique piece of gear, found on your first visit.
+ *  3. Trail conditions: each journey, a trail may be washed out, a new shortcut open, or
+ *     a place may have something special on.
+ *  4. Town requests: errands from people in town to far-off places, paid when you get back.
+ *
+ * {c} in any text is replaced with the client's name. */
+(function (PP) {
+  const N = () => PP.content.nodes;
+  const fill = (t, s) => String(t || '').replace(/\{c\}/g, s && s.client ? s.client.name : 'your client');
+
+  /* ---------- 1. Where each client opens up ---------- */
+  PP.content.clientPlaces = {
+    taylor: { at: 'lighthouse', hint: '{c} goes quiet whenever work comes up, and keeps looking out toward the water.',
+      scene: 'At the top of the lighthouse, {c} watches the ferries for a long time. "There\'s a job. In Denver. I haven\'t told anyone. I don\'t even know if I want it."' },
+    morgan: { at: 'wreck', hint: '{c} changes the subject every time you ask who else is involved.',
+      scene: '{c} stares at the broken hull for a while. "Jordan hasn\'t seen the spreadsheet. Any of it. I kept meaning to show them when it was finished."' },
+    rosa: { at: 'summit', hint: '{c} talks about the shop as "mine" and then corrects it to "ours", every time.',
+      scene: 'The Specialist asks one question: "Is there a buy-sell agreement?" {c} goes pale. "Dee has been talking about getting out. I didn\'t want to say it out loud."' },
+    evelyn: { at: 'fog', hint: '{c} says "the house" a lot, never "home".',
+      scene: 'In the grey quiet of the fog, {c} finally says it. "It isn\'t the money. The house is just so quiet now. I keep the radio on all day."' },
+    walter: { at: 'caves', hint: 'When you ask about retirement, {c} only ever says "I", never "we".',
+      scene: 'Deep in the Caves of What-Ifs, {c} asks the question himself. "What if Bernadette doesn\'t stop working? She loves that job. She hasn\'t said she\'s retiring. I just assumed."' },
+    mateo: { at: 'isles', hint: '{c} gets oddly vague whenever work benefits come up.',
+      scene: 'On the Login Isles, {c} tries to sign in to the benefits portal and can\'t. "Huh. I think I never actually set this up. Is there free money in here?" There is. A full company match, unclaimed.' },
+    lorraine: { at: 'snakepit', hint: '{c} keeps glancing at her phone, then putting it face down.',
+      scene: 'Among the ringing phones, {c} finally plays you a voicemail from her dad\'s doctor. "He\'s forgetting things. And nobody is allowed to sign anything for him. Nobody."' },
+    zoe: { at: 'swamp', hint: '{c} answers "how much do you make?" with "it depends", every time.',
+      scene: 'In Spreadsheet Swamp, {c} finally fills in a row for every month. One huge number. Then three zeros. Then another huge number. "Yeah. That\'s what it\'s like."' },
+    darnell: { at: 'cliffs', hint: '{c} wants everything done now, and flinches when you mention paperwork.',
+      scene: 'At the edge of Product-First Cliffs, {c} stops you. "Wait. Before we pick anything: the divorce isn\'t final until spring. My lawyer said not to change anything yet."' },
+    ingrid: { at: 'sands', hint: '{c} talks about the inheritance like it belongs to someone else.',
+      scene: 'Among the contest banners, {c} says it plainly. "I want it gone. All of it. It doesn\'t feel like mine. It feels like I\'m spending her."' },
+    rafael: { at: 'loop', hint: '{c} describes the family store like a chore he can never finish.',
+      scene: 'On lap three of the Loop, {c} laughs, then stops. "This is what the store feels like. Every day the same. I don\'t want to run it. I want to teach. I\'ve never said that."' },
+    maxine: { at: 'toll', hint: '{c} is very sure about the pension, and has never actually read the letter.',
+      scene: 'The troll at the toll bridge reads {c}\'s pension letter out loud. Full benefits begin at age 60. {c} plans to stop at 55. The bridge goes very quiet.' }
+  };
+  PP.clientPlace = (s) => (s && s.client && !s.followUp ? PP.content.clientPlaces[s.client.id] : null);
+  /* Known once a check-in brushes against it, or right away with good Judgment. */
+  PP.placeHintKnown = (s) => !!(PP.clientPlace(s) && (s.placeHint || PP.skill(s, 'judgment') >= 1));
+  PP.placeEvent = function (s) {
+    const cp = PP.clientPlace(s);
+    if (!cp || PP.knows(s, s.client.keyFact)) return null;
+    return {
+      id: 'place_' + s.client.id, title: `${s.client.name} opens up`, at: [cp.at],
+      text: fill(cp.scene, s),
+      choices: [
+        { label: 'Stop and really listen', kind: 'prepare', eff: { fact: s.client.keyFact, insight: 1, trust: 1 }, result: (st) => `You put the plan down and listen. This changes things. (You learned: ${st.client.facts[st.client.keyFact].label.toLowerCase()}.)` },
+        { label: 'Gently steer back to the plan', kind: 'through', eff: { momentum: 1, trust: -1 }, result: `${s.client.name} nods and goes quiet again. The moment passes.` }
+      ]
+    };
+  };
+  PP.placeHintText = (s) => { const cp = PP.clientPlace(s); return cp ? fill(cp.hint, s) : ''; };
+
+  /* ---------- 2. Keepsakes: one per landmark ---------- */
+  const K = {
+    meadows: { id: 'k_wildflower', icon: '🌼', name: 'Pressed wildflower', blurb: 'Start each journey with +1 Trust.', kind: 'start', eff: { trust: 1 } },
+    lighthouse: { id: 'k_lantern', icon: '🏮', name: "Keeper's lantern", blurb: '+2 Insight, once: you see what the client is not saying.', kind: 'use', eff: { insight: 2 }, useLabel: "Light the keeper's lantern" },
+    wreck: { id: 'k_earplugs', icon: '🎧', name: 'Siren earplugs', blurb: '+1 Trust and +1 Momentum, once: you tune out the hard sell.', kind: 'use', eff: { trust: 1, momentum: 1 }, useLabel: 'Put in the siren earplugs' },
+    fog: { id: 'k_compass', icon: '🧭', name: 'Fog compass', blurb: '+2 Momentum, once: it always points to the next real step.', kind: 'use', eff: { momentum: 2 }, useLabel: 'Check the fog compass' },
+    loop: { id: 'k_escape', icon: '⎋', name: 'Escape key', blurb: '+2 Momentum and +1 Energy, once: you break out of the loop.', kind: 'use', eff: { momentum: 2, energy: 1 }, useLabel: 'Press the escape key' },
+    cliffs: { id: 'k_rope', icon: '🪢', name: 'Safety rope', blurb: 'Catches one shortcut before it comes due, once.', kind: 'use', eff: { clearOneDebt: true }, useLabel: 'Tie off the safety rope' },
+    swamp: { id: 'k_plank', icon: '🪵', name: 'Boardwalk plank', blurb: 'Start each journey with +1 Insight and +1 Energy.', kind: 'start', eff: { insight: 1, energy: 1 } },
+    snakepit: { id: 'k_rolodex', icon: '📇', name: 'Old rolodex', blurb: 'Once: call someone you forgot. +1 Trust and a warm prospect.', kind: 'use', eff: { trust: 1, prospect: { temp: 'warm', source: 'an old card in your rolodex' } }, useLabel: 'Flip through the old rolodex' },
+    sands: { id: 'k_hourglass', icon: '⏳', name: 'Hourglass', blurb: '+3 Energy, once: you take your time.', kind: 'use', eff: { energy: 3 }, useLabel: 'Turn over the hourglass' },
+    caves: { id: 'k_candle', icon: '🕯️', name: 'Candle stub', blurb: '+2 Insight and +1 Trust, once: you ask the hard question gently.', kind: 'use', eff: { insight: 2, trust: 1 }, useLabel: 'Light the candle stub' },
+    summit: { id: 'k_card', icon: '🎓', name: "Specialist's card", blurb: 'Start each journey with +1 Insight and +1 Momentum.', kind: 'start', eff: { insight: 1, momentum: 1 } },
+    isles: { id: 'k_password', icon: '🔑', name: 'Master password', blurb: '+2 Momentum, once: every portal opens.', kind: 'use', eff: { momentum: 2 }, useLabel: 'Use the master password' },
+    toll: { id: 'k_token', icon: '🎟️', name: 'Toll token', blurb: 'Once: +1 Momentum, and one shortcut is quietly settled.', kind: 'use', eff: { momentum: 1, clearOneDebt: true }, useLabel: 'Hand over the toll token' },
+    clients: { id: 'k_golden_x', icon: '🏆', name: 'Golden X', blurb: 'Start each journey with +1 Trust, +1 Momentum and +1 Energy.', kind: 'start', eff: { trust: 1, momentum: 1, energy: 1 } }
+  };
+  PP.content.keepsakes = K;
+  Object.entries(K).forEach(([place, k]) => { PP.content.items[k.id] = Object.assign({ keepsake: place }, k); });
+  PP.keepsakeAt = (place) => K[place] || null;
+  PP.keepsakeFound = (c, place) => !!(c && K[place] && c.gear && c.gear[K[place].id]);
+
+  /* ---------- 3. Trail conditions for this journey ---------- */
+  const mainTrails = () => PP.content.trails.filter((t) => t.kind === 'main' && t.a !== 'port' && t.b !== 'clients');
+  function connected(skip) {
+    const seen = { port: true }, q = ['port'];
+    while (q.length) { const n = q.shift(); PP.content.trails.forEach((t) => { if (t === skip) return; const o = t.a === n ? t.b : t.b === n ? t.a : null; if (o && !seen[o]) { seen[o] = true; q.push(o); } }); }
+    return !!seen.clients;
+  }
+  const BONUSES = [
+    { label: 'Market day', text: 'Market day: locals with questions everywhere. Visit for a warm prospect.', eff: { prospect: { temp: 'warm', source: 'market day on the trail' } } },
+    { label: 'A quiet retreat', text: 'A quiet retreat center is open. Visit for +3 Energy.', eff: { energy: 3 } },
+    { label: 'A workshop', text: 'A free workshop is running. Visit for +2 Insight.', eff: { insight: 2 } },
+    { label: 'A speaking gig', text: 'Someone needs a speaker. Visit to earn $400.', eff: { cash: 400 } }
+  ];
+  PP.rollConditions = function (c) {
+    const out = [], visits = (c && c.visits) || {};
+    // A washout on one main trail, as long as Clients for Life can still be reached.
+    if (Math.random() < 0.6) {
+      const t = PP.shuffle(mainTrails()).find((x) => connected(x));
+      if (t) out.push({ type: 'closed', a: t.a, b: t.b });
+    }
+    // A shortcut on a trail you rarely use.
+    if (Math.random() < 0.5) {
+      const pool = mainTrails().filter((t) => t.days >= 2 && !out.some((o) => o.a === t.a && o.b === t.b)).sort((x, y) => ((visits[x.a] || 0) + (visits[x.b] || 0)) - ((visits[y.a] || 0) + (visits[y.b] || 0)));
+      const t = pool[Math.floor(Math.random() * Math.min(4, pool.length))];
+      if (t) out.push({ type: 'shortcut', a: t.a, b: t.b });
+    }
+    // Something on at a place you rarely visit.
+    const places = Object.keys(N()).filter((id) => id !== 'port' && id !== 'clients').sort((x, y) => (visits[x] || 0) - (visits[y] || 0)).slice(0, 7);
+    const b = PP.pick(BONUSES);
+    out.push(Object.assign({ type: 'bonus', at: PP.pick(places) }, b));
+    return out;
+  };
+  PP.trailClosed = (s, a, b) => (s.conditions || []).some((o) => o.type === 'closed' && ((o.a === a && o.b === b) || (o.a === b && o.b === a)));
+  PP.trailShortcut = (s, a, b) => (s.conditions || []).some((o) => o.type === 'shortcut' && ((o.a === a && o.b === b) || (o.a === b && o.b === a)));
+  PP.conditionText = (o) => {
+    const n = N();
+    if (o.type === 'closed') return { icon: '⛔', text: `Washed out: ${n[o.a].name} to ${n[o.b].name}. Find another way.` };
+    if (o.type === 'shortcut') return { icon: '⚡', text: `New ferry: ${n[o.a].name} to ${n[o.b].name} is a day shorter this time.` };
+    return { icon: '🎉', text: `${n[o.at].name}: ${o.text}` };
+  };
+
+  /* ---------- 4. Town requests ---------- */
+  const ASKS = [
+    { giver: 'marge', text: 'Marge wants to know if the old keeper at {place} still remembers her.' },
+    { giver: 'olu', text: 'Olu needs a form signed by someone at {place}. "Bring it back unwrinkled."' },
+    { giver: 'dev', text: 'Dev is updating his napkin map and needs a sketch of {place}.' },
+    { giver: 'priya', text: 'Priya has a friend near {place} who would love an introduction to you.' },
+    { giver: 'kenji', text: 'Kenji left his good charger at {place}. Again.' },
+    { giver: 'gus', text: 'Gus bets you have never actually been to {place}. Prove him wrong.' },
+    { giver: null, text: 'The Chamber of Commerce wants a report on how business is going around {place}.' },
+    { giver: null, text: 'The Night School wants a guest story from {place} for its next class.' }
+  ];
+  const REWARDS = [
+    (c) => ({ cash: 300 + 100 * Math.floor(Math.random() * 4) }),
+    (c) => { const sk = PP.shuffle(Object.keys(c.skills)).find((k) => (c.skills[k] || 0) < 2); return sk ? { skill: sk } : { cash: 400 }; },
+    (c) => { const g = PP.shuffle(Object.keys(PP.content.items).filter((id) => PP.content.items[id].cost && !(c.gear || {})[id])); return g[0] ? { gear: g[0] } : { cash: 400 }; }
+  ];
+  PP.rewardText = (r) => r.cash ? PP.career.money(r.cash) : r.skill ? `+1 ${PP.SKILLS.find((x) => x.id === r.skill).label}` : r.gear ? `${PP.content.items[r.gear].icon} ${PP.content.items[r.gear].name}` : r.met ? `meet ${r.metName}` : '';
+  PP.refillRequests = function (c) {
+    c.requests = (c.requests || []).filter((q) => !q.done);
+    const visits = c.visits || {};
+    const taken = new Set(c.requests.map((q) => q.at));
+    const places = Object.keys(N()).filter((id) => id !== 'port' && id !== 'clients' && !taken.has(id)).sort((x, y) => (visits[x] || 0) - (visits[y] || 0) + (Math.random() - 0.5));
+    while (c.requests.length < 2 && places.length) {
+      const at = places.shift(), ask = PP.pick(ASKS);
+      const npc = ask.giver && PP.content.npcs.find((n) => n.id === ask.giver);
+      let reward = PP.pick(REWARDS)(c);
+      if (npc && !c.met[npc.id] && Math.random() < 0.6) reward = { met: npc.id, metName: npc.name, cash: 200 };
+      c.requests.push({ id: PP.uid('q'), at, text: ask.text.replace('{place}', N()[at].name), reward, giver: npc ? npc.name : null });
+    }
+    return c.requests;
+  };
+  /* Pay out requests whose place was visited on this journey. Returns lines for the report. */
+  PP.settleRequests = function (c, visited) {
+    const lines = [];
+    (c.requests || []).forEach((q) => {
+      if (q.done || !visited[q.at]) return;
+      q.done = true;
+      const r = q.reward;
+      if (r.cash) c.savings += r.cash;
+      if (r.skill) c.skills[r.skill] = Math.min(2, (c.skills[r.skill] || 0) + 1);
+      if (r.gear) { c.gear = c.gear || {}; c.gear[r.gear] = c.gear[r.gear] || 1; }
+      if (r.met) c.met[r.met] = true;
+      lines.push(`📜 ${N()[q.at].name}: done. ${r.met ? `${r.metName} is grateful and will come along when you need them` + (r.cash ? `, plus ${PP.career.money(r.cash)}` : '') : 'Reward: ' + PP.rewardText(r)}.`);
+    });
+    return lines;
+  };
+})(window.PP);
+
+</script>
+<script>
 /* Shared pieces for mini-games.
  * Every mini-game exposes the same contract, so the journey, the port quests
  * and the Element Lab can all run them:
@@ -10288,6 +10492,23 @@ window.PP = window.PP || {};
       svg.appendChild(built);
     }
 
+    // Reasons to explore: the client's hunch, town requests, unfound keepsakes, this journey's trail report.
+    const marks = el('g', { class: 'm-explore' });
+    const badge = (x, y, txt, cls, title) => { const g = el('g', { class: 'm-badge ' + cls, transform: `translate(${x} ${y})` }, el('circle', { r: 15 }), el('text', { y: 6 }, txt)); if (title) g.appendChild(el('title', null, title)); marks.appendChild(g); };
+    const c = s.career;
+    const cp = PP.clientPlace && PP.clientPlace(s);
+    if (cp && PP.placeHintKnown(s) && !PP.knows(s, s.client.keyFact)) { const n = PP.content.nodes[cp.at]; badge(n.x + 26, n.y - 30, '★', 'b-hunch', `${s.client.name} might open up here`); }
+    if (c) (c.requests || []).forEach((q) => { if (q.done || q.noted) return; const n = PP.content.nodes[q.at]; badge(n.x - 26, n.y - 30, '📜', 'b-req', q.text); });
+    if (c && PP.keepsakeAt) Object.keys(PP.content.keepsakes).forEach((id) => { if (PP.keepsakeFound(c, id) || (s.pack || []).includes(PP.content.keepsakes[id].id) || vis[id] === 'uncharted') return; const n = PP.content.nodes[id]; badge(n.x, n.y + 34, '🎁', 'b-keep', 'A keepsake to find'); });
+    (s.conditions || []).forEach((o) => {
+      if (o.type === 'bonus') { if (o.done) return; const n = PP.content.nodes[o.at]; badge(n.x + 30, n.y + 18, '🎉', 'b-bonus', o.text); return; }
+      const t = PP.trailBetween(o.a, o.b), A = PP.content.nodes[t.a], B = PP.content.nodes[t.b];
+      const pt = t.c ? { x: 0.25 * A.x + 0.5 * t.c[0] + 0.25 * B.x, y: 0.25 * A.y + 0.5 * t.c[1] + 0.25 * B.y } : { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+      badge(pt.x, pt.y, o.type === 'closed' ? '⛔' : '⚡', o.type === 'closed' ? 'b-closed' : 'b-fast', PP.conditionText(o).text);
+      const pe = pathEls[t.a + '|' + t.b]; if (pe && o.type === 'closed') pe.classList.add('washed');
+    });
+    svg.appendChild(marks);
+
     // You are here: a map pin, at a landmark or partway along the current trail
     const marker = el('g', { class: 'm-pin' },
       el('path', { d: 'M0,0 C-4,-8 -12,-14 -12,-24 A12,12 0 1 1 12,-24 C12,-14 4,-8 0,0 Z', class: 'pin' }),
@@ -10494,6 +10715,16 @@ window.PP = window.PP || {};
       if (!best || bd > reach) { card.hidden = true; if (sel) sel.remove(); sel = null; return; }
       showCard(best);
     }
+    function exploreLines(id) {
+      const out = [], c = s.career;
+      const cp = PP.clientPlace && PP.clientPlace(s);
+      if (cp && cp.at === id && PP.placeHintKnown(s) && !PP.knows(s, s.client.keyFact)) out.push(h('p', { class: 'mv-x-line hunch' }, `★ ${s.client.name} might open up here.`));
+      if (c) (c.requests || []).forEach((q) => { if (!q.done && !q.noted && q.at === id) out.push(h('p', { class: 'mv-x-line' }, `📜 ${q.text} Reward: ${PP.rewardText(q.reward)}.`)); });
+      const k = PP.keepsakeAt && PP.keepsakeAt(id);
+      if (k && c && PP.visibility(s, id) !== 'uncharted') out.push(h('p', { class: 'mv-x-line' }, PP.keepsakeFound(c, id) || (s.pack || []).includes(k.id) ? `${k.icon} Keepsake found: ${k.name}.` : '🎁 A keepsake is hidden here.'));
+      (s.conditions || []).forEach((o) => { if (o.type === 'bonus' && o.at === id && !o.done) out.push(h('p', { class: 'mv-x-line' }, `🎉 ${o.text}`)); });
+      return out;
+    }
     function showCard(id) {
       const n = PP.content.nodes[id], st = statusOf(s, id);
       const known = st.v === 'visited' || st.v === 'named';
@@ -10507,7 +10738,7 @@ window.PP = window.PP || {};
         n.sub && known ? h('span', { class: 'mv-sub' }, n.sub) : null,
         h('p', null, line),
         near ? h('p', { class: 'mv-near' }, 'One trail from where you are.') : null,
-        n.side && known ? h('p', { class: 'mv-near' }, 'Side trail: a dead end with lessons, and risks.') : null].filter(Boolean));
+        n.side && known ? h('p', { class: 'mv-near' }, 'Side trail: a dead end with lessons, and risks.') : null].concat(exploreLines(id)).filter(Boolean));
       card.hidden = false;
       if (sel) sel.remove();
       sel = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -11909,10 +12140,23 @@ window.PP = window.PP || {};
       narration(extra ? 2 : 3),
       extra || null,
       here ? passageHint(here) : null,
+      exploreBox(),
       h('p', { class: 'you-may' }, 'What will you do? Tap one.'),
       menuList(items));
     focusFirst();
     checkpoint();
+  }
+  /* Reasons to go somewhere: the client's hunch, this journey's trail report, town requests. */
+  function exploreBox() {
+    const s = T.s, c = s.career, rows = [];
+    const cp = PP.clientPlace && PP.clientPlace(s);
+    if (cp && PP.placeHintKnown(s) && !PP.knows(s, s.client.keyFact)) rows.push(['★', `Hunch: ${s.client.name} might open up at ${nodeName(cp.at)}.`, 'hunch']);
+    (s.conditions || []).forEach((o) => { if (o.type === 'bonus' && o.done) return; const ct = PP.conditionText(o); rows.push([ct.icon, ct.text, o.type]); });
+    if (c) (c.requests || []).filter((q) => !q.done && !q.noted).forEach((q) => rows.push(['📜', `${nodeName(q.at)}: ${q.text.replace(/\s*\(.*\)$/, '')}`, 'request']));
+    if (!rows.length) return null;
+    return h('details', { class: 'explore-box', open: !!PP.store.get('exploreOpen', true), ontoggle: (e) => PP.store.set('exploreOpen', e.target.open) },
+      h('summary', null, h('span', { class: 'eyebrow' }, 'Worth a detour'), h('span', { class: 'xb-peek' }, rows.map((r) => r[0]).join(' '))),
+      h('ul', null, rows.map((r) => h('li', { class: 'xb-' + r[2] }, h('span', { class: 'xb-i', 'aria-hidden': 'true' }, r[0]), h('span', null, r[1])))));
   }
   /* Show which hidden passages exist here, so players know what to work toward. */
   function passageHint(id) {
@@ -11949,12 +12193,13 @@ window.PP = window.PP || {};
       const known = v === 'visited' || v === 'named';
       const days = Math.max(1, Math.ceil((trailDays(s, t) - (s.passageBoost || 0)) / PACE[s.pace].speed));
       const isBack = s.cameFrom === to;
-      const locked = false;
-      return { t, to, known, days, isBack, locked, v };
+      const locked = !!(PP.trailClosed && PP.trailClosed(s, here, to));
+      const fast = !!(PP.trailShortcut && PP.trailShortcut(s, here, to));
+      return { t, to, known, days, isBack, locked, fast, v };
     }).sort((a, b) => (a.isBack - b.isBack) || (a.locked - b.locked) || ((a.t.kind === 'side') - (b.t.kind === 'side')));
     const items = opts.map((o) => ({
-      label: (o.isBack ? 'Go back to ' : 'Head for ') + (o.known ? nodeName(o.to) : 'somewhere uncharted') + ` (${o.days} day${o.days > 1 ? 's' : ''})`,
-      note: o.locked ? o.t.desc : (o.isBack ? 'The way you came.' : o.t.desc) + (o.t.kind === 'side' ? ' A side trail: it does not go on from there.' : ''),
+      label: (o.locked ? '⛔ ' : o.fast ? '⚡ ' : '') + (o.isBack ? 'Go back to ' : 'Head for ') + (o.known ? nodeName(o.to) : 'somewhere uncharted') + (o.locked ? ' (washed out)' : ` (${o.days} day${o.days > 1 ? 's' : ''})`),
+      note: o.locked ? 'The trail is washed out this time. Find another way round.' : (o.fast ? 'A new ferry runs here this time: a day shorter. ' : '') + (o.isBack ? 'The way you came.' : o.t.desc) + (o.t.kind === 'side' ? ' A side trail: it does not go on from there.' : '') + exploreNote(o.to),
       disabled: o.locked,
       go: () => depart(o.t, o.to)
     }));
@@ -12070,6 +12315,7 @@ window.PP = window.PP || {};
   /* Systems built from trail Marks make some trails shorter. */
   function trailDays(s, t) {
     let d = t.days - (s.followUp ? 1 : 0); // a client you already know moves faster
+    if (PP.trailShortcut && PP.trailShortcut(s, t.a, t.b)) d -= 1; // this journey's new ferry
     const sys = PP.content.practice ? PP.content.practice.systems : {};
     for (const id in sys) if (sys[id].shortens && PP.career.hasSystem(s.career, id) && (t.a === sys[id].shortens || t.b === sys[id].shortens)) d -= 1;
     return Math.max(1, d);
@@ -12133,6 +12379,41 @@ window.PP = window.PP || {};
     if (id === 'clients') { await T.scene.cut('finale', { title: node.name, caption: node.arrive, duration: 3400 }); T.scene.setLandmark('clients'); return finale(); }
     await T.scene.cut('arrive', { kind: node.kind, title: node.name, caption: first ? node.arrive : 'You have been here before.' });
     T.scene.setLandmark(node.kind);
+    arrivalFinds(id);
+    const moment = PP.clientPlace && PP.clientPlace(s) && PP.clientPlace(s).at === id ? PP.placeEvent(s) : null;
+    if (moment) { s.placeHint = true; return runEvent(moment, () => landmarkFlow(id, node, first), null); }
+    landmarkFlow(id, node, first);
+  }
+  /* Things waiting at a place: a keepsake on your first visit, this journey's special, a town request. */
+  function arrivalFinds(id) {
+    const s = T.s, c = s.career;
+    const k = PP.keepsakeAt && PP.keepsakeAt(id);
+    if (k && c && !PP.keepsakeFound(c, id) && !s.pack.includes(k.id)) {
+      s.pack.push(k.id); s.itemLv = s.itemLv || {}; s.itemLv[k.id] = 1;
+      say(`Keepsake found: ${k.icon} ${k.name}. ${k.blurb} It joins your gear for good.`, 'arrive');
+      PP.fx && PP.fx.sfx('great');
+    }
+    (s.conditions || []).forEach((o) => {
+      if (o.type !== 'bonus' || o.at !== id || o.done) return;
+      o.done = true;
+      const prev = Object.assign({}, s.res);
+      PP.apply(s, o.eff);
+      say(`🎉 ${o.label} at ${nodeName(id)}! ` + (o.eff.cash ? `You earn ${PP.career.money(o.eff.cash)}.` : o.eff.prospect ? 'You meet someone who wants your help. (New prospect.)' : o.eff.energy ? '(+3 Energy)' : '(+2 Insight)'), 'arrive');
+      refresh(prev);
+    });
+    if (c) (c.requests || []).forEach((q) => { if (!q.done && q.at === id && !q.noted) { q.noted = true; say(`📜 Request done: ${q.text} You'll get ${PP.rewardText(q.reward)} back in town.`, 'arrive'); } });
+  }
+  function exploreNote(id) {
+    const s = T.s, c = s.career, bits = [];
+    const cp = PP.clientPlace && PP.clientPlace(s);
+    if (cp && cp.at === id && PP.placeHintKnown(s) && !PP.knows(s, s.client.keyFact)) bits.push(`★ ${s.client.name} might open up there.`);
+    if (c && (c.requests || []).some((q) => !q.done && q.at === id)) bits.push('📜 A town request.');
+    if (c && PP.keepsakeAt && PP.keepsakeAt(id) && !PP.keepsakeFound(c, id) && PP.visibility(s, id) !== 'uncharted') bits.push('🎁 A keepsake to find.');
+    (s.conditions || []).forEach((o) => { if (o.type === 'bonus' && o.at === id && !o.done) bits.push(`🎉 ${o.label}.`); });
+    return bits.length ? ' ' + bits.join(' ') : '';
+  }
+  function landmarkFlow(id, node, first) {
+    const s = T.s;
     const ev = first || PP.chance(0.6) ? pickLandmarkEvent(id, first) : null;
     const face = async () => {
       if (ev) { s.faced[id] = true; if (ev.cut && ev.cut !== 'arrive') await T.scene.cut(ev.cut, { title: ev.title }); runEvent(ev, () => menu(), id); }
@@ -12200,6 +12481,18 @@ window.PP = window.PP || {};
     } else {
       s.askedTopics[t.id] = true;
       const a = (c.checkin || {})[t.id] || { text: '"Hm. I\'m not sure."' };
+      const cp = PP.clientPlace && PP.clientPlace(s);
+      if (cp && a.fact && a.fact === c.keyFact && s.map.current !== cp.at && !PP.knows(s, a.fact)) {
+        // Not here. They need the right moment, somewhere that fits.
+        s.placeHint = true;
+        delete s.askedTopics[t.id];
+        PP.apply(s, { insight: 0 });
+        say(`You ask ${t.label}`, 'you');
+        say(`${C()} starts to answer, then stops. "It's... hard to talk about here." ` + PP.placeHintText(s), 'reply');
+        say(`★ Hunch: ${C()} might open up at ${nodeName(cp.at)}.`, 'arrive');
+        refresh();
+        return menu();
+      }
       const blockedTrust = a.minTrust && s.res.trust < a.minTrust;
       const blockedCur = a.curious && PP.skill(s, 'curiosity') < 1 && s.res.trust < 7;
       if ((blockedTrust || blockedCur) && a.guarded) {
@@ -12859,12 +13152,25 @@ window.PP = window.PP || {};
     const npcs = pl.npcs.map((nid) => PP.content.npcs.find((n) => n.id === nid)).filter(Boolean);
     return h('div', { class: 'place' },
       h('header', { class: 'place-head' }, h('div', { class: 'eyebrow' }, 'You are at'), h('h3', { class: 'place-title' }, name), h('p', { class: 'small muted' }, pl.blurb)),
+      id === 'trailhead' ? requestBoard(c) : null,
       acts.length || pl.sections.some((x) => ['plan', 'boats', 'courses'].includes(x)) ? h('h4', { class: 'place-sub' }, 'Things to do here') : null,
       pl.sections.filter((x) => ['plan', 'boats'].includes(x)).map((x) => sec[x]()),
       acts.length ? h('div', { class: 'activity-grid' }, acts.map(activityCard)) : null,
       pl.sections.filter((x) => !['plan', 'boats'].includes(x)).map((x) => sec[x]()),
       npcs.length ? h('h4', { class: 'place-sub' }, 'Who\'s here') : null,
       npcs.length ? h('div', { class: 'npc-grid' }, npcs.map(npcCard)) : null);
+  }
+  /* The signpost at the Trailhead: errands from town. Done when you visit the place on any journey. */
+  function requestBoard(c) {
+    if (!PP.refillRequests) return null;
+    if (!(c.requests || []).filter((q) => !q.done).length) { PP.refillRequests(c); PP.career.save(c); }
+    const open = (c.requests || []).filter((q) => !q.done);
+    if (!open.length) return null;
+    return h('div', { class: 'panel request-board' },
+      h('div', { class: 'eyebrow' }, '📜 Requests from town'),
+      h('ul', null, open.map((q) => h('li', null,
+        h('strong', null, PP.content.nodes[q.at].name), h('span', null, q.text), h('span', { class: 'rb-reward' }, 'Reward: ' + PP.rewardText(q.reward) + (q.noted ? ' · done, collect when you are back' : ''))))),
+      h('p', { class: 'small muted' }, 'Visit the place on any journey. New requests go up as you finish these.'));
   }
   function deskName(c) {
     const base = { kitchen: 'Your kitchen table', cowork: 'Your desk at the Co-op', office: 'Your office' }[c.workspace] || 'Your desk';
@@ -13213,10 +13519,24 @@ window.PP = window.PP || {};
   }
 
   /* ---------------- Starting a journey ---------------- */
+  /* This journey's trail report, the open town requests, and keepsakes found so far. */
+  function trailReport(p, c) {
+    const rows = (p.conditions || []).map((o) => PP.conditionText(o));
+    (c.requests || []).filter((q) => !q.done).forEach((q) => rows.push({ icon: '📜', text: `${PP.content.nodes[q.at].name}: ${q.text} Reward: ${PP.rewardText(q.reward)}.` }));
+    const K = PP.content.keepsakes || {}, total = Object.keys(K).length, found = Object.keys(K).filter((id) => PP.keepsakeFound(c, id)).length;
+    if (!rows.length && !total) return null;
+    return h('div', { class: 'gear-sec trail-report' },
+      h('div', { class: 'gear-sec-head' }, h('h3', null, '🗞️ Trail report'), total ? h('span', { class: 'gear-count' + (found === total ? ' full' : '') }, `🎁 ${found} / ${total}`) : null),
+      h('ul', null, rows.map((r) => h('li', null, h('span', { class: 'tr-i', 'aria-hidden': 'true' }, r.icon), h('span', null, r.text)))),
+      total && found < total ? h('p', { class: 'small muted' }, `Keepsakes are hidden at every landmark, side trails too. You have found ${found} of ${total}.`) : null);
+  }
+
   /* ---- Getting ready: pack your bag, pick who's on call, visit the outfitter ---- */
   function packScreen(p) {
     const c = G.career;
     c.gear = c.gear || PP.career.starterGear(); c.bag = c.bag || PP.content.packSize;
+    if (!p.conditions && PP.rollConditions) { p.conditions = PP.rollConditions(c); PP.career.save(c); }
+    if (PP.refillRequests && !(c.requests || []).length) PP.refillRequests(c);
     const items = PP.content.items;
     const owned = () => Object.keys(items).filter((id) => c.gear[id]);
     const chosen = new Set((c.lastPack || []).filter((id) => c.gear[id]).slice(0, c.bag));
@@ -13280,6 +13600,7 @@ window.PP = window.PP || {};
       screen(h('section', { class: 'pack v2' },
         h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, `${p.followUp ? 'Meeting ' + p.name + ' again' : 'Guiding ' + p.name}`), h('h2', { class: 'display-sm' }, 'Get ready to set out')),
           h('p', { class: 'muted' }, 'Pick what to carry and who to keep on call. Every day on the trail still costs money.')),
+        trailReport(p, c),
         h('div', { class: 'gear-sec' },
           h('div', { class: 'gear-sec-head' }, h('h3', null, '🎒 Your bag'), h('span', { class: 'gear-count' + (chosen.size === c.bag ? ' full' : '') }, `${chosen.size} / ${c.bag}`)),
           h('div', { class: 'gear-grid' }, owned().map(itemCard))),
@@ -13360,6 +13681,7 @@ window.PP = window.PP || {};
     if (p.followUp) setupFollowUp(s, c, p.followUp);
     s.map.known = c.known;
     s.pack = pack;
+    s.conditions = p.conditions || (PP.rollConditions ? PP.rollConditions(c) : []);
     s.itemLv = {}; pack.forEach((id) => (s.itemLv[id] = (c.gear && c.gear[id]) || 1));
     s.phase = 'journey';
     c.pipeline = c.pipeline.filter((x) => x.id !== p.id);
@@ -13404,6 +13726,8 @@ window.PP = window.PP || {};
     clearJourney();
     const s = G.s, c = G.career, cl = s.client, p = s.origin || {};
     keepFoundGear(s, c);
+    const reqLines = PP.settleRequests ? PP.settleRequests(c, s.map.visited) : [];
+    if (PP.refillRequests) PP.refillRequests(c);
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
     const carry = {
       facts: s.facts, askedTopics: s.askedTopics, seenEvents: s.seenEvents, visited: s.map.visited, faced: s.faced, passageTaken: s.passageTaken,
@@ -13419,7 +13743,7 @@ window.PP = window.PP || {};
     }
     if (c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
     PP.career.save(c);
-    port('trailhead', [{ text: `Back in town after ${s.day} day${s.day === 1 ? "" : "s"} on the trail. ${cl.name} is waiting at the Trailhead whenever you're ready to pick up where you left off.`, kind: 'info' }]);
+    port('trailhead', [{ text: `Back in town after ${s.day} day${s.day === 1 ? "" : "s"} on the trail. ${cl.name} is waiting at the Trailhead whenever you're ready to pick up where you left off.`, kind: 'info' }].concat(reqLines.map((t) => ({ text: t, kind: 'good' }))));
   }
 
   /* Anything that joined your pack on the trail stays in your gear collection. */
@@ -13434,6 +13758,8 @@ window.PP = window.PP || {};
     clearJourney(); where('port');
     const s = G.s, c = G.career, cl = s.client;
     const foundGear = keepFoundGear(s, c);
+    const requestLines = PP.settleRequests ? PP.settleRequests(c, s.map.visited) : [];
+    if (PP.refillRequests) PP.refillRequests(c);
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
@@ -13532,6 +13858,7 @@ window.PP = window.PP || {};
         pay ? h('p', null, pay.note) : h('p', null, 'No sale, nothing added to your book. The days on the trail still cost money.'),
         pay && pay.status === 'at-risk' ? h('p', { class: 'small warn' }, `This one may cancel later, and ${money(P().clawback)} would be clawed back.`) : null,
         pay && pay.referral ? h('p', { class: 'small good-text' }, 'They referred a friend. A hot prospect is waiting in your pipeline.') : null,
+        requestLines.map((t) => h('p', { class: 'small good-text' }, t)),
         foundGear.length ? h('p', { class: 'small good-text' }, `New gear for your collection: ${foundGear.map((id) => PP.content.items[id].icon + ' ' + PP.content.items[id].name).join(', ')}. Pack it on any journey.`) : null,
         newMarks.length ? h('p', { class: 'small good-text' }, `Marks earned: ${newMarks.map((m) => PP.content.nodes[m].name).join(', ')}. New systems are available under Build your practice.`) : null,
         ladder(levelAfter)),

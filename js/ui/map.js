@@ -401,6 +401,23 @@
       svg.appendChild(built);
     }
 
+    // Reasons to explore: the client's hunch, town requests, unfound keepsakes, this journey's trail report.
+    const marks = el('g', { class: 'm-explore' });
+    const badge = (x, y, txt, cls, title) => { const g = el('g', { class: 'm-badge ' + cls, transform: `translate(${x} ${y})` }, el('circle', { r: 15 }), el('text', { y: 6 }, txt)); if (title) g.appendChild(el('title', null, title)); marks.appendChild(g); };
+    const c = s.career;
+    const cp = PP.clientPlace && PP.clientPlace(s);
+    if (cp && PP.placeHintKnown(s) && !PP.knows(s, s.client.keyFact)) { const n = PP.content.nodes[cp.at]; badge(n.x + 26, n.y - 30, '★', 'b-hunch', `${s.client.name} might open up here`); }
+    if (c) (c.requests || []).forEach((q) => { if (q.done || q.noted) return; const n = PP.content.nodes[q.at]; badge(n.x - 26, n.y - 30, '📜', 'b-req', q.text); });
+    if (c && PP.keepsakeAt) Object.keys(PP.content.keepsakes).forEach((id) => { if (PP.keepsakeFound(c, id) || (s.pack || []).includes(PP.content.keepsakes[id].id) || vis[id] === 'uncharted') return; const n = PP.content.nodes[id]; badge(n.x, n.y + 34, '🎁', 'b-keep', 'A keepsake to find'); });
+    (s.conditions || []).forEach((o) => {
+      if (o.type === 'bonus') { if (o.done) return; const n = PP.content.nodes[o.at]; badge(n.x + 30, n.y + 18, '🎉', 'b-bonus', o.text); return; }
+      const t = PP.trailBetween(o.a, o.b), A = PP.content.nodes[t.a], B = PP.content.nodes[t.b];
+      const pt = t.c ? { x: 0.25 * A.x + 0.5 * t.c[0] + 0.25 * B.x, y: 0.25 * A.y + 0.5 * t.c[1] + 0.25 * B.y } : { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+      badge(pt.x, pt.y, o.type === 'closed' ? '⛔' : '⚡', o.type === 'closed' ? 'b-closed' : 'b-fast', PP.conditionText(o).text);
+      const pe = pathEls[t.a + '|' + t.b]; if (pe && o.type === 'closed') pe.classList.add('washed');
+    });
+    svg.appendChild(marks);
+
     // You are here: a map pin, at a landmark or partway along the current trail
     const marker = el('g', { class: 'm-pin' },
       el('path', { d: 'M0,0 C-4,-8 -12,-14 -12,-24 A12,12 0 1 1 12,-24 C12,-14 4,-8 0,0 Z', class: 'pin' }),

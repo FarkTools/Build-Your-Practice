@@ -1255,3 +1255,34 @@ html { background: var(--navy); }
 }
 .outfitter > summary { flex-wrap: wrap; row-gap: 2px; }
 .outfitter > summary h3 { white-space: nowrap; }
+
+/* ---------- Exploring: detours, trail report, requests, map badges ---------- */
+.explore-box { background: rgba(255, 255, 255, .45); border: 1.5px solid var(--orange); border-radius: 12px; padding: 8px 12px; }
+.explore-box > summary { display: flex; gap: 8px; align-items: center; cursor: pointer; list-style: none; }
+.explore-box > summary::-webkit-details-marker { display: none; }
+.explore-box > summary .eyebrow { color: var(--orange); }
+.explore-box > summary::after { content: "▾"; margin-left: auto; color: var(--ink-2); font-size: 0.8rem; }
+.explore-box[open] > summary::after { content: "▴"; }
+.explore-box[open] .xb-peek { display: none; }
+.explore-box ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 5px; font-size: 0.9rem; }
+.explore-box li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; align-items: start; line-height: 1.35; }
+.explore-box li.xb-hunch { font-weight: 700; color: var(--navy); }
+.explore-box li.xb-closed { color: var(--red); }
+.trail-report ul { list-style: none; margin: 0; padding: 10px 12px; display: grid; gap: 6px; background: var(--fog); border: 1.5px solid var(--ink-3); border-radius: 12px; font-size: 0.9rem; }
+.trail-report li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; line-height: 1.35; }
+.request-board { border-left: 4px solid var(--orange); display: grid; gap: 6px; }
+.request-board ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.request-board li { display: grid; gap: 1px; }
+.request-board li strong { color: var(--navy); }
+.request-board li span { font-size: 0.88rem; }
+.request-board .rb-reward { color: var(--green); font-weight: 600; font-size: 0.82rem; }
+.pmap .m-badge circle { fill: var(--fog); stroke: var(--ink); stroke-width: 2; }
+.pmap .m-badge text { font-size: 17px; text-anchor: middle; }
+.pmap .m-badge.b-hunch circle { fill: var(--orange); }
+.pmap .m-badge.b-hunch text { fill: var(--ink); font-weight: 700; font-size: 20px; }
+.pmap .m-badge.b-closed circle { fill: #f6d5cc; stroke: var(--red); }
+.pmap .m-badge.b-fast circle { fill: #fff3c4; }
+.pmap .trail-main.washed { stroke: var(--red); opacity: .55; }
+.small-map .m-explore, .map-thumb .m-explore, .intro-map .m-explore { display: none; }
+.mv-x-line { color: var(--ink) !important; font-style: normal !important; }
+.mv-x-line.hunch { font-weight: 700; color: var(--navy) !important; }

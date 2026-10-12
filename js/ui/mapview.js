@@ -178,6 +178,16 @@
       if (!best || bd > reach) { card.hidden = true; if (sel) sel.remove(); sel = null; return; }
       showCard(best);
     }
+    function exploreLines(id) {
+      const out = [], c = s.career;
+      const cp = PP.clientPlace && PP.clientPlace(s);
+      if (cp && cp.at === id && PP.placeHintKnown(s) && !PP.knows(s, s.client.keyFact)) out.push(h('p', { class: 'mv-x-line hunch' }, `★ ${s.client.name} might open up here.`));
+      if (c) (c.requests || []).forEach((q) => { if (!q.done && !q.noted && q.at === id) out.push(h('p', { class: 'mv-x-line' }, `📜 ${q.text} Reward: ${PP.rewardText(q.reward)}.`)); });
+      const k = PP.keepsakeAt && PP.keepsakeAt(id);
+      if (k && c && PP.visibility(s, id) !== 'uncharted') out.push(h('p', { class: 'mv-x-line' }, PP.keepsakeFound(c, id) || (s.pack || []).includes(k.id) ? `${k.icon} Keepsake found: ${k.name}.` : '🎁 A keepsake is hidden here.'));
+      (s.conditions || []).forEach((o) => { if (o.type === 'bonus' && o.at === id && !o.done) out.push(h('p', { class: 'mv-x-line' }, `🎉 ${o.text}`)); });
+      return out;
+    }
     function showCard(id) {
       const n = PP.content.nodes[id], st = statusOf(s, id);
       const known = st.v === 'visited' || st.v === 'named';
@@ -191,7 +201,7 @@
         n.sub && known ? h('span', { class: 'mv-sub' }, n.sub) : null,
         h('p', null, line),
         near ? h('p', { class: 'mv-near' }, 'One trail from where you are.') : null,
-        n.side && known ? h('p', { class: 'mv-near' }, 'Side trail: a dead end with lessons, and risks.') : null].filter(Boolean));
+        n.side && known ? h('p', { class: 'mv-near' }, 'Side trail: a dead end with lessons, and risks.') : null].concat(exploreLines(id)).filter(Boolean));
       card.hidden = false;
       if (sel) sel.remove();
       sel = document.createElementNS('http://www.w3.org/2000/svg', 'circle');

@@ -37,6 +37,7 @@ This repo is a **playable concept prototype**. Players get the game only; the El
 | Journey loop: days, pace, menu, forks, check-ins, finale | `js/ui/trail.js` |
 | 40+ events, multi-step conversations, risk-debt checks | `js/content/events.js` |
 | Clients, hidden facts, check-in answers | `js/content/clients.js` |
+| Exploring: where each client opens up, keepsakes, trail conditions, town requests | `js/content/explore.js` |
 | Port people, practice quests, contacts, gear (items, upgrades, outfitter prices, trip hints) | `js/content/port.js` |
 | Mini-games: Call-a-thon, Mixer, Farmers Market, The Conversation, Shoebox Fact Find, Monday Morning Inbox, Calendar Tetris, Life Happens | `js/minigames/` |
 | Game feel: instant pops, bursts, stamps, flying cards, live meters, sound, character art | `js/minigames/fx.js` |
