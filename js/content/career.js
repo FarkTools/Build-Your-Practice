@@ -34,8 +34,8 @@
     },
     workspaces: {
       kitchen: { name: 'Kitchen table', rent: 0, trust: 0, walkIn: 0, blurb: 'Free. Clients meet you at coffee shops. Nobody walks in.' },
-      desk: { name: 'Shared desk at the Harbor Co-op', rent: 25, trust: 1, walkIn: 0.04, blurb: 'Looks professional (+1 starting Trust). The odd walk-in prospect.' },
-      office: { name: 'Your own office on Harbor Street', rent: 70, trust: 1, walkIn: 0.12, blurb: 'A sign on the door brings regular walk-ins. Needed before you can recruit agents.' }
+      desk: { name: 'Shared desk at the Harbor Co-op', rent: 15, trust: 1, walkIn: 0.04, blurb: 'Looks professional (+1 starting Trust). The odd walk-in prospect.' },
+      office: { name: 'Your own office on Harbor Street', rent: 45, trust: 1, walkIn: 0.12, blurb: 'A sign on the door brings regular walk-ins. Needed before you can recruit agents.' }
     },
     partners: [
       { id: 'avery', name: 'Avery Chen', blurb: 'Detail-oriented and great at follow-up. Quiet at events.', referral: 0.06, cover: 0.4 },

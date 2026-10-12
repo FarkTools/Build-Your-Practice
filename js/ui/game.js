@@ -219,7 +219,7 @@
           stat('Pipeline', String(c.pipeline.length)),
           stat('Clients', String(clients)))),
       ladder(lvl),
-      h('p', { class: 'small' }, `Income: ${money(PP.career.bookIncome(c))}/day from clients` + (PP.career.overrides(c) ? ` + ${money(PP.career.overrides(c))}/day from your recruits` : '') + `. Costs: ${money(c.living)}/day living` + (PP.career.rent(c) ? ` + ${money(PP.career.rent(c))}/day rent` : '') + '.'));
+      h('p', { class: 'small' }, `Income: ${money(PP.career.bookIncome(c))}/day from clients` + (PP.career.overrides(c) ? ` + ${money(PP.career.overrides(c))}/day from your recruits` : '') + `. Costs: ${money(c.living)}/day living` + (PP.career.rent(c) ? ` + ${money(PP.career.rent(c))}/day rent (${money(PP.career.rent(c) * 30)} a month)` : '') + '.'));
     return panel;
   }
 
@@ -469,7 +469,7 @@
     const c = G.career, pr = P();
     const activeCount = c.book.filter((b) => ['life', 'steady'].includes(b.status)).length;
     const ws = h('div', { class: 'panel' }, h('h3', null, 'Workspace'), h('div', { class: 'option-list' }, Object.entries(pr.workspaces).map(([id, w]) => h('div', { class: 'option' + (c.workspace === id ? ' current' : '') },
-      h('div', null, h('strong', null, w.name), h('div', { class: 'small' }, w.blurb), h('div', { class: 'small muted' }, w.rent ? `${money(w.rent)}/day rent` : 'No rent')),
+      h('div', null, h('strong', null, w.name), h('div', { class: 'small' }, w.blurb), h('div', { class: 'small muted' }, w.rent ? h('span', null, h('strong', null, `${money(w.rent * 30)} a month`), ` in rent (about ${money(w.rent)} a day${c.partner ? ', split with your partner' : ''})`) : 'No rent')),
       c.workspace === id ? h('span', { class: 'pill good' }, 'Current') : h('button', { class: 'btn', onclick: () => spendDay(() => { c.workspace = id; return `You move into: ${w.name}.`; }) }, 'Move here (1 day)')))));
 
     const partner = c.partner ? pr.partners.find((x) => x.id === c.partner) : null;

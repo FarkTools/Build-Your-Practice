@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.20.0';
+  PP.VERSION = '0.20.1';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.20.1', 'Fairer rent: a shared desk is about $450 a month and your own office about $1,350, shown per month'],
     ['0.20.0', 'Reasons to explore the whole map: each client opens up at a place that fits their story, a keepsake hides at every landmark, trails wash out and new ferries run, and town requests send you to far-off places'],
     ['0.19.0', 'Get ready to set out: your gear is a growing collection with upgrades, a trail outfitter sells new gear and a bigger backpack, hints show what suits each prospect, and you pick who is on call right before you leave'],
     ['0.18.0', 'Clearer at the port: what each action did now pops up in a card (days, money, new prospects, client happiness) without the page jumping, and What now? is a card with a button that takes you there'],
