@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.20.1';
+  PP.VERSION = '0.20.2';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.20.2', 'Leaves your music alone: when muted the game never touches your phone\'s audio, and when on it mixes with your podcast or playlist instead of stopping it'],
     ['0.20.1', 'Fairer rent: a shared desk is about $450 a month and your own office about $1,350, shown per month'],
     ['0.20.0', 'Reasons to explore the whole map: each client opens up at a place that fits their story, a keepsake hides at every landmark, trails wash out and new ferries run, and town requests send you to far-off places'],
     ['0.19.0', 'Get ready to set out: your gear is a growing collection with upgrades, a trail outfitter sells new gear and a bigger backpack, hints show what suits each prospect, and you pick who is on call right before you leave'],

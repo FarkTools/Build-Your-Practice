@@ -50,7 +50,7 @@
         h('h4', { class: 'place-sub' }, 'Sound check'),
         h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { if (PP.fx) { if (!PP.fx.sound || PP.fx.muted) { PP.fx.muted = false; PP.store.set('muted', false); PP.fx.setSound(true); } PP.fx.sfx('great'); } setTimeout(show, 300); } }, 'Play a test sound')),
         status, music,
-        h('p', { class: 'small muted' }, 'No sound? Check the speaker in the top bar, the switches in the Menu, and your media volume. On iPhone, the ring/silent switch can mute games on older iOS.'),
+        h('p', { class: 'small muted' }, 'No sound? Check the speaker in the top bar, the switches in the Menu, and your media volume. On iPhone the game follows the ring/silent switch, and plays alongside your own music or podcasts instead of stopping them.'),
         h('button', { class: 'btn', onclick: () => ov.remove() }, 'Close'))));
     document.body.appendChild(ov);
     show();

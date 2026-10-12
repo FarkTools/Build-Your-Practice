@@ -138,7 +138,9 @@
     if (!AC) return;
     try {
       if (!fx.ac) {
-        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
+        // 'ambient' mixes with whatever else is playing (a podcast, Spotify) instead of stopping it,
+        // and follows the ring/silent switch, like most games.
+        try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) { /* not supported */ }
         fx.ac = new AC();
         fx.master = fx.ac.createGain(); fx.master.gain.value = 1; fx.master.connect(fx.ac.destination);
         fx.ac.onstatechange = () => { fx.audio.engine = fx.web() ? 'web' : 'html'; document.dispatchEvent(new Event('pp-audio')); };
@@ -156,13 +158,17 @@
     if (!POOL[name]) { const url = wavUrl(f32(name)); POOL[name] = { i: 0, els: Array.from({ length: PER }, () => { const a = new Audio(url); a.preload = 'auto'; a.setAttribute('playsinline', ''); return a; }) }; }
     return POOL[name];
   }
+  /* The engine only starts once something should actually be heard. Muted, or with both
+   * switches off, the game never touches the phone's audio, so other apps keep playing. */
   function unlock() {
+    if (fx.audible && !fx.audible()) return;
     webStart();
     fx.audio.unlocked = true;
     document.dispatchEvent(new Event('pp-audio'));
   }
+  fx.unlock = unlock;
   ['touchend', 'click', 'keydown'].forEach((t) => document.addEventListener(t, unlock, true));
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && fx.ac && fx.ac.state !== 'running') fx.ac.resume().catch(() => {}); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && fx.ac && fx.ac.state !== 'running' && (!fx.audible || fx.audible())) fx.ac.resume().catch(() => {}); });
 
   const WEB_BUF = {};
   fx.sfx = (name) => {
@@ -193,6 +199,11 @@
     document.querySelectorAll('[data-switch="music"]').forEach((x) => x.setAttribute('aria-checked', String(music())));
     document.querySelectorAll('.gm-muted').forEach((x) => { x.hidden = !fx.muted; });
     document.querySelectorAll('.gm-sound').forEach((x) => x.classList.toggle('is-muted', fx.muted));
+    // Silent: pause the engine so the phone's audio is left alone. Audible again: start or resume it
+    // (these switches are taps, so iOS allows it).
+    if (!fx.audible()) { if (fx.ac && fx.ac.state === 'running') fx.ac.suspend().catch(() => {}); }
+    else if (!fx.audio.unlocked) unlock();
+    else if (fx.ac && fx.ac.state !== 'running') fx.ac.resume().catch(() => {});
     if (PP.audio && PP.audio.refresh) PP.audio.refresh();
   };
   fx.setSound = (on) => { fx.sound = !!on; PP.store.set('sound', fx.sound); if (fx.sound) { fx.muted = false; PP.store.set('muted', false); } fx.refreshSound(); if (fx.sound) fx.sfx('ding'); };
