@@ -649,18 +649,96 @@
   }
 
   /* ---------------- Starting a journey ---------------- */
+  /* ---- Getting ready: pack your bag, pick who's on call, visit the outfitter ---- */
   function packScreen(p) {
-    const chosen = new Set();
-    const go = h('button', { class: 'btn primary big', disabled: true, onclick: () => startJourney(p, [...chosen]) }, `Choose ${PP.content.packSize}`);
-    const list = h('div', { class: 'pack-grid' }, Object.entries(PP.content.items).map(([id, it]) => h('button', { class: 'pack-item', 'aria-pressed': 'false', 'data-id': id, onclick: () => {
-      if (chosen.has(id)) chosen.delete(id); else if (chosen.size < PP.content.packSize) chosen.add(id);
-      list.querySelectorAll('.pack-item').forEach((el) => el.setAttribute('aria-pressed', chosen.has(el.dataset.id) ? 'true' : 'false'));
-      go.disabled = chosen.size !== PP.content.packSize;
-      go.textContent = chosen.size === PP.content.packSize ? `Set out with ${p.name}` : `Choose ${PP.content.packSize - chosen.size} more`;
-    } }, h('strong', null, it.name), h('span', { class: 'small' }, it.blurb))));
-    screen(h('section', { class: 'pack' },
-      h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, `Guiding ${p.name}`), h('h2', { class: 'display-sm' }, 'Pack your bag')), h('p', { class: 'muted' }, `You can carry ${PP.content.packSize} things. Days on the trail still cost money, and your other clients will be waiting.`)),
-      list, h('div', { class: 'row' }, go, h('button', { class: 'btn ghost', onclick: () => port('pipeline') }, 'Back to the port'))));
+    const c = G.career;
+    c.gear = c.gear || PP.career.starterGear(); c.bag = c.bag || PP.content.packSize;
+    const items = PP.content.items;
+    const owned = () => Object.keys(items).filter((id) => c.gear[id]);
+    const chosen = new Set((c.lastPack || []).filter((id) => c.gear[id]).slice(0, c.bag));
+    const people = PP.content.npcs.filter((n) => c.met[n.id] || (n.quest && c.quests[n.quest.id] === 'done') || c.contacts.includes(n.contact));
+    const onCall = new Set(c.contacts.filter((id) => people.some((n) => n.contact === id)).concat(c.contacts));
+    const slots = () => PP.contactSlots(fakeState());
+    const faceFor = (n) => { let k = 0; for (const ch of n.name) k = (k * 31 + ch.charCodeAt(0)) % 9973; return PP.art.face({ mood: 2, hue: k }); };
+    const firstSentence = (t) => (String(t).match(/^.*?[.!?](\s|$)/) || [t])[0].trim();
+
+    function buy(id, cost, up) {
+      if (c.savings < cost) return;
+      c.savings -= cost;
+      if (up) c.gear[id] = 2; else { c.gear[id] = 1; if (chosen.size < c.bag) chosen.add(id); }
+      PP.career.save(c); PP.fx && PP.fx.sfx('good');
+      PP.ui.toast(up ? `Upgraded: ${items[id].icon} ${items[id].up.name}` : `New gear: ${items[id].icon} ${items[id].name}`);
+      draw();
+    }
+    function buyBag() {
+      const B = PP.content.bigBag; if (c.savings < B.cost) return;
+      c.savings -= B.cost; c.bag = B.size; PP.career.save(c); PP.fx && PP.fx.sfx('good'); PP.ui.toast(`🎒 ${B.name}: you can carry ${B.size} things.`); draw();
+    }
+    function setOut() {
+      c.contacts = [...onCall].slice(0, slots());
+      c.lastPack = [...chosen];
+      PP.career.save(c);
+      startJourney(p, [...chosen]);
+    }
+
+    function itemCard(id) {
+      const it = items[id], lv = c.gear[id] || 1, on = chosen.has(id), full = !on && chosen.size >= c.bag;
+      const hint = PP.content.gearHint ? PP.content.gearHint(id, p, c) : null;
+      return h('div', { class: 'gear-card' + (on ? ' on' : '') + (full ? ' full' : '') },
+        h('button', { class: 'gear-pick', 'aria-pressed': String(on), onclick: () => { if (on) chosen.delete(id); else if (!full) chosen.add(id); else { PP.ui.toast(`Your bag is full. Take something out first.`); return; } draw(); } },
+          h('span', { class: 'gear-icon', 'aria-hidden': 'true' }, it.icon),
+          h('span', { class: 'gear-txt' },
+            h('strong', null, lv >= 2 && it.up ? it.up.name : it.name, lv >= 2 ? h('span', { class: 'gear-lv' }, 'Upgraded') : null),
+            h('span', null, lv >= 2 && it.up ? it.up.blurb : it.blurb),
+            hint ? h('span', { class: 'gear-hint' }, '★ ' + hint) : null),
+          h('span', { class: 'gear-check', 'aria-hidden': 'true' }, on ? '✓' : '')),
+        it.up && lv < 2 ? h('button', { class: 'gear-up', disabled: c.savings < it.up.cost, onclick: () => buy(id, it.up.cost, true) }, `Upgrade to ${it.up.name} · ${money(it.up.cost)}`) : null);
+    }
+    function personCard(n) {
+      const ct = PP.content.contacts[n.contact], on = onCall.has(n.contact), full = !on && onCall.size >= slots();
+      return h('button', { class: 'gear-card person' + (on ? ' on' : '') + (full ? ' full' : ''), 'aria-pressed': String(on), onclick: () => { if (on) onCall.delete(n.contact); else if (!full) onCall.add(n.contact); else { PP.ui.toast('Everyone on call is busy enough. Take someone off first.'); return; } draw(); } },
+        h('span', { class: 'gear-face', 'aria-hidden': 'true', html: faceFor(n) }),
+        h('span', { class: 'gear-txt' }, h('strong', null, `${n.name} · ${ct.name.replace(/^The /, '')}`), h('span', null, firstSentence(ct.ability))),
+        h('span', { class: 'gear-check', 'aria-hidden': 'true' }, on ? '✓' : ''));
+    }
+    function shopCard(id) {
+      const it = items[id];
+      return h('div', { class: 'gear-card shop' },
+        h('span', { class: 'gear-icon', 'aria-hidden': 'true' }, it.icon),
+        h('span', { class: 'gear-txt' }, h('strong', null, it.name), h('span', null, it.blurb)),
+        h('button', { class: 'btn small', disabled: c.savings < it.cost, onclick: () => buy(id, it.cost, false) }, `Buy · ${money(it.cost)}`));
+    }
+
+    function draw() {
+      const y = window.scrollY;
+      const forSale = Object.keys(items).filter((id) => !c.gear[id] && items[id].cost);
+      const B = PP.content.bigBag;
+      screen(h('section', { class: 'pack v2' },
+        h('header', { class: 'screen-head' }, h('div', null, h('div', { class: 'eyebrow' }, `${p.followUp ? 'Meeting ' + p.name + ' again' : 'Guiding ' + p.name}`), h('h2', { class: 'display-sm' }, 'Get ready to set out')),
+          h('p', { class: 'muted' }, 'Pick what to carry and who to keep on call. Every day on the trail still costs money.')),
+        h('div', { class: 'gear-sec' },
+          h('div', { class: 'gear-sec-head' }, h('h3', null, '🎒 Your bag'), h('span', { class: 'gear-count' + (chosen.size === c.bag ? ' full' : '') }, `${chosen.size} / ${c.bag}`)),
+          h('div', { class: 'gear-grid' }, owned().map(itemCard))),
+        h('div', { class: 'gear-sec' },
+          h('div', { class: 'gear-sec-head' }, h('h3', null, '📞 On call'), h('span', { class: 'gear-count' + (onCall.size === slots() ? ' full' : '') }, `${Math.min(onCall.size, slots())} / ${slots()}`)),
+          people.length ? h('div', { class: 'gear-grid' }, people.map(personCard))
+            : h('p', { class: 'muted small' }, 'Nobody yet. Meet people around town (your desk, Chamber Hall, the Library and more) and they can help once per journey.')),
+        h('details', { class: 'gear-sec outfitter', open: !!PP.store.get('outfitterOpen', false), ontoggle: (e) => PP.store.set('outfitterOpen', e.target.open) },
+          h('summary', null, h('h3', null, '🏕️ Trail outfitter'), h('span', { class: 'small muted' }, `${forSale.length + (c.bag < B.size ? 1 : 0)} for sale · you have ${money(c.savings)}`)),
+          h('p', { class: 'small muted' }, 'Buying gear costs money but no time. Upgrades are on each item above.'),
+          h('div', { class: 'gear-grid' },
+            c.bag < B.size ? h('div', { class: 'gear-card shop' }, h('span', { class: 'gear-icon', 'aria-hidden': 'true' }, '🎒'), h('span', { class: 'gear-txt' }, h('strong', null, B.name), h('span', null, B.blurb)),
+              h('button', { class: 'btn small', disabled: c.savings < B.cost, onclick: buyBag }, `Buy · ${money(B.cost)}`)) : null,
+            forSale.map(shopCard)),
+          !forSale.length && c.bag >= B.size ? h('p', { class: 'small muted' }, 'You own everything the outfitter sells. Some gear only turns up on the trail.') : null),
+        h('div', { class: 'gear-go' },
+          h('button', { class: 'btn primary big', onclick: setOut }, `Set out with ${p.name}`),
+          h('span', { class: 'small muted' }, `${chosen.size ? [...chosen].map((id) => items[id].icon).join(' ') : 'Empty bag'} · ${onCall.size ? Math.min(onCall.size, slots()) + ' on call' : 'nobody on call'}`),
+          h('button', { class: 'btn ghost', onclick: () => port('pipeline') }, 'Back to the port'))));
+      window.scrollTo(0, y);
+    }
+    draw();
+    window.scrollTo(0, 0);
   }
 
   /* ---- Follow-up journeys: an existing client's life changed ---- */
@@ -718,6 +796,7 @@
     if (p.followUp) setupFollowUp(s, c, p.followUp);
     s.map.known = c.known;
     s.pack = pack;
+    s.itemLv = {}; pack.forEach((id) => (s.itemLv[id] = (c.gear && c.gear[id]) || 1));
     s.phase = 'journey';
     c.pipeline = c.pipeline.filter((x) => x.id !== p.id);
     if (p.followUp) c.followUps = c.followUps.filter((f) => f.id !== p.followUp.id);
@@ -736,7 +815,14 @@
       PP.apply(s, { trust: trustMod });
     }
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
-    if (s.pack.includes('cards')) { PP.apply(s, { trust: 1 }); PP.useItem(s, 'cards'); }
+    // Gear that works as you set out.
+    s.pack.forEach((id) => {
+      const it = PP.content.items[id]; if (!it || it.kind !== 'start') return;
+      const lv = s.itemLv[id] || 1, eff = (lv >= 2 && it.up && it.up.eff) || it.eff;
+      if (eff) PP.apply(s, eff);
+      if (id === 'boots') { s.passageBoost = 1; if (lv >= 2) PP.apply(s, { energy: 1 }); }
+      PP.useItem(s, id);
+    });
     if (c.perks && c.perks.stamina) PP.apply(s, { energy: 2 });
     if (c.perks && c.perks.scout) { PP.apply(s, { insight: 1 }); PP.content.trails.forEach((t) => { if (s.map.known[t.a] || s.map.known[t.b]) { c.known[t.a] = true; c.known[t.b] = true; } }); }
     if (c.energyNext) { PP.apply(s, { energy: c.energyNext }); c.energyNext = 0; }
@@ -753,6 +839,7 @@
   function pauseJourney() {
     clearJourney();
     const s = G.s, c = G.career, cl = s.client, p = s.origin || {};
+    keepFoundGear(s, c);
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
     const carry = {
       facts: s.facts, askedTopics: s.askedTopics, seenEvents: s.seenEvents, visited: s.map.visited, faced: s.faced, passageTaken: s.passageTaken,
@@ -771,10 +858,18 @@
     port('trailhead', [{ text: `Back in town after ${s.day} day${s.day === 1 ? "" : "s"} on the trail. ${cl.name} is waiting at the Trailhead whenever you're ready to pick up where you left off.`, kind: 'info' }]);
   }
 
+  /* Anything that joined your pack on the trail stays in your gear collection. */
+  function keepFoundGear(s, c) {
+    c.gear = c.gear || PP.career.starterGear();
+    const found = (s.pack || []).filter((id) => PP.content.items[id] && !c.gear[id]);
+    found.forEach((id) => (c.gear[id] = 1));
+    return found;
+  }
   function journeyEnd(kind, reckoned) {
     if (kind === 'home') return pauseJourney();
     clearJourney(); where('port');
     const s = G.s, c = G.career, cl = s.client;
+    const foundGear = keepFoundGear(s, c);
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
@@ -873,6 +968,7 @@
         pay ? h('p', null, pay.note) : h('p', null, 'No sale, nothing added to your book. The days on the trail still cost money.'),
         pay && pay.status === 'at-risk' ? h('p', { class: 'small warn' }, `This one may cancel later, and ${money(P().clawback)} would be clawed back.`) : null,
         pay && pay.referral ? h('p', { class: 'small good-text' }, 'They referred a friend. A hot prospect is waiting in your pipeline.') : null,
+        foundGear.length ? h('p', { class: 'small good-text' }, `New gear for your collection: ${foundGear.map((id) => PP.content.items[id].icon + ' ' + PP.content.items[id].name).join(', ')}. Pack it on any journey.`) : null,
         newMarks.length ? h('p', { class: 'small good-text' }, `Marks earned: ${newMarks.map((m) => PP.content.nodes[m].name).join(', ')}. New systems are available under Build your practice.`) : null,
         ladder(levelAfter)),
       h('div', { class: 'ending-grid' },

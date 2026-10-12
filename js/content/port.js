@@ -129,12 +129,48 @@
    * extra moment spent preparing costs Momentum: preparation is not free. */
   PP.content.portRules = { prospectAfter: 2, waitingCost: { momentum: -1 } };
 
+  /* Gear. Your collection grows: the starters are yours from day one, the rest come from the
+   * outfitter (on the packing screen) or turn up on the trail and stay with you.
+   *   kind: 'use'   used from Pack and contacts on the trail (eff, or special-cased by id)
+   *         'auto'  works by itself when its moment comes (events check PP.hasItem)
+   *         'start' takes effect as the journey begins
+   *   up:   the upgrade. Usable/auto items get two uses; start items get the stronger effect.
+   *   cost: price at the outfitter (starters have none). */
   PP.content.items = {
-    notebook: { name: 'Battered notebook', blurb: 'Rescues one forgotten detail in the fog.' },
-    thermos: { name: 'Coffee thermos', blurb: 'Restore 3 Energy once, anywhere.' },
-    checklist: { name: "Olu's checklist", blurb: 'Quietly pays off one risk debt before it comes due.' },
-    cards: { name: 'Fresh business cards', blurb: 'Start the journey with +1 Trust.' },
-    napkin_map: { name: 'Napkin map', blurb: 'Lift the fog off the whole map once.' }
+    notebook: { icon: '📓', name: 'Battered notebook', blurb: 'Rescues one forgotten detail in the fog.', kind: 'auto', starter: true,
+      up: { name: 'Leather notebook', blurb: 'Rescues two forgotten details.', cost: 250 } },
+    thermos: { icon: '☕', name: 'Coffee thermos', blurb: 'Restore 3 Energy once, anywhere.', kind: 'use', starter: true, eff: { energy: 3 }, useLabel: 'Drink the coffee thermos',
+      up: { name: 'Big thermos', blurb: 'Restore 3 Energy, twice.', cost: 200 } },
+    checklist: { icon: '✅', name: "Olu's checklist", blurb: 'Quietly pays off one risk debt before it comes due.', kind: 'auto', starter: true,
+      up: { name: 'Laminated checklist', blurb: 'Pays off two risk debts before they come due.', cost: 350 } },
+    cards: { icon: '💼', name: 'Fresh business cards', blurb: 'Start the journey with +1 Trust.', kind: 'start', starter: true, eff: { trust: 1 },
+      up: { name: 'Embossed cards', blurb: 'Start the journey with +2 Trust.', cost: 250, eff: { trust: 2 } } },
+    napkin_map: { icon: '🗺️', name: 'Napkin map', blurb: 'Lift the fog off the whole map once.', kind: 'use', starter: true, useLabel: 'Unfold the napkin map',
+      up: { name: 'Proper map', blurb: 'Lift the fog, and the next trail is a day shorter.', cost: 300 } },
+    trail_mix: { icon: '🥜', name: 'Trail mix', blurb: '+2 Energy and +1 Momentum, once.', kind: 'use', cost: 150, eff: { energy: 2, momentum: 1 }, useLabel: 'Share the trail mix',
+      up: { name: 'Family-size trail mix', blurb: '+2 Energy and +1 Momentum, twice.', cost: 150 } },
+    gift: { icon: '🎁', name: 'Small thank-you gift', blurb: '+2 Trust, once, at the right moment.', kind: 'use', cost: 250, eff: { trust: 2 }, useLabel: 'Give the thank-you gift',
+      up: { name: 'Gift basket', blurb: '+2 Trust, twice.', cost: 250 } },
+    highlighter: { icon: '🖍️', name: 'Highlighter', blurb: '+2 Insight once: you spot what matters in their paperwork.', kind: 'use', cost: 200, eff: { insight: 2 }, useLabel: 'Go over their papers with the highlighter',
+      up: { name: 'Color-coded highlighters', blurb: '+2 Insight, twice.', cost: 200 } },
+    boots: { icon: '🥾', name: 'Sturdy boots', blurb: 'Your first trail is a day shorter.', kind: 'start', cost: 400,
+      up: { name: 'Broken-in boots', blurb: 'Your first trail is a day shorter, and you start with +1 Energy.', cost: 250 } },
+    power_bank: { icon: '🔋', name: 'Power bank', blurb: 'Start the journey with +2 Energy.', kind: 'start', cost: 300, eff: { energy: 2 },
+      up: { name: 'Solar power bank', blurb: 'Start the journey with +3 Energy.', cost: 200, eff: { energy: 3 } } }
   };
   PP.content.packSize = 2;
+  PP.content.bigBag = { size: 3, cost: 600, name: 'Bigger backpack', blurb: 'Carry 3 things instead of 2.' };
+
+  /* Which gear fits this trip: short reasons shown as a tag on the packing screen. */
+  PP.content.gearHint = function (id, p, c) {
+    const cl = PP.content.clients[p.archetype] || {};
+    if (id === 'cards' && p.temp === 'cold') return 'Cold prospects start with less Trust';
+    if (id === 'gift' && p.temp === 'cold') return 'Helps win over a cold prospect';
+    if ((id === 'boots' || id === 'thermos' || id === 'trail_mix') && cl.patience && cl.patience <= 4) return `${p.name} gets impatient fast`;
+    if (id === 'highlighter' && cl.complexity === 'high') return 'Complicated situation';
+    if (id === 'notebook' && cl.complexity === 'high') return 'Lots of details to keep track of';
+    if (id === 'napkin_map' && Object.keys(c.known || {}).length <= 3) return 'Most of the map is still fog';
+    if (p.followUp && id === 'gift') return 'A thank-you for a returning client';
+    return null;
+  };
 })(window.PP);

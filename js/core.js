@@ -122,8 +122,13 @@ window.PP = window.PP || {};
 
   PP.skill = (s, id) => s.skills[id] || 0;
   PP.knows = (s, fact) => !!fact && s.facts[fact] != null;
-  PP.hasItem = (s, id) => s.pack.includes(id) && !s.usedItems[id];
-  PP.useItem = (s, id) => { s.usedItems[id] = true; };
+  /* Items: an upgraded usable item has two uses. usedItems[id] counts uses (older saves used true for 1). */
+  PP.itemLevel = (s, id) => (s.itemLv && s.itemLv[id]) || 1;
+  PP.itemUses = (s, id) => { const it = PP.content.items && PP.content.items[id]; return it && it.kind !== 'start' && PP.itemLevel(s, id) >= 2 ? 2 : 1; };
+  PP.itemUsed = (s, id) => (s.usedItems[id] === true ? 1 : s.usedItems[id] || 0);
+  PP.hasItem = (s, id) => s.pack.includes(id) && PP.itemUsed(s, id) < PP.itemUses(s, id);
+  PP.useItem = (s, id) => { s.usedItems[id] = PP.itemUsed(s, id) + 1; };
+  PP.itemName = (s, id) => { const it = PP.content.items[id]; return it && it.up && PP.itemLevel(s, id) >= 2 ? it.up.name : it ? it.name : id; };
   PP.contactSlots = (s) => 2 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0);
   PP.contactReady = (s, id) => s.contacts.includes(id) && (s.contactUses[id] || 0) > 0;
   PP.useContact = (s, id) => { s.contactUses[id] = Math.max(0, (s.contactUses[id] || 0) - 1); };

@@ -598,10 +598,13 @@
     const items = [];
     s.pack.forEach((id) => {
       const it = PP.content.items[id];
-      const used = s.usedItems[id];
-      if (id === 'thermos') items.push({ label: 'Drink the coffee thermos', note: used ? 'Empty' : it.blurb, disabled: used, go: () => { const p = Object.assign({}, s.res); PP.useItem(s, id); PP.apply(s, { energy: 3 }); say('You drink the thermos. The world sharpens. (+3 Energy)'); refresh(p); menu(); } });
-      else if (id === 'napkin_map') items.push({ label: 'Unfold the napkin map', note: used ? 'Already used' : it.blurb, disabled: used, go: () => { PP.useItem(s, id); PP.apply(s, { reveal: true }); say("You unfold Dev's napkin map. Every place on the map has a name now."); menu(); } });
-      else items.push({ label: it.name, note: (used ? 'Used. ' : '') + it.blurb + ' (Works automatically.)', disabled: true });
+      if (!it) return;
+      const lv = PP.itemLevel(s, id), name = PP.itemName(s, id), blurb = lv >= 2 && it.up ? it.up.blurb : it.blurb;
+      const left = PP.itemUses(s, id) - PP.itemUsed(s, id), ready = left > 0;
+      const usesNote = PP.itemUses(s, id) > 1 ? ` (${left} use${left === 1 ? '' : 's'} left)` : '';
+      if (id === 'napkin_map') items.push({ label: `${it.icon} ${lv >= 2 ? 'Unfold the proper map' : it.useLabel}`, note: ready ? blurb : 'Already used', disabled: !ready, go: () => { PP.useItem(s, id); PP.apply(s, { reveal: true }); if (lv >= 2) s.passageBoost = 1; say(lv >= 2 ? 'You spread out the proper map. Every place has a name now, and you can see a quicker way on. (Next trail: a day shorter.)' : "You unfold Dev's napkin map. Every place on the map has a name now."); menu(); } });
+      else if (it.kind === 'use' && it.eff) items.push({ label: `${it.icon} ${it.useLabel}`, note: (ready ? blurb : 'Used up') + usesNote, disabled: !ready, go: () => { const p = Object.assign({}, s.res); PP.useItem(s, id); PP.apply(s, it.eff); say(`${name}: ` + Object.entries(it.eff).map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${k[0].toUpperCase() + k.slice(1)}`).join(', ') + '.'); refresh(p); menu(); } });
+      else items.push({ label: `${it.icon} ${name}`, note: (it.kind === 'start' ? 'Already working. ' : ready ? '' : 'Used. ') + blurb + (it.kind === 'auto' ? ' (Works automatically.)' : '') + usesNote, disabled: true });
     });
     s.contacts.forEach((id) => {
       const c = PP.content.contacts[id];

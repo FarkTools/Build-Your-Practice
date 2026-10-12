@@ -88,7 +88,8 @@
       workspace: 'kitchen', partner: null, recruits: [], systems: {},
       marks: a.id === 'insider' ? { swamp: true } : {},
       known: { port: true },
-      lastService: 0, usedNames: {}, over: false, bestLevel: 'survivable'
+      lastService: 0, usedNames: {}, over: false, bestLevel: 'survivable',
+      gear: PP.career.starterGear(), bag: PP.content.packSize
     };
   };
 
@@ -111,7 +112,8 @@
     hasSystem(c, id) { return !!(c && c.systems && c.systems[id]); },
     money(n) { const v = Math.round(n); return (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US'); },
     save(c) { PP.store.set('career2', c); },
-    load() { const c = PP.store.get('career2', null); return c && !c.over ? c : null; },
+    load() { const c = PP.store.get('career2', null); if (c && !c.gear) { c.gear = C.starterGear(); c.bag = PP.content.packSize; } return c && !c.over ? c : null; },
+    starterGear() { const g = {}; Object.entries(PP.content.items).forEach(([id, it]) => { if (it.starter) g[id] = 1; }); return g; },
     clear() { PP.store.set('career2', null); },
 
     /* Prospects */
