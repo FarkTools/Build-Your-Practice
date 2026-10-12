@@ -44,7 +44,7 @@
     const wrap = h('div', { class: 'mg' },
       h('div', { class: 'mg-head' },
         h('div', null, h('div', { class: 'eyebrow' }, 'Mini-game · ' + risk), h('h3', { class: 'mg-title' }, title)),
-        h('div', { class: 'mg-head-right' }, status, PP.fx ? PP.fx.soundToggle() : null)),
+        h('div', { class: 'mg-head-right' }, status)),
       h('div', { class: 'mg-timer' }, bar),
       hud, body, feedback);
     root.appendChild(wrap);

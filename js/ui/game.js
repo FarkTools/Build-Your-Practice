@@ -888,12 +888,18 @@
       c ? item('Title screen', onTrail ? `Your journey with ${G.s && G.s.client ? G.s.client.name : 'your client'} is saved. Continue picks it up.` : 'Your career is saved. Continue picks it up.', () => { leaveTrail(); where('title'); intro(); }) : item('Title screen', null, () => { leaveTrail(); where('title'); intro(); }),
       c ? h('button', { class: 'gm-item gm-new', onclick: () => confirmNew() }, h('strong', null, 'Start a new career'), h('span', null, 'Pick a new agent and start from day 1.')) : null,
       item('About and sound check', `Version ${PP.VERSION}`, () => PP.ui.about && PP.ui.about()));
+    const sw = (key, label, note, get, set) => h('button', { class: 'gm-switch', role: 'switch', 'data-switch': key, 'aria-checked': String(get()), onclick: () => set(!get()) },
+      h('span', { class: 'gm-sw-txt' }, h('strong', null, label), h('span', null, note)), h('span', { class: 'gm-sw-knob', 'aria-hidden': 'true' }));
+    const sound = h('div', { class: 'gm-sound' + (PP.fx.muted ? ' is-muted' : '') }, h('div', { class: 'eyebrow' }, 'Sound'),
+      sw('sound', 'Sound effects', 'Taps, wins, oops', () => !!PP.fx.sound, (v) => PP.fx.setSound(v)),
+      sw('music', 'Music and ambience', 'Travel music and the sounds of each place', () => !!(PP.audio && PP.audio.music), (v) => PP.audio && PP.audio.setMusic(v)),
+      h('p', { class: 'gm-muted small', hidden: !PP.fx.muted }, 'Everything is muted from the speaker in the top bar. Turning a switch on unmutes.'));
     const ov = h('div', { class: 'overlay game-menu', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Menu', onclick: (e) => { if (e.target === ov) close(); } },
       h('div', { class: 'gm-card' },
         h('div', { class: 'gm-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Menu'),
           h('h3', null, c ? [PP.youFull(c) || PP.career.agent(c).name, `Day ${c.days + 1} · ${PP.career.levelInfo(c).label}`].join(' · ') : 'Build Your Practice')),
           h('button', { class: 'mv-x', 'aria-label': 'Close menu', onclick: close }, '×')),
-        list));
+        list, sound));
     document.body.appendChild(ov);
     document.body.classList.add('modal-open');
     const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); document.removeEventListener('keydown', onKey, true); } };

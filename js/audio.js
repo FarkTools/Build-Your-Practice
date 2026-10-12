@@ -252,7 +252,7 @@
   }
 
   function apply(key) {
-    const want = key && A.music && !A.held;
+    const want = key && A.music && !A.held && !(FX().muted);
     const f = FX();
     if (!want) { stopWeb(); stopHtml(); return; }
     if (!f.audio || !f.audio.unlocked) { ensure(key); return; } // nothing can play before the first tap, but get it ready
@@ -269,19 +269,21 @@
   // On every tap: if music should be playing but isn't (iOS can stop it), start it right there.
   ['touchend', 'click'].forEach((t) => document.addEventListener(t, () => {
     const f = FX();
-    if (!A.key || !A.music || A.held) return;
+    if (!A.key || !A.music || A.held || FX().muted) return;
     if (f.web && f.web()) { if (!webSrc) apply(A.key); }
     else if (!players.some((p) => p._live && !p.paused)) apply(A.key);
   }));
 
   A.bed = (key) => { if (key === A.key) return; A.key = key; apply(key); };
   A.hold = (on) => { A.held = on; apply(A.key); };
-  A.toggle = () => {
-    A.music = !A.music; PP.store.set('music', A.music);
-    document.querySelectorAll('.fx-music').forEach((x) => { x.setAttribute('aria-pressed', String(A.music)); x.textContent = A.music ? 'Music on' : 'Music off'; });
-    apply(A.key);
+  A.refresh = () => apply(A.key);
+  A.setMusic = (on) => {
+    A.music = !!on; PP.store.set('music', A.music);
+    const f = FX();
+    if (A.music && f.muted) { f.muted = false; PP.store.set('muted', false); }
+    if (f.refreshSound) f.refreshSound(); else apply(A.key);
   };
-  A.button = () => PP.h('button', { class: 'fx-sound fx-music', 'aria-pressed': String(A.music), title: 'Music and ambience', onclick: A.toggle }, A.music ? 'Music on' : 'Music off');
+  A.toggle = () => A.setMusic(!A.music);
   document.addEventListener('visibilitychange', () => { if (document.hidden) { stopWeb(); stopHtml(); } else apply(A.key); });
 
   /* Mood of the trail right now, from the journey state. */

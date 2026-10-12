@@ -4,7 +4,7 @@
  * when the network fails or takes too long. Only this site's own files are handled; Google
  * Fonts and everything else go straight to the network as usual.
  * VERSION is rewritten by tools/stamp.py; a new version replaces the old saved copy. */
-const VERSION = '0.17.0';
+const VERSION = '0.17.1';
 const CACHE = 'byp-' + VERSION;
 const TIMEOUT = 6000;
 

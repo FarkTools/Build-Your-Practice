@@ -38,7 +38,7 @@
   function about() {
     const status = h('p', { class: 'small muted', 'aria-live': 'polite' });
     const music = h('p', { class: 'small muted' });
-    const show = () => { const a = (PP.fx && PP.fx.audio) || {}; music.textContent = PP.audio ? PP.audio.status() : ''; status.textContent = `Sound is ${PP.fx && PP.fx.sound ? 'on' : 'off'} · ${a.unlocked ? 'ready' : 'waiting for a tap'} · played ${a.played || 0}` + (a.errors ? ` · ${a.errors} blocked (${a.last})` : ''); };
+    const show = () => { const a = (PP.fx && PP.fx.audio) || {}; music.textContent = PP.audio ? PP.audio.status() : ''; status.textContent = `Sound effects ${PP.fx && PP.fx.sound ? 'on' : 'off'}${PP.fx && PP.fx.muted ? ' (all muted)' : ''} · ${a.unlocked ? 'ready' : 'waiting for a tap'} · played ${a.played || 0}` + (a.errors ? ` · ${a.errors} blocked (${a.last})` : ''); };
     const ov = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'About', onclick: (e) => { if (e.target === ov) ov.remove(); } },
       h('div', { class: 'overlay-card about-card' }, h('div', { class: 'scene' },
         h('div', { class: 'eyebrow' }, 'About'),
@@ -48,9 +48,9 @@
         h('h4', { class: 'place-sub' }, 'Recent versions'),
         h('ul', { class: 'about-changes' }, (PP.CHANGES || []).map(([v, t]) => h('li', null, h('strong', null, v), ' ', t))),
         h('h4', { class: 'place-sub' }, 'Sound check'),
-        h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { if (PP.fx) { if (!PP.fx.sound) PP.fx.soundToggle().click(); PP.fx.sfx('great'); } setTimeout(show, 300); } }, 'Play a test sound')),
+        h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { if (PP.fx) { if (!PP.fx.sound || PP.fx.muted) { PP.fx.muted = false; PP.store.set('muted', false); PP.fx.setSound(true); } PP.fx.sfx('great'); } setTimeout(show, 300); } }, 'Play a test sound')),
         status, music,
-        h('p', { class: 'small muted' }, 'No sound? Check the Sound switch in the top bar and your media volume. On iPhone, the ring/silent switch can mute games on older iOS.'),
+        h('p', { class: 'small muted' }, 'No sound? Check the speaker in the top bar, the switches in the Menu, and your media volume. On iPhone, the ring/silent switch can mute games on older iOS.'),
         h('button', { class: 'btn', onclick: () => ov.remove() }, 'Close'))));
     document.body.appendChild(ov);
     show();

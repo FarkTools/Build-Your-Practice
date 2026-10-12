@@ -166,7 +166,7 @@
 
   const WEB_BUF = {};
   fx.sfx = (name) => {
-    if (!fx.sound || !SFX[name]) return;
+    if (!fx.sound || fx.muted || !SFX[name]) return;
     try {
       if (fx.web()) {
         const src = fx.ac.createBufferSource();
@@ -182,10 +182,31 @@
       if (p && p.catch) p.catch((e) => { fx.audio.errors++; fx.audio.last = String(e && e.name || e); });
     } catch (e) { fx.audio.errors++; fx.audio.last = String(e && e.message || e); }
   };
-  fx.soundToggle = () => {
-    const b = h('button', { class: 'fx-sound', 'aria-pressed': String(fx.sound), title: 'Sound effects', onclick: () => { fx.sound = !fx.sound; PP.store.set('sound', fx.sound); document.querySelectorAll('.fx-sound').forEach((x) => { x.setAttribute('aria-pressed', String(fx.sound)); x.textContent = fx.sound ? 'Sound on' : 'Sound off'; }); if (fx.sound) fx.sfx('ding'); } }, fx.sound ? 'Sound on' : 'Sound off');
-    return b;
+  /* Sound settings. Effects and music each have a switch (in the Menu); the speaker in the top
+   * bar is a quick mute for everything that leaves those switches alone. */
+  fx.muted = !!PP.store.get('muted', false);
+  const music = () => !!(PP.audio && PP.audio.music);
+  fx.audible = () => !fx.muted && (fx.sound || music());
+  fx.refreshSound = () => {
+    document.querySelectorAll('.top-speaker').forEach((b) => { const on = fx.audible(); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Mute all sound' : 'Turn sound on'); b.title = on ? 'Mute all sound' : 'Turn sound on'; b.classList.toggle('off', !on); });
+    document.querySelectorAll('[data-switch="sound"]').forEach((x) => x.setAttribute('aria-checked', String(fx.sound)));
+    document.querySelectorAll('[data-switch="music"]').forEach((x) => x.setAttribute('aria-checked', String(music())));
+    document.querySelectorAll('.gm-muted').forEach((x) => { x.hidden = !fx.muted; });
+    document.querySelectorAll('.gm-sound').forEach((x) => x.classList.toggle('is-muted', fx.muted));
+    if (PP.audio && PP.audio.refresh) PP.audio.refresh();
   };
+  fx.setSound = (on) => { fx.sound = !!on; PP.store.set('sound', fx.sound); if (fx.sound) { fx.muted = false; PP.store.set('muted', false); } fx.refreshSound(); if (fx.sound) fx.sfx('ding'); };
+  fx.setMuted = (m) => { fx.muted = !!m; PP.store.set('muted', fx.muted); fx.refreshSound(); };
+  fx.toggleAll = () => {
+    if (fx.audible()) return fx.setMuted(true);
+    fx.muted = false; PP.store.set('muted', false);
+    if (!fx.sound && !music()) { fx.sound = true; PP.store.set('sound', true); if (PP.audio && PP.audio.setMusic) PP.audio.setMusic(true); }
+    fx.refreshSound(); fx.sfx('ding');
+  };
+  const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path class="sp-on" d="M15.5 9a4.2 4.2 0 0 1 0 6M18.2 6.6a7.6 7.6 0 0 1 0 10.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="sp-off" d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  fx.speaker = () => { const b = h('button', { class: 'fx-sound top-speaker', type: 'button', onclick: () => fx.toggleAll() }); b.innerHTML = SPEAKER; setTimeout(fx.refreshSound, 0); return b; };
+  /* Kept for older callers: now returns the speaker. */
+  fx.soundToggle = () => fx.speaker();
 
   /* ---------- Character art ----------
    * Drawn like the map: flat muted fills, one even dark-brown line, no gradients,
@@ -331,7 +352,6 @@
   });
   document.addEventListener('DOMContentLoaded', () => {
     const bar = document.querySelector('.topbar');
-    if (bar && PP.fx.soundToggle) bar.appendChild(PP.fx.soundToggle());
-    if (bar && PP.audio) bar.appendChild(PP.audio.button());
+    if (bar) bar.appendChild(PP.fx.speaker());
   });
 })(window.PP);
