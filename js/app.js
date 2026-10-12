@@ -92,6 +92,14 @@
   const h = PP.h;
   const standalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   if (standalone()) document.documentElement.classList.add('is-app');
+  // Escape hatch: open the game with ?reset to drop the offline copy and start clean (saved careers are kept).
+  if (/[?&]reset\b/.test(location.search) && 'serviceWorker' in navigator) {
+    Promise.all([
+      navigator.serviceWorker.getRegistrations().then((rs) => Promise.all(rs.map((r) => r.unregister()))),
+      window.caches ? caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k)))) : null
+    ]).finally(() => { const u = new URL(location.href); u.searchParams.delete('reset'); location.replace(u.toString()); });
+    return;
+  }
   if ('serviceWorker' in navigator && (/^https:/.test(location.protocol) || location.hostname === 'localhost')) {
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* not critical */ }); });
   }

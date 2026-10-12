@@ -11,9 +11,13 @@
  * iOS ignores audio.volume, so loudness is baked into each loop.
  */
 (function (PP) {
-  const RATE = 22050;
   const A = (PP.audio = { music: PP.store.get('music', true), key: null, held: false });
-  const cache = {};
+
+  /* Everything that makes sound data lives in synthLib. It runs twice: here (a fallback) and as
+   * a background Web Worker built from its own source, so generating a loop (about a second on
+   * a phone) never blocks taps. It must not touch the page: no PP, no document, no URL. */
+  function synthLib(scope) {
+  const RATE = 22050;
   const rnd = (seed) => { let x = seed || 1; return () => { x = (x * 16807) % 2147483647; return x / 2147483647; }; };
 
   /* ---------- tiny DSP toolkit ---------- */
@@ -58,14 +62,14 @@
   function sweep(out, t, dur, f0, f1, vol, type = 'sine', vib = 0) { tone(out, t, dur, (u) => f0 + (f1 - f0) * u, vol, type, 0.02, 0.6, vib); }
   function echo(out, delay, fb) { const d = Math.floor(delay * RATE); for (let i = 0; i < out.length; i++) out[i] += out[(i - d + out.length) % out.length] * fb; }
 
-  function toWav(f) {
+  function wavBytes(f) {
     // soft limiter so nothing clips, then 16-bit PCM
     const out = new DataView(new ArrayBuffer(44 + f.length * 2));
     const str = (o, s) => [...s].forEach((ch, i) => out.setUint8(o + i, ch.charCodeAt(0)));
     str(0, 'RIFF'); out.setUint32(4, 36 + f.length * 2, true); str(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
     out.setUint32(24, RATE, true); out.setUint32(28, RATE * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); str(36, 'data'); out.setUint32(40, f.length * 2, true);
     for (let i = 0; i < f.length; i++) out.setInt16(44 + i * 2, Math.tanh(f[i]) * 32767, true);
-    return URL.createObjectURL(new Blob([out], { type: 'audio/wav' }));
+    return out.buffer;
   }
 
   /* ---------- ambience ----------
@@ -166,8 +170,7 @@
     return o;
   }
 
-  function render(key) {
-    if (cache[key]) return cache[key];
+  function renderRaw(key) {
     const [kind, name] = key.split(':');
     let o;
     if (kind === 'music') o = renderMusic(MOODS[name] || MOODS.calm, name.length * 97 + 13);
@@ -178,10 +181,42 @@
     const rms = Math.sqrt(sum / o.length) || 1;
     const k = Math.min(kind === 'music' ? 25 : 6, (kind === 'music' ? 0.1 : 0.05) / rms, 0.8 / (peak || 1));
     for (let i = 0; i < o.length; i++) o[i] *= k;
-    return (cache[key] = o);
+    return o;
   }
+  if (scope) scope.onmessage = (e) => {
+    const key = e.data && e.data.key;
+    try { const f = renderRaw(key), w = wavBytes(f); scope.postMessage({ key, f, w }, [f.buffer, w]); }
+    catch (err) { scope.postMessage({ key, err: String(err && err.message || err) }); }
+  };
+  return { RATE, renderRaw, wavBytes };
+  }
+
+  const LIB = synthLib(null);
+  const RATE = LIB.RATE;
+  const cache = {}, wavs = {}, waiting = {};
+  let worker = null;
+  try {
+    worker = new Worker(URL.createObjectURL(new Blob(['(' + synthLib.toString() + ')(self);'], { type: 'text/javascript' })));
+    worker.onmessage = (e) => {
+      const { key, f, w, err } = e.data || {};
+      if (!err) { cache[key] = f; wavs[key] = w; }
+      const done = waiting[key]; delete waiting[key];
+      if (done) done.forEach((fn) => fn());
+    };
+    worker.onerror = () => { worker = null; Object.keys(waiting).forEach((k) => { const d = waiting[k]; delete waiting[k]; d.forEach((fn) => fn()); }); };
+  } catch (e) { worker = null; }
+  /* Make sure a loop exists, without blocking the page. Calls back when it's ready. */
+  function ensure(key, then) {
+    if (cache[key]) { if (then) then(); return; }
+    if (waiting[key]) { if (then) waiting[key].push(then); return; }
+    waiting[key] = then ? [then] : [];
+    if (worker) { worker.postMessage({ key }); return; }
+    // No worker: render on the page, but after the current tap has finished drawing.
+    setTimeout(() => { try { render(key); } catch (e) { /* ignore */ } const d = waiting[key] || []; delete waiting[key]; d.forEach((fn) => fn()); }, 60);
+  }
+  function render(key) { return cache[key] || (cache[key] = LIB.renderRaw(key)); } // synchronous; tests and fallback only
   const urls = {};
-  const urlFor = (key) => urls[key] || (urls[key] = toWav(render(key)));
+  const urlFor = (key) => urls[key] || (urls[key] = URL.createObjectURL(new Blob([wavs[key] || LIB.wavBytes(render(key))], { type: 'audio/wav' })));
 
   /* ---------- players ----------
    * Web Audio path (preferred): a looping buffer source into the shared master, so
@@ -220,7 +255,8 @@
     const want = key && A.music && !A.held;
     const f = FX();
     if (!want) { stopWeb(); stopHtml(); return; }
-    if (!f.audio || !f.audio.unlocked) return; // nothing can play before the first tap
+    if (!f.audio || !f.audio.unlocked) { ensure(key); return; } // nothing can play before the first tap, but get it ready
+    if (!cache[key]) { ensure(key, () => { if (A.key === key) apply(key); }); return; } // still generating: the current loop keeps playing until it's ready
     try {
       if (f.web && f.web()) { stopHtml(); playWeb(key); A.engine = 'web'; }
       else { stopWeb(); playHtml(key); A.engine = 'html'; }
@@ -228,11 +264,8 @@
   }
   // The first tap starts the engine; whenever the engine state changes, (re)start the right loop.
   document.addEventListener('pp-audio', () => apply(A.key));
-  let warmed = false;
-  document.addEventListener('pp-audio', () => {
-    if (warmed) return; warmed = true;
-    ['music:calm', 'town:docks', 'town:office', 'town:square', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => render(k), 1500 + i * 900));
-  });
+  // Warm up the common loops in the background (the worker does the work; the page stays responsive).
+  ['music:title', 'town:office', 'music:calm', 'town:docks', 'town:square', 'town:trailhead', 'music:tense', 'music:bright'].forEach((k, i) => setTimeout(() => { if (worker) ensure(k); }, 800 + i * 400));
   // On every tap: if music should be playing but isn't (iOS can stop it), start it right there.
   ['touchend', 'click'].forEach((t) => document.addEventListener(t, () => {
     const f = FX();
