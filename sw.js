@@ -4,7 +4,7 @@
  * - Google Fonts: cache first once fetched.
  * - The version check (js/version.js?check=...) always goes to the network.
  * VERSION is rewritten by tools/stamp.py; a new version replaces the old cache. */
-const VERSION = '0.16.0';
+const VERSION = '0.16.1';
 const CACHE = 'byp-' + VERSION;
 
 self.addEventListener('install', (e) => {

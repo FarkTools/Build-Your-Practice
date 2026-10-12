@@ -1,6 +1,6 @@
 {
   "name": "Build Your Practice",
-  "short_name": "Your Practice",
+  "short_name": "Build Your Practice",
   "description": "A light adventure game about building a client practice.",
   "start_url": "./",
   "scope": "./",
