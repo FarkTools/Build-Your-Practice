@@ -57,6 +57,9 @@
   }
   PP.ui.about = about;
   document.addEventListener('DOMContentLoaded', () => {
+    const bar = document.querySelector('.topbar');
+    if (bar && PP.ui.openMenu) bar.appendChild(h('button', { class: 'fx-sound top-menu', 'aria-label': 'Menu', title: 'Menu', onclick: () => PP.ui.openMenu() },
+      h('span', { class: 'tm-bars', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')), h('span', { class: 'tm-label' }, 'Menu')));
     const foot = document.querySelector('.site-foot');
     if (foot) foot.appendChild(h('button', { class: 'foot-link', onclick: about }, `© ${PP.BUILT.slice(0, 4)} FarkTools · v${PP.VERSION}`));
   });

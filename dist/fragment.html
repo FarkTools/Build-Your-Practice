@@ -1135,6 +1135,42 @@ html { background: var(--navy); }
 .install-tip .it-share svg { width: 100%; height: 100%; display: block; }
 .it-x { background: none; border: 0; font-size: 1.4rem; line-height: 1; color: var(--ink-2); cursor: pointer; padding: 2px 4px; }
 
+/* ---------- Menu ---------- */
+.topbar .top-menu { display: inline-flex; align-items: center; gap: 6px; }
+.tm-bars { display: grid; gap: 3px; width: 14px; }
+.tm-bars i { display: block; height: 2px; border-radius: 1px; background: currentColor; }
+.game-menu { place-items: start end; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 12px; }
+.gm-card { width: min(360px, 100%); background: var(--parch); border: 2px solid var(--orange); border-radius: 14px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 14px 30px -12px #000; animation: rise .16s ease-out; }
+.gm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.gm-head h3 { font-size: 1rem; color: var(--navy); margin: 2px 0 0; }
+.gm-list { display: grid; gap: 6px; }
+.gm-item { display: grid; gap: 1px; text-align: left; background: var(--fog); border: 1.5px solid var(--ink-3); border-radius: 10px; padding: 10px 12px; color: var(--ink); font: inherit; cursor: pointer; min-height: 48px; }
+.gm-item:hover, .gm-item:focus-visible { border-color: var(--orange); outline: none; background: #fff; }
+.gm-item strong { font-size: 0.98rem; }
+.gm-item span { font-size: 0.8rem; color: var(--ink-2); }
+.gm-item.gm-back { background: var(--navy); border-color: var(--navy); color: var(--parch); }
+.gm-item.gm-back:hover, .gm-item.gm-back:focus-visible { background: var(--navy-2); }
+.gm-confirm { display: grid; gap: 10px; background: var(--fog); border: 1.5px solid var(--red); border-radius: 10px; padding: 12px; }
+.gm-confirm p { margin: 0; font-size: 0.9rem; }
+@media (max-width: 560px) {
+  .game-menu { place-items: start stretch; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+  .gm-card { width: 100%; }
+}
+@media (max-width: 420px) {
+  .topbar .top-menu .tm-label { display: none; }
+  .topbar .top-menu { padding: 6px 9px; }
+}
+.brand span { white-space: nowrap; }
+@media (max-width: 460px) {
+  .topbar { gap: 5px; }
+  .brand { font-size: 0.95rem; gap: 7px; }
+  .brand-mark { width: 26px; height: 26px; }
+  .topbar .fx-sound { font-size: 0.62rem; padding: 3px 7px; }
+  .topbar .top-menu .tm-label { display: none; }
+  .topbar .top-menu { padding: 5px 8px; }
+}
+@media (max-width: 380px) { .brand { font-size: 0.86rem; } }
+
 </style>
 <style>
 /* Mini-game additions and phone layout.
@@ -1757,9 +1793,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.16.2';
+  PP.VERSION = '0.17.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.17.0', 'Never lose your place: refreshing or reopening takes you right back to the port or the trail where you were, and a Menu in the top bar reaches the title screen or a new career from anywhere'],
     ['0.16.2', 'Snappier on iPhone: music is generated in the background so taps never wait on it, and the offline copy always prefers fresh files when you are online'],
     ['0.16.1', 'The home screen icon is named Build Your Practice'],
     ['0.16.0', 'Add it to your home screen: app icon, full-screen launch with no browser bars, and offline play once opened. On iPhone: Share, then Add to Home Screen'],
@@ -11504,10 +11541,32 @@ window.PP = window.PP || {};
     if (T.keys) document.removeEventListener('keydown', T.keys);
     T.keys = onKey; document.addEventListener('keydown', T.keys);
     renderLedger(); renderSide();
+    if (hooks && hooks.restore) {
+      // Picking up a saved journey after a refresh or relaunch: same place, same diary.
+      T.narr = hooks.restore.slice(-40);
+      say(`You pick up where you left off, day ${s.day}.`, 'arrive');
+      menu();
+      return;
+    }
     if (s.followUp) say(s.client.followCall || `${s.client.name} called. Life has changed.`);
     say(s.resumed ? `Day ${s.day}. You and ${s.client.name} head out of Port Prospect again, picking up where you left off.` : s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.` + (PP.you && PP.you(s.career) ? ` "Lead the way, ${PP.you(s.career)}."` : ''));
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
     showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
+  };
+
+  /* ---------- Saving ----------
+   * At every decision point (the menu, and between travel days) the whole journey is saved,
+   * so a refresh or relaunch puts you right back here. Events and mini-games in progress
+   * are not saved: you return to the decision just before them. */
+  function checkpoint() { if (T.hooks && T.hooks.checkpoint) { try { T.hooks.checkpoint(T.narr); } catch (e) { /* storage full or blocked */ } } }
+  T.active = () => !!(T.root && T.root.isConnected && T.scene);
+  T.safe = () => T.active() && T.mode === 'menu';
+  T.stop = function () {
+    clearTimeout(T.timer);
+    if (T.keys) document.removeEventListener('keydown', T.keys);
+    if (T.scene) { T.scene.destroy(); T.scene = null; }
+    document.querySelectorAll('.overlay').forEach((o) => o.remove());
+    document.body.classList.remove('modal-open');
   };
 
   /* ---------- helpers ---------- */
@@ -11676,6 +11735,7 @@ window.PP = window.PP || {};
       h('p', { class: 'you-may' }, 'What will you do? Tap one.'),
       menuList(items));
     focusFirst();
+    checkpoint();
   }
   /* Show which hidden passages exist here, so players know what to work toward. */
   function passageHint(id) {
@@ -11803,6 +11863,7 @@ window.PP = window.PP || {};
     const chance = 0.3 + Math.min(3, s.style.chase) * 0.08;
     if (!T.firstDay && PP.chance(chance)) { const ev = pickEncounter(); if (ev) return stopFor(ev); }
     T.firstDay = false;
+    checkpoint();
     T.timer = setTimeout(day, 1100);
   }
 
@@ -12331,7 +12392,35 @@ window.PP = window.PP || {};
   const money = (n) => PP.career.money(n);
   const P = () => PP.content.practice;
 
-  PP.ui.mountGame = function (root) { G.root = root; G.challenge = PP.challenge ? PP.challenge.read() : null; intro(); };
+  PP.ui.mountGame = function (root) { G.root = root; G.challenge = PP.challenge ? PP.challenge.read() : null; boot(); };
+
+  /* ---------------- Where you left off ----------------
+   * A refresh or relaunch goes straight back to where you were: the port, or the trail at
+   * your last decision. The title screen only shows when you choose it (Menu → Title screen),
+   * have no career yet, or opened a friend's challenge link. */
+  const where = (w) => PP.store.set('where', w);
+  function boot() {
+    const saved = PP.career.load();
+    if (G.challenge || !saved || PP.store.get('where', '') === 'title') return intro();
+    G.career = saved; G.place = null;
+    const snap = PP.store.get('journey', null);
+    if (snap && snap.s && PP.store.get('where', '') === 'trail') return resumeJourney(snap);
+    port(null);
+  }
+  function snapshot(s) { const copy = Object.assign({}, s); delete copy.career; return copy; }
+  function checkpointer(s) {
+    return (narr) => { PP.career.save(G.career); PP.store.set('journey', { v: 1, at: Date.now(), s: snapshot(s), narr }); where('trail'); };
+  }
+  function clearJourney() { PP.store.set('journey', null); }
+  function resumeJourney(snap) {
+    const c = G.career, s = snap.s;
+    s.career = c; s.skills = c.skills; s.contacts = c.contacts; s.met = c.met; s.quests = c.quests;
+    G.s = s;
+    G.root.innerHTML = '';
+    where('trail');
+    PP.ui.startTrail(G.root, s, { onEnd: journeyEnd, checkpoint: checkpointer(s), restore: snap.narr || [] });
+  }
+  function hasJourney() { const snap = PP.store.get('journey', null); return !!(snap && snap.s); }
 
   function screen(...kids) {
     G.root.innerHTML = '';
@@ -12352,7 +12441,7 @@ window.PP = window.PP || {};
         G.challenge ? challengeCard(G.challenge, !!saved) : null,
         PP.ui.installTip ? PP.ui.installTip() : null,
         h('div', { class: 'row' },
-          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; port(null); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
+          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; const snap = PP.store.get('journey', null); if (snap && snap.s) resumeJourney(snap); else port(null); } }, hasJourney() ? `Continue your journey with ${(PP.store.get('journey', {}).s.client || {}).name || 'your client'}` : `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
           h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: chooseAgent }, saved ? 'Start a new career' : 'Start your career'))),
       h('div', { class: 'intro-map', id: 'intro-map' })));
     const demo = PP.newState();
@@ -12380,6 +12469,7 @@ window.PP = window.PP || {};
     const start = (a) => {
       PP.profile.set({ name: nameIn.value, practice: pracIn.value });
       const pf = PP.profile.get();
+      clearJourney();
       G.career = PP.newCareer(a.id);
       G.career.you = pf.name; G.career.practiceName = pf.practice;
       let flash = `Day 1. You hang ${pf.name ? pf.name + "'s" : 'your'} license on the wall at Port Prospect${pf.practice ? `, under a hand-painted sign: ${pf.practice}` : ''}. Time to find some people to help.`;
@@ -12488,6 +12578,7 @@ window.PP = window.PP || {};
 
   /* Port Prospect is a little town. Tap a place to see what you can do there. */
   function port(where, flash) {
+    PP.store.set('where', 'port');
     const c = G.career, T = PP.content.town;
     const want = T.places[where] ? where : T.tabPlace[where];
     if (want) G.place = want;
@@ -12974,12 +13065,14 @@ window.PP = window.PP || {};
     G.s = s;
     PP.career.save(c);
     G.root.innerHTML = '';
-    PP.ui.startTrail(G.root, s, { onEnd: journeyEnd });
+    where('trail');
+    PP.ui.startTrail(G.root, s, { onEnd: journeyEnd, checkpoint: checkpointer(s) });
   }
 
   /* ---------------- Journey report ---------------- */
   /* Walked back into town mid-journey: the prospect goes back to the Trailhead, remembering everything. */
   function pauseJourney() {
+    clearJourney();
     const s = G.s, c = G.career, cl = s.client, p = s.origin || {};
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
     const carry = {
@@ -13001,6 +13094,7 @@ window.PP = window.PP || {};
 
   function journeyEnd(kind, reckoned) {
     if (kind === 'home') return pauseJourney();
+    clearJourney(); where('port');
     const s = G.s, c = G.career, cl = s.client;
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;
@@ -13082,7 +13176,7 @@ window.PP = window.PP || {};
         h('div', { class: 'row' },
           h('button', { class: 'btn primary big', onclick: () => port(c.pipeline.length ? 'pipeline' : 'prospect', [{ text: `Back at Port Prospect after ${s.day} days away.`, kind: 'info' }]) }, 'Back to Port Prospect'),
           shareBtn,
-          h('button', { class: 'btn ghost', onclick: intro }, 'Title screen')),
+          h('button', { class: 'btn ghost', onclick: () => { where('title'); intro(); } }, 'Title screen')),
         ch ? h('div', { class: 'panel challenge-result r-' + beat },
           h('div', { class: 'eyebrow' }, `${ch.by}'s challenge`),
           h('h3', null, beat === 'won' ? `You beat ${ch.by}${you ? ', ' + you : ''}!` : beat === 'tie' ? `Dead even with ${ch.by}.` : `${ch.by} still holds the record.`),
@@ -13126,6 +13220,7 @@ window.PP = window.PP || {};
   }
 
   function unemployed() {
+    clearJourney();
     const c = G.career;
     PP.audio && PP.audio.bed('music:night');
     screen(h('section', { class: 'ending' },
@@ -13152,6 +13247,43 @@ window.PP = window.PP || {};
     if (s.destination === 'not_now') return `${c.name} walked away undecided, and not in a good way. Without enough trust, "not now" means "not with you."`;
     return `${d} looked like the obvious destination, but it did not fit ${c.name}'s real situation.` + (keyKnown ? ' You knew enough to choose differently.' : ` The thing you never found out: ${c.facts[c.keyFact].label.toLowerCase()}.`);
   }
+
+  /* ---------------- Menu (top bar) ----------------
+   * Always reachable, including in the home screen app where there is no reload button. */
+  function leaveTrail() {
+    if (PP.trail && PP.trail.active && PP.trail.active()) PP.trail.stop();
+  }
+  PP.ui.openMenu = function () {
+    if (document.querySelector('.game-menu')) return;
+    const c = G.career && !G.career.over ? G.career : null;
+    const onTrail = !!(PP.trail && PP.trail.active && PP.trail.active());
+    const close = () => { ov.remove(); document.body.classList.remove('modal-open'); };
+    const item = (label, note, fn, cls) => h('button', { class: 'gm-item ' + (cls || ''), onclick: () => { close(); fn(); } }, h('strong', null, label), note ? h('span', null, note) : null);
+    const confirmNew = () => {
+      const box = h('div', { class: 'gm-confirm' },
+        h('p', null, h('strong', null, 'Start over?'), ` This replaces your current career (day ${c.days}, ${PP.career.levelInfo(c).label}${onTrail ? ', and the journey you are on' : ''}) once you pick your new agent.`),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn primary', onclick: () => { close(); leaveTrail(); where('title'); chooseAgent(); } }, 'Yes, start a new career'),
+          h('button', { class: 'btn ghost', onclick: () => box.replaceWith(list) }, 'Cancel')));
+      list.replaceWith(box);
+    };
+    const list = h('div', { class: 'gm-list' },
+      item('Back to the game', null, () => {}, 'gm-back'),
+      c ? item('Title screen', onTrail ? `Your journey with ${G.s && G.s.client ? G.s.client.name : 'your client'} is saved. Continue picks it up.` : 'Your career is saved. Continue picks it up.', () => { leaveTrail(); where('title'); intro(); }) : item('Title screen', null, () => { leaveTrail(); where('title'); intro(); }),
+      c ? h('button', { class: 'gm-item gm-new', onclick: () => confirmNew() }, h('strong', null, 'Start a new career'), h('span', null, 'Pick a new agent and start from day 1.')) : null,
+      item('About and sound check', `Version ${PP.VERSION}`, () => PP.ui.about && PP.ui.about()));
+    const ov = h('div', { class: 'overlay game-menu', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Menu', onclick: (e) => { if (e.target === ov) close(); } },
+      h('div', { class: 'gm-card' },
+        h('div', { class: 'gm-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Menu'),
+          h('h3', null, c ? [PP.youFull(c) || PP.career.agent(c).name, `Day ${c.days + 1} · ${PP.career.levelInfo(c).label}`].join(' · ') : 'Build Your Practice')),
+          h('button', { class: 'mv-x', 'aria-label': 'Close menu', onclick: close }, '×')),
+        list));
+    document.body.appendChild(ov);
+    document.body.classList.add('modal-open');
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); document.removeEventListener('keydown', onKey, true); } };
+    document.addEventListener('keydown', onKey, true);
+    ov.querySelector('.gm-back').focus({ preventScroll: true });
+  };
 
   function toast(msg) {
     const t = h('div', { class: 'toast', role: 'status' }, msg);
@@ -13223,6 +13355,9 @@ window.PP = window.PP || {};
   }
   PP.ui.about = about;
   document.addEventListener('DOMContentLoaded', () => {
+    const bar = document.querySelector('.topbar');
+    if (bar && PP.ui.openMenu) bar.appendChild(h('button', { class: 'fx-sound top-menu', 'aria-label': 'Menu', title: 'Menu', onclick: () => PP.ui.openMenu() },
+      h('span', { class: 'tm-bars', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')), h('span', { class: 'tm-label' }, 'Menu')));
     const foot = document.querySelector('.site-foot');
     if (foot) foot.appendChild(h('button', { class: 'foot-link', onclick: about }, `© ${PP.BUILT.slice(0, 4)} FarkTools · v${PP.VERSION}`));
   });

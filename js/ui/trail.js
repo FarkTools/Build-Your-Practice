@@ -53,10 +53,32 @@
     if (T.keys) document.removeEventListener('keydown', T.keys);
     T.keys = onKey; document.addEventListener('keydown', T.keys);
     renderLedger(); renderSide();
+    if (hooks && hooks.restore) {
+      // Picking up a saved journey after a refresh or relaunch: same place, same diary.
+      T.narr = hooks.restore.slice(-40);
+      say(`You pick up where you left off, day ${s.day}.`, 'arrive');
+      menu();
+      return;
+    }
     if (s.followUp) say(s.client.followCall || `${s.client.name} called. Life has changed.`);
     say(s.resumed ? `Day ${s.day}. You and ${s.client.name} head out of Port Prospect again, picking up where you left off.` : s.followUp ? `Day 1. You and ${s.client.name} set out again, lap ${s.followUp.lap} of your relationship. They already trust you, so the trails feel shorter.` : `Day 1. You and ${s.client.name} shoulder your packs at Port Prospect.` + (PP.you && PP.you(s.career) ? ` "Lead the way, ${PP.you(s.career)}."` : ''));
     T.scene.cut('depart', { title: 'Leaving Port Prospect', caption: `${s.client.name}: ${s.client.opener}` }).then(() => menu());
     showJournal(h('p', { class: 'muted' }, 'Lacing up your boots…'));
+  };
+
+  /* ---------- Saving ----------
+   * At every decision point (the menu, and between travel days) the whole journey is saved,
+   * so a refresh or relaunch puts you right back here. Events and mini-games in progress
+   * are not saved: you return to the decision just before them. */
+  function checkpoint() { if (T.hooks && T.hooks.checkpoint) { try { T.hooks.checkpoint(T.narr); } catch (e) { /* storage full or blocked */ } } }
+  T.active = () => !!(T.root && T.root.isConnected && T.scene);
+  T.safe = () => T.active() && T.mode === 'menu';
+  T.stop = function () {
+    clearTimeout(T.timer);
+    if (T.keys) document.removeEventListener('keydown', T.keys);
+    if (T.scene) { T.scene.destroy(); T.scene = null; }
+    document.querySelectorAll('.overlay').forEach((o) => o.remove());
+    document.body.classList.remove('modal-open');
   };
 
   /* ---------- helpers ---------- */
@@ -225,6 +247,7 @@
       h('p', { class: 'you-may' }, 'What will you do? Tap one.'),
       menuList(items));
     focusFirst();
+    checkpoint();
   }
   /* Show which hidden passages exist here, so players know what to work toward. */
   function passageHint(id) {
@@ -352,6 +375,7 @@
     const chance = 0.3 + Math.min(3, s.style.chase) * 0.08;
     if (!T.firstDay && PP.chance(chance)) { const ev = pickEncounter(); if (ev) return stopFor(ev); }
     T.firstDay = false;
+    checkpoint();
     T.timer = setTimeout(day, 1100);
   }
 

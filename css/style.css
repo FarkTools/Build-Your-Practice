@@ -1110,3 +1110,39 @@ html { background: var(--navy); }
 .install-tip .it-share { display: inline-block; width: 15px; height: 18px; vertical-align: -3px; color: #0a7aff; }
 .install-tip .it-share svg { width: 100%; height: 100%; display: block; }
 .it-x { background: none; border: 0; font-size: 1.4rem; line-height: 1; color: var(--ink-2); cursor: pointer; padding: 2px 4px; }
+
+/* ---------- Menu ---------- */
+.topbar .top-menu { display: inline-flex; align-items: center; gap: 6px; }
+.tm-bars { display: grid; gap: 3px; width: 14px; }
+.tm-bars i { display: block; height: 2px; border-radius: 1px; background: currentColor; }
+.game-menu { place-items: start end; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 12px; }
+.gm-card { width: min(360px, 100%); background: var(--parch); border: 2px solid var(--orange); border-radius: 14px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 14px 30px -12px #000; animation: rise .16s ease-out; }
+.gm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.gm-head h3 { font-size: 1rem; color: var(--navy); margin: 2px 0 0; }
+.gm-list { display: grid; gap: 6px; }
+.gm-item { display: grid; gap: 1px; text-align: left; background: var(--fog); border: 1.5px solid var(--ink-3); border-radius: 10px; padding: 10px 12px; color: var(--ink); font: inherit; cursor: pointer; min-height: 48px; }
+.gm-item:hover, .gm-item:focus-visible { border-color: var(--orange); outline: none; background: #fff; }
+.gm-item strong { font-size: 0.98rem; }
+.gm-item span { font-size: 0.8rem; color: var(--ink-2); }
+.gm-item.gm-back { background: var(--navy); border-color: var(--navy); color: var(--parch); }
+.gm-item.gm-back:hover, .gm-item.gm-back:focus-visible { background: var(--navy-2); }
+.gm-confirm { display: grid; gap: 10px; background: var(--fog); border: 1.5px solid var(--red); border-radius: 10px; padding: 12px; }
+.gm-confirm p { margin: 0; font-size: 0.9rem; }
+@media (max-width: 560px) {
+  .game-menu { place-items: start stretch; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+  .gm-card { width: 100%; }
+}
+@media (max-width: 420px) {
+  .topbar .top-menu .tm-label { display: none; }
+  .topbar .top-menu { padding: 6px 9px; }
+}
+.brand span { white-space: nowrap; }
+@media (max-width: 460px) {
+  .topbar { gap: 5px; }
+  .brand { font-size: 0.95rem; gap: 7px; }
+  .brand-mark { width: 26px; height: 26px; }
+  .topbar .fx-sound { font-size: 0.62rem; padding: 3px 7px; }
+  .topbar .top-menu .tm-label { display: none; }
+  .topbar .top-menu { padding: 5px 8px; }
+}
+@media (max-width: 380px) { .brand { font-size: 0.86rem; } }

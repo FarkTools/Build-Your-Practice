@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.16.2';
+  PP.VERSION = '0.17.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.17.0', 'Never lose your place: refreshing or reopening takes you right back to the port or the trail where you were, and a Menu in the top bar reaches the title screen or a new career from anywhere'],
     ['0.16.2', 'Snappier on iPhone: music is generated in the background so taps never wait on it, and the offline copy always prefers fresh files when you are online'],
     ['0.16.1', 'The home screen icon is named Build Your Practice'],
     ['0.16.0', 'Add it to your home screen: app icon, full-screen launch with no browser bars, and offline play once opened. On iPhone: Share, then Add to Home Screen'],

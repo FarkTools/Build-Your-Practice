@@ -8,7 +8,35 @@
   const money = (n) => PP.career.money(n);
   const P = () => PP.content.practice;
 
-  PP.ui.mountGame = function (root) { G.root = root; G.challenge = PP.challenge ? PP.challenge.read() : null; intro(); };
+  PP.ui.mountGame = function (root) { G.root = root; G.challenge = PP.challenge ? PP.challenge.read() : null; boot(); };
+
+  /* ---------------- Where you left off ----------------
+   * A refresh or relaunch goes straight back to where you were: the port, or the trail at
+   * your last decision. The title screen only shows when you choose it (Menu → Title screen),
+   * have no career yet, or opened a friend's challenge link. */
+  const where = (w) => PP.store.set('where', w);
+  function boot() {
+    const saved = PP.career.load();
+    if (G.challenge || !saved || PP.store.get('where', '') === 'title') return intro();
+    G.career = saved; G.place = null;
+    const snap = PP.store.get('journey', null);
+    if (snap && snap.s && PP.store.get('where', '') === 'trail') return resumeJourney(snap);
+    port(null);
+  }
+  function snapshot(s) { const copy = Object.assign({}, s); delete copy.career; return copy; }
+  function checkpointer(s) {
+    return (narr) => { PP.career.save(G.career); PP.store.set('journey', { v: 1, at: Date.now(), s: snapshot(s), narr }); where('trail'); };
+  }
+  function clearJourney() { PP.store.set('journey', null); }
+  function resumeJourney(snap) {
+    const c = G.career, s = snap.s;
+    s.career = c; s.skills = c.skills; s.contacts = c.contacts; s.met = c.met; s.quests = c.quests;
+    G.s = s;
+    G.root.innerHTML = '';
+    where('trail');
+    PP.ui.startTrail(G.root, s, { onEnd: journeyEnd, checkpoint: checkpointer(s), restore: snap.narr || [] });
+  }
+  function hasJourney() { const snap = PP.store.get('journey', null); return !!(snap && snap.s); }
 
   function screen(...kids) {
     G.root.innerHTML = '';
@@ -29,7 +57,7 @@
         G.challenge ? challengeCard(G.challenge, !!saved) : null,
         PP.ui.installTip ? PP.ui.installTip() : null,
         h('div', { class: 'row' },
-          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; port(null); } }, `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
+          saved ? h('button', { class: 'btn primary big', onclick: () => { G.career = saved; G.place = null; const snap = PP.store.get('journey', null); if (snap && snap.s) resumeJourney(snap); else port(null); } }, hasJourney() ? `Continue your journey with ${(PP.store.get('journey', {}).s.client || {}).name || 'your client'}` : `Continue (day ${saved.days}, ${PP.career.levelInfo(saved).label})`) : null,
           h('button', { class: 'btn ' + (saved ? 'ghost' : 'primary big'), onclick: chooseAgent }, saved ? 'Start a new career' : 'Start your career'))),
       h('div', { class: 'intro-map', id: 'intro-map' })));
     const demo = PP.newState();
@@ -57,6 +85,7 @@
     const start = (a) => {
       PP.profile.set({ name: nameIn.value, practice: pracIn.value });
       const pf = PP.profile.get();
+      clearJourney();
       G.career = PP.newCareer(a.id);
       G.career.you = pf.name; G.career.practiceName = pf.practice;
       let flash = `Day 1. You hang ${pf.name ? pf.name + "'s" : 'your'} license on the wall at Port Prospect${pf.practice ? `, under a hand-painted sign: ${pf.practice}` : ''}. Time to find some people to help.`;
@@ -165,6 +194,7 @@
 
   /* Port Prospect is a little town. Tap a place to see what you can do there. */
   function port(where, flash) {
+    PP.store.set('where', 'port');
     const c = G.career, T = PP.content.town;
     const want = T.places[where] ? where : T.tabPlace[where];
     if (want) G.place = want;
@@ -651,12 +681,14 @@
     G.s = s;
     PP.career.save(c);
     G.root.innerHTML = '';
-    PP.ui.startTrail(G.root, s, { onEnd: journeyEnd });
+    where('trail');
+    PP.ui.startTrail(G.root, s, { onEnd: journeyEnd, checkpoint: checkpointer(s) });
   }
 
   /* ---------------- Journey report ---------------- */
   /* Walked back into town mid-journey: the prospect goes back to the Trailhead, remembering everything. */
   function pauseJourney() {
+    clearJourney();
     const s = G.s, c = G.career, cl = s.client, p = s.origin || {};
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
     const carry = {
@@ -678,6 +710,7 @@
 
   function journeyEnd(kind, reckoned) {
     if (kind === 'home') return pauseJourney();
+    clearJourney(); where('port');
     const s = G.s, c = G.career, cl = s.client;
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;
@@ -759,7 +792,7 @@
         h('div', { class: 'row' },
           h('button', { class: 'btn primary big', onclick: () => port(c.pipeline.length ? 'pipeline' : 'prospect', [{ text: `Back at Port Prospect after ${s.day} days away.`, kind: 'info' }]) }, 'Back to Port Prospect'),
           shareBtn,
-          h('button', { class: 'btn ghost', onclick: intro }, 'Title screen')),
+          h('button', { class: 'btn ghost', onclick: () => { where('title'); intro(); } }, 'Title screen')),
         ch ? h('div', { class: 'panel challenge-result r-' + beat },
           h('div', { class: 'eyebrow' }, `${ch.by}'s challenge`),
           h('h3', null, beat === 'won' ? `You beat ${ch.by}${you ? ', ' + you : ''}!` : beat === 'tie' ? `Dead even with ${ch.by}.` : `${ch.by} still holds the record.`),
@@ -803,6 +836,7 @@
   }
 
   function unemployed() {
+    clearJourney();
     const c = G.career;
     PP.audio && PP.audio.bed('music:night');
     screen(h('section', { class: 'ending' },
@@ -829,6 +863,43 @@
     if (s.destination === 'not_now') return `${c.name} walked away undecided, and not in a good way. Without enough trust, "not now" means "not with you."`;
     return `${d} looked like the obvious destination, but it did not fit ${c.name}'s real situation.` + (keyKnown ? ' You knew enough to choose differently.' : ` The thing you never found out: ${c.facts[c.keyFact].label.toLowerCase()}.`);
   }
+
+  /* ---------------- Menu (top bar) ----------------
+   * Always reachable, including in the home screen app where there is no reload button. */
+  function leaveTrail() {
+    if (PP.trail && PP.trail.active && PP.trail.active()) PP.trail.stop();
+  }
+  PP.ui.openMenu = function () {
+    if (document.querySelector('.game-menu')) return;
+    const c = G.career && !G.career.over ? G.career : null;
+    const onTrail = !!(PP.trail && PP.trail.active && PP.trail.active());
+    const close = () => { ov.remove(); document.body.classList.remove('modal-open'); };
+    const item = (label, note, fn, cls) => h('button', { class: 'gm-item ' + (cls || ''), onclick: () => { close(); fn(); } }, h('strong', null, label), note ? h('span', null, note) : null);
+    const confirmNew = () => {
+      const box = h('div', { class: 'gm-confirm' },
+        h('p', null, h('strong', null, 'Start over?'), ` This replaces your current career (day ${c.days}, ${PP.career.levelInfo(c).label}${onTrail ? ', and the journey you are on' : ''}) once you pick your new agent.`),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn primary', onclick: () => { close(); leaveTrail(); where('title'); chooseAgent(); } }, 'Yes, start a new career'),
+          h('button', { class: 'btn ghost', onclick: () => box.replaceWith(list) }, 'Cancel')));
+      list.replaceWith(box);
+    };
+    const list = h('div', { class: 'gm-list' },
+      item('Back to the game', null, () => {}, 'gm-back'),
+      c ? item('Title screen', onTrail ? `Your journey with ${G.s && G.s.client ? G.s.client.name : 'your client'} is saved. Continue picks it up.` : 'Your career is saved. Continue picks it up.', () => { leaveTrail(); where('title'); intro(); }) : item('Title screen', null, () => { leaveTrail(); where('title'); intro(); }),
+      c ? h('button', { class: 'gm-item gm-new', onclick: () => confirmNew() }, h('strong', null, 'Start a new career'), h('span', null, 'Pick a new agent and start from day 1.')) : null,
+      item('About and sound check', `Version ${PP.VERSION}`, () => PP.ui.about && PP.ui.about()));
+    const ov = h('div', { class: 'overlay game-menu', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Menu', onclick: (e) => { if (e.target === ov) close(); } },
+      h('div', { class: 'gm-card' },
+        h('div', { class: 'gm-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Menu'),
+          h('h3', null, c ? [PP.youFull(c) || PP.career.agent(c).name, `Day ${c.days + 1} · ${PP.career.levelInfo(c).label}`].join(' · ') : 'Build Your Practice')),
+          h('button', { class: 'mv-x', 'aria-label': 'Close menu', onclick: close }, '×')),
+        list));
+    document.body.appendChild(ov);
+    document.body.classList.add('modal-open');
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); document.removeEventListener('keydown', onKey, true); } };
+    document.addEventListener('keydown', onKey, true);
+    ov.querySelector('.gm-back').focus({ preventScroll: true });
+  };
 
   function toast(msg) {
     const t = h('div', { class: 'toast', role: 'status' }, msg);
