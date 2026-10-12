@@ -51,6 +51,8 @@
         h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { if (PP.fx) { if (!PP.fx.sound || PP.fx.muted) { PP.fx.muted = false; PP.store.set('muted', false); PP.fx.setSound(true); } PP.fx.sfx('great'); } setTimeout(show, 300); } }, 'Play a test sound')),
         status, music,
         h('p', { class: 'small muted' }, 'No sound? Check the speaker in the top bar, the switches in the Menu, and your media volume. On iPhone the game follows the ring/silent switch, and plays alongside your own music or podcasts instead of stopping them.'),
+        h('h4', { class: 'place-sub' }, 'Privacy'),
+        h('p', { class: 'small muted' }, 'Your game is saved only on this device. Visits and a few milestones (like finishing a journey) are counted anonymously with GoatCounter: no cookies, no names, nothing from your save.'),
         h('button', { class: 'btn', onclick: () => ov.remove() }, 'Close'))));
     document.body.appendChild(ov);
     show();
@@ -108,7 +110,8 @@
   }
   let deferred = null;
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; document.querySelectorAll('.install-tip').forEach((t) => t.replaceWith(PP.ui.installTip() || '')); });
-  window.addEventListener('appinstalled', () => { PP.store.set('installTip', 'done'); document.querySelectorAll('.install-tip').forEach((t) => t.remove()); });
+  window.addEventListener('appinstalled', () => {
+    PP.track && PP.track('install/accepted'); PP.store.set('installTip', 'done'); document.querySelectorAll('.install-tip').forEach((t) => t.remove()); });
 
   const ua = navigator.userAgent || '';
   const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);

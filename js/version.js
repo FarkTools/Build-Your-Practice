@@ -1,8 +1,9 @@
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.20.3';
+  PP.VERSION = '0.21.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.21.0', 'Move your game to another device: Menu → Move your game shows a QR code, or copy a code and paste it on the other device. Anonymous visit and milestone counts (GoatCounter, no cookies or names)'],
     ['0.20.3', 'Tidier on computers: a shorter trail scene and a two-row stats panel, roomier packing screen, aligned agent cards and a full-width route map. Phones unchanged'],
     ['0.20.2', 'Leaves your music alone: when muted the game never touches your phone\'s audio, and when on it mixes with your podcast or playlist instead of stopping it'],
     ['0.20.1', 'Fairer rent: a shared desk is about $450 a month and your own office about $1,350, shown per month'],

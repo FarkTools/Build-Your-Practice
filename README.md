@@ -55,6 +55,8 @@ js/core.js            state, effects, risk debt
 js/content/*.js       the game's data: edit these to change the game
 js/minigames/*.js     one file per mini-game, same interface
 js/ui/*.js            map, trail scene, journey loop, game shell, Element Lab
+js/track.js           anonymous milestone counts (GoatCounter)
+js/vendor/qrcode.js   QR code generator (MIT, Kazuhiko Arase)
 tools/bundle.py       optional: build a single-file version into dist/
 ```
 
@@ -80,6 +82,14 @@ The game installs like an app. On iPhone or iPad, open it in Safari, tap Share, 
 - `manifest.webmanifest`: name, colours and icons
 - `sw.js`: offline cache (the page is network-first so updates still arrive; `tools/stamp.py` bumps its version)
 - `icons/`: rendered from the compass logo by `python3 tools/icons.py`
+
+## Moving a game between devices
+
+Saves live only in the browser. **Menu → Move your game to another device** packs the whole career (a journey in progress travels as a paused journey) into a short code: JSON, compressed, base64url, starting `BYP1.`. It's shown as a QR code for a `#import=` link (the part after `#` never reaches a server) and can be copied as a code or a link. Pasting the code into the same screen on the other device loads it, which is the route into an iPhone home screen app, since scanned links open in Safari.
+
+## Usage counts
+
+`index.html` loads GoatCounter (`farktools.goatcounter.com`): no cookies, no names. Page views report only the page path, so challenge and save links are never recorded. `PP.track('name')` counts a milestone as an event: career starts, journeys started, paused and finished, level-ups, career over, mini-games played, shares, challenges, installs and game moves. The admin page doesn't load GoatCounter. To keep your own visits out, open `https://farktools.github.io/Build-Your-Practice/#toggle-goatcounter` once in each browser you use.
 
 ## Playtesting
 

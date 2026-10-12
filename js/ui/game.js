@@ -15,7 +15,20 @@
    * your last decision. The title screen only shows when you choose it (Menu → Title screen),
    * have no career yet, or opened a friend's challenge link. */
   const where = (w) => PP.store.set('where', w);
+  // A save link opened in a tab that already has the game running (no reload happens).
+  window.addEventListener('hashchange', () => {
+    if (!/^#import=/.test(location.hash) || document.querySelector('.import-card')) return;
+    const code = location.hash.slice(8);
+    clearHash();
+    readCode(code).then((d) => importPrompt(d)).catch(() => PP.ui.toast("That save link didn't work. Try copying the code instead."));
+  });
   function boot() {
+    if (/^#import=/.test(location.hash)) {
+      const code = location.hash.slice(8);
+      clearHash();
+      readCode(code).then((d) => importPrompt(d, boot)).catch(() => { boot(); PP.ui.toast("That save link didn't work. Try copying the code instead."); });
+      return;
+    }
     const saved = PP.career.load();
     if (G.challenge || !saved || PP.store.get('where', '') === 'title') return intro();
     G.career = saved; G.place = null;
@@ -86,10 +99,12 @@
       PP.profile.set({ name: nameIn.value, practice: pracIn.value });
       const pf = PP.profile.get();
       clearJourney(); G.snap = null;
+      PP.track && PP.track('career-start/' + a.id);
       G.career = PP.newCareer(a.id);
       G.career.you = pf.name; G.career.practiceName = pf.practice;
       let flash = `Day 1. You hang ${pf.name ? pf.name + "'s" : 'your'} license on the wall at Port Prospect${pf.practice ? `, under a hand-painted sign: ${pf.practice}` : ''}. Time to find some people to help.`;
       if (ch) {
+        PP.track && PP.track('challenge/accepted');
         const p = PP.career.addProspect(G.career, { archetype: ch.arch, temp: ch.temp, source: `${ch.by}'s challenge` });
         if (ch.client) p.name = ch.client;
         G.career.challenge = Object.assign({}, ch, { pid: p.id });
@@ -860,6 +875,8 @@
     PP.career.save(c);
     G.root.innerHTML = '';
     where('trail'); G.snap = null;
+    PP.track && PP.track(s.resumed ? 'journey/resumed' : p.followUp ? 'journey/start-follow-up' : 'journey/start');
+    if (!c.journeys && !s.resumed) PP.track && PP.track('journey/first-start');
     PP.ui.startTrail(G.root, s, { onEnd: journeyEnd, checkpoint: checkpointer(s) });
   }
 
@@ -867,6 +884,7 @@
   /* Walked back into town mid-journey: the prospect goes back to the Trailhead, remembering everything. */
   function pauseJourney() {
     clearJourney();
+    PP.track && PP.track('journey/paused');
     const s = G.s, c = G.career, cl = s.client, p = s.origin || {};
     keepFoundGear(s, c);
     const reqLines = PP.settleRequests ? PP.settleRequests(c, s.map.visited) : [];
@@ -932,6 +950,10 @@
     if (kind === 'broke' || c.savings < 0) { c.over = true; PP.career.clear(); return unemployed(); }
     const levelAfter = PP.career.level(c);
     const firstProfitable = levelAfter === 'profitable' && c.bestLevel !== 'profitable';
+    PP.track && PP.track('journey/end-' + kind + (kind === 'landed' ? '-' + fit : ''));
+    if (c.journeys === 1) PP.track && PP.track('journey/first-finished');
+    if (firstProfitable) PP.track && PP.track('level/profitable');
+    else if (levelAfter === 'sustainable' && c.bestLevel === 'survivable') PP.track && PP.track('level/sustainable');
     if (levelAfter === 'profitable' || (levelAfter === 'sustainable' && c.bestLevel === 'survivable')) c.bestLevel = levelAfter;
     PP.career.save(c);
 
@@ -955,6 +977,7 @@
       ch.done = true;
       const mine = kind === 'landed' ? pts : -1, theirs = ch.stars || -1;
       beat = mine > theirs || (mine === theirs && mine >= 0 && s.day < ch.days) ? 'won' : mine === theirs && s.day === ch.days ? 'tie' : 'lost';
+      PP.track && PP.track('challenge/result-' + beat);
       PP.career.save(c);
     }
     const you = PP.you(c), full = PP.youFull(c), pr = PP.practiceName(c);
@@ -1030,6 +1053,7 @@
 
   function unemployed() {
     clearJourney();
+    PP.track && PP.track('career-over/unemployed');
     const c = G.career;
     PP.audio && PP.audio.bed('music:night');
     screen(h('section', { class: 'ending' },
@@ -1057,6 +1081,112 @@
     return `${d} looked like the obvious destination, but it did not fit ${c.name}'s real situation.` + (keyKnown ? ' You knew enough to choose differently.' : ` The thing you never found out: ${c.facts[c.keyFact].label.toLowerCase()}.`);
   }
 
+  /* ---------------- Move your game to another device ----------------
+   * The whole career (and a journey in progress, as a paused journey) is packed into a short
+   * code: JSON, compressed, base64url. A QR code carries it as a link (#import=...); the
+   * fragment never reaches any server. No accounts, nothing stored online. */
+  const b64url = (bytes) => { let bin = ''; bytes.forEach((b) => (bin += String.fromCharCode(b))); return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const unb64url = (str) => { const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(bin, (ch) => ch.charCodeAt(0)); };
+  async function squeeze(bytes, how) {
+    const S = how === 'in' ? window.DecompressionStream : window.CompressionStream;
+    const st = new S('deflate-raw'); const w = st.writable.getWriter(); w.write(bytes).catch(() => {}); w.close().catch(() => {}); // a bad code rejects the read below instead
+    return new Uint8Array(await new Response(st.readable).arrayBuffer());
+  }
+  function clearHash() { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sandboxed */ } }
+  async function makeCode() {
+    const c = JSON.parse(JSON.stringify(G.career));
+    const snap = PP.store.get('journey', null);
+    let traveling = null;
+    if (snap && snap.s && snap.s.client) {
+      // A journey in progress travels as a paused journey: the client waits at the Trailhead.
+      const js = snap.s, o = js.origin || {};
+      const carry = { facts: js.facts, askedTopics: js.askedTopics, seenEvents: js.seenEvents, visited: js.map.visited, faced: js.faced, passageTaken: js.passageTaken,
+        trust: js.res.trust, insight: js.res.insight, momentum: js.res.momentum, debt: js.debt, settled: js.settled, day: js.day, turn: js.turn, trail: js.trail, walked: js.walked };
+      if (js.followUp && o.followUp) c.followUps = (c.followUps || []).filter((f) => f.id !== o.followUp.id).concat(Object.assign({}, o.followUp, { carry, expires: Math.max(o.followUp.expires || 0, c.days + 10) }));
+      else c.pipeline = c.pipeline.filter((x) => x.id !== o.id).concat({ id: o.id || PP.uid('p'), archetype: o.archetype || js.client.id, name: js.client.name, temp: o.temp || 'warm', source: o.source || 'a paused journey', expires: c.days + 15, carry });
+      traveling = js.client.name;
+    }
+    delete c.evSeen; delete c.today; c.history = (c.history || []).slice(-8);
+    const payload = { v: 1, c, p: PP.profile.get(), set: { sound: !!PP.fx.sound, music: !!(PP.audio && PP.audio.music), muted: !!PP.fx.muted } };
+    const raw = new TextEncoder().encode(JSON.stringify(payload));
+    const code = window.CompressionStream ? 'BYP1.' + b64url(await squeeze(raw, 'out')) : 'BYP0.' + b64url(raw);
+    return { code, traveling };
+  }
+  async function readCode(text) {
+    const m = String(text || '').match(/BYP([01])\.([A-Za-z0-9_-]+)/);
+    if (!m) throw new Error('not a save code');
+    const bytes = unb64url(m[2]);
+    const json = new TextDecoder().decode(m[1] === '1' ? await squeeze(bytes, 'in') : bytes);
+    const d = JSON.parse(json);
+    if (!d || d.v !== 1 || !d.c || !d.c.agent) throw new Error('not a save');
+    return d;
+  }
+  function saveSummary(c) { const clients = (c.book || []).filter((b) => ['life', 'steady', 'at-risk'].includes(b.status)).length; return `day ${c.days + 1}, ${PP.career.levelInfo(c).label}, ${money(c.savings)}, ${clients} client${clients === 1 ? '' : 's'}`; }
+  /* "Load this game?" Shown before anything is replaced. */
+  function importPrompt(d, onCancel) {
+    const here = PP.career.load(), c = d.c, who = (d.p && d.p.name) || c.you;
+    const close = () => { ov.remove(); document.body.classList.remove('modal-open'); };
+    const ov = h('div', { class: 'overlay result-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Load a game' },
+      h('div', { class: 'result-card import-card' },
+        h('div', { class: 'eyebrow' }, 'Move your game'),
+        h('h3', { class: 'scene-title' }, 'Load this game?'),
+        h('p', { class: 'rc-main' }, `${who ? who + ', ' : ''}${PP.career.agent(c).name}: ${saveSummary(c)}.`),
+        here ? h('p', { class: 'small warn' }, `This replaces the game on this device (${saveSummary(here)}).`) : null,
+        h('div', { class: 'rc-actions' },
+          h('button', { class: 'btn primary', onclick: () => { close(); applyImport(d); } }, 'Load it'),
+          h('button', { class: 'btn ghost', onclick: () => { close(); if (onCancel) onCancel(); } }, here ? 'Keep my game here' : 'Cancel'))));
+    document.body.appendChild(ov);
+    document.body.classList.add('modal-open');
+  }
+  function applyImport(d) {
+    if (PP.trail && PP.trail.active && PP.trail.active()) PP.trail.stop();
+    PP.store.set('career2', d.c);
+    if (d.p) PP.profile.set(d.p);
+    if (d.set) { PP.store.set('sound', d.set.sound); PP.store.set('music', d.set.music); PP.store.set('muted', d.set.muted); }
+    clearJourney();
+    PP.store.set('where', 'port');
+    PP.track && PP.track('transfer/imported');
+    location.replace(location.pathname + location.search);
+  }
+  async function openTransfer() {
+    const c = G.career && !G.career.over ? G.career : null;
+    const close = () => { ov.remove(); document.body.classList.remove('modal-open'); };
+    const status = h('p', { class: 'small muted tf-status', 'aria-live': 'polite' });
+    const say = (t) => { status.textContent = t; };
+    const copy = (text, msg) => { (navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => say(msg)).catch(() => { area.value = text; area.select(); say('Select the text in the box and copy it.'); }); };
+    const area = h('textarea', { class: 'tf-paste', rows: 3, placeholder: 'Paste a save code or link here', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
+    const send = h('div', { class: 'tf-send' });
+    const ov = h('div', { class: 'overlay result-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Move your game', onclick: (e) => { if (e.target === ov) close(); } },
+      h('div', { class: 'result-card transfer-card' },
+        h('div', { class: 'gm-head' }, h('div', null, h('div', { class: 'eyebrow' }, 'Move your game'), h('h3', { class: 'scene-title' }, c ? 'Take it to another device' : 'Bring a game here')), h('button', { class: 'mv-x', 'aria-label': 'Close', onclick: close }, '×')),
+        c ? send : null,
+        h('div', { class: 'tf-receive' },
+          h('div', { class: 'eyebrow' }, c ? 'Or bring a game here' : 'Paste a code'),
+          area,
+          h('button', { class: 'btn', onclick: async () => { try { const d = await readCode(area.value); close(); importPrompt(d); } catch (e) { say("That code didn't work. Copy the whole thing and try again."); } } }, 'Load this game')),
+        status));
+    document.body.appendChild(ov);
+    document.body.classList.add('modal-open');
+    if (!c) return;
+    send.append(h('p', { class: 'small muted' }, 'Packing your game…'));
+    const { code, traveling } = await makeCode();
+    const link = (PP.share && PP.share.base ? PP.share.base() : location.href.split('#')[0]) + '#import=' + code;
+    let qrSvg = '';
+    try { const qr = window.qrcode(0, 'L'); qr.addData(link); qr.make(); qrSvg = qr.createSvgTag({ cellSize: 4, margin: 4, scalable: true }); } catch (e) { qrSvg = ''; }
+    send.innerHTML = '';
+    const put = (...els) => send.append(...els.filter(Boolean));
+    put(
+      qrSvg ? h('div', { class: 'tf-qr', html: qrSvg, 'aria-label': 'QR code for your game' }) : h('p', { class: 'small warn' }, 'Your game is too big for a QR code. Use Copy code below instead.'),
+      h('p', { class: 'tf-how' }, h('strong', null, 'Scan it with the other device\'s camera'), ', tap the link, and choose Load it.'),
+      traveling ? h('p', { class: 'small muted' }, `Your journey travels too: ${traveling} will be waiting at the Trailhead.`) : null,
+      h('div', { class: 'rc-actions' },
+        h('button', { class: 'btn', onclick: () => copy(code, 'Code copied. On the other device: Menu → Move your game → paste it.') }, 'Copy code'),
+        h('button', { class: 'btn', onclick: () => copy(link, 'Link copied. Send it to yourself and open it on the other device.') }, 'Copy link')),
+      h('p', { class: 'small muted tf-app' }, 'Using the home screen app on the other device? iPhone opens scanned links in Safari, which keeps its own saves. Copy the code instead, send it to yourself, then in the app open Menu → Move your game and paste it.'));
+    PP.track && PP.track('transfer/opened');
+  }
+  PP.ui.openTransfer = openTransfer;
+
   /* ---------------- Menu (top bar) ----------------
    * Always reachable, including in the home screen app where there is no reload button. */
   function leaveTrail() {
@@ -1080,6 +1210,7 @@
       item('Back to the game', null, () => {}, 'gm-back'),
       c ? item('Title screen', onTrail ? `Your journey with ${G.s && G.s.client ? G.s.client.name : 'your client'} is saved. Continue picks it up.` : 'Your career is saved. Continue picks it up.', () => { leaveTrail(); where('title'); intro(); }) : item('Title screen', null, () => { leaveTrail(); where('title'); intro(); }),
       c ? h('button', { class: 'gm-item gm-new', onclick: () => confirmNew() }, h('strong', null, 'Start a new career'), h('span', null, 'Pick a new agent and start from day 1.')) : null,
+      item(c ? 'Move your game to another device' : 'Load a game from another device', c ? 'A QR code or a code to paste. Nothing is stored online.' : 'Paste a code from your other device.', () => openTransfer()),
       item('About and sound check', `Version ${PP.VERSION}`, () => PP.ui.about && PP.ui.about()));
     const sw = (key, label, note, get, set) => h('button', { class: 'gm-switch', role: 'switch', 'data-switch': key, 'aria-checked': String(get()), onclick: () => set(!get()) },
       h('span', { class: 'gm-sw-txt' }, h('strong', null, label), h('span', null, note)), h('span', { class: 'gm-sw-knob', 'aria-hidden': 'true' }));

@@ -163,6 +163,7 @@
 
   /* r: { name, eyebrow, headline, stars, line, stats, gauges, cta, text, archetype, ... } */
   async function open(r) {
+    PP.track && PP.track(r.challenge === false ? 'share/open-career' : 'share/open-challenge');
     const url = r.challenge === false ? base() : PP.challenge.link(r);
     const text = r.text;
     const status = h('p', { class: 'small muted share-status', 'aria-live': 'polite' });
