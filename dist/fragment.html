@@ -1326,6 +1326,37 @@ html { background: var(--navy); }
 .import-card .warn { margin: 0; }
 @media (max-width: 560px) { .tf-receive .btn { justify-self: stretch; } }
 
+/* ---- Second opinions ---- */
+.reviews-box { border-left: 4px solid var(--blue); display: grid; gap: 8px; }
+.reviews-box > p { margin: 0; }
+.review-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px dotted var(--edge); }
+.review-row .rv-txt { display: grid; gap: 1px; }
+.review-row .btn { white-space: nowrap; }
+@media (max-width: 420px) {
+  .review-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .review-row .btn { grid-column: 1 / -1; }
+}
+.review-scene .so-who { align-items: center; gap: 12px; margin: 4px 0 2px; }
+.review-scene .so-who .scene-title { margin: 0; }
+.review-scene .so-ask { font-style: italic; }
+.so-papers { list-style: none; margin: 8px 0 4px; padding: 0; display: grid; gap: 8px; }
+.so-paper { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--paper); border: 1px solid var(--parch-3); border-radius: 10px; padding: 10px 12px; }
+.so-paper .sp-icon { font-size: 20px; line-height: 1; text-align: center; }
+.so-paper .sp-txt { display: grid; gap: 1px; font-size: 14px; line-height: 1.35; }
+.so-paper .sp-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.so-paper .sp-flag b { font-size: 13px; }
+.so-paper.f-ok { border-color: #b9cfa3; }
+.so-paper.f-ok .sp-flag { background: var(--meadow); color: var(--green); }
+.so-paper.f-gap { border-color: var(--orange-2); background: #fdf0d8; }
+.so-paper.f-gap .sp-flag { background: var(--orange-2); color: var(--ink); }
+.so-paper.f-wrong { border-color: var(--rose); background: #fbe9e5; }
+.so-paper.f-wrong .sp-flag { background: var(--rose); color: var(--red); }
+@media (max-width: 420px) { .so-paper .sp-flag span { display: none; } }
+.so-verdict { display: grid; gap: 4px; padding: 12px 14px; border-radius: 10px; margin: 10px 0 12px; }
+.so-verdict.good { background: var(--meadow); color: var(--green); }
+.so-verdict.bad { background: #fbe9e5; color: var(--red); }
+.so-verdict span { color: var(--ink); }
+
 </style>
 <style>
 /* Mini-game additions and phone layout.
@@ -4295,9 +4326,10 @@ window.PP = window.PP || {};
 <script>
 /* Version shown in the footer and the About box. Bump with every release. */
 (function (PP) {
-  PP.VERSION = '0.21.0';
+  PP.VERSION = '0.22.0';
   PP.BUILT = '2026-10-11';
   PP.CHANGES = [
+    ['0.22.0', 'Win clients back from rivals, honestly: second opinions on plans other agents set up and forgot (sometimes the right answer is "keep what you have"), and prospects a rival took can come back when the rival lets them down'],
     ['0.21.0', 'Move your game to another device: Menu → Move your game shows a QR code, or copy a code and paste it on the other device. Anonymous visit and milestone counts (GoatCounter, no cookies or names)'],
     ['0.20.3', 'Tidier on computers: a shorter trail scene and a two-row stats panel, roomier packing screen, aligned agent cards and a full-width route map. Phones unchanged'],
     ['0.20.2', 'Leaves your music alone: when muted the game never touches your phone\'s audio, and when on it mixes with your podcast or playlist instead of stopping it'],
@@ -7326,7 +7358,7 @@ window.PP = window.PP || {};
   const money = (n) => (PP.career ? PP.career.money(n) : '$' + n);
   const hotFirst = { hot: 0, warm: 1, cold: 2 };
   const bestProspect = (s) => pipe(s).slice().sort((a, b) => hotFirst[a.temp] - hotFirst[b.temp])[0];
-  const loseProspect = (s, p) => { if (!s.career || !p) return null; s.career.pipeline = s.career.pipeline.filter((x) => x.id !== p.id); return p; };
+  const loseProspect = (s, p, rival) => { if (!s.career || !p) return null; s.career.pipeline = s.career.pipeline.filter((x) => x.id !== p.id); if (rival) PP.career.lostToRival(s.career, p, rival); return p; };
   const warmUp = (s, p) => { if (!s.career || !p) return; p.temp = p.temp === 'cold' ? 'warm' : 'hot'; p.expires = Math.max(p.expires, s.career.days + 12); };
   const missingSystem = (s) => ['notes', 'discovery', 'focus', 'review'].find((id) => s.career && !PP.career.hasSystem(s.career, id));
   const sysName = (id) => (PP.content.practice.systems[id] ? PP.content.practice.systems[id].name.toLowerCase() : 'system');
@@ -7436,8 +7468,8 @@ window.PP = window.PP || {};
       choices: [
         { label: 'Send a proper note to the prospect right now', kind: 'prepare', hint: 'Costs energy. Shows you remember them.', eff: { energy: -1 }, result: (s) => { warmUp(s, target); return target ? `You write ${target.name} a short, specific note. They reply within the hour: "Oh good, I was hoping to hear from you."` : 'You write a short note.'; } },
         { label: 'Ask your partner to call them', kind: 'help', show: (s) => !!partner(s), eff: { momentum: 1 }, result: (s) => { warmUp(s, target); return `${partner(s).name} calls ${target ? target.name : 'them'} that afternoon. Dara's coffee gets cancelled.`; } },
-        { label: '"If it\'s meant to be, it\'s meant to be."', kind: 'through', eff: { momentum: 1 }, preview: '60% chance you lose that prospect.', result: (s) => { if (PP.chance(0.6) && loseProspect(s, target)) return `By Friday, ${target.name} has signed with Dara. It was meant to be, apparently. For her.`; return target ? `Dara texts on Thursday: "${target.name} cancelled. Something about waiting for you?" Lucky.` : 'Nothing happens.'; } },
-        { label: 'Tell Dara to back off', kind: 'around', eff: { energy: -1, trust: -1 }, preview: 'Your client sees you snap. 40% chance you lose the prospect anyway.', result: (s) => { if (PP.chance(0.4) && loseProspect(s, target)) return `Dara smiles and signs ${target.name} anyway. Your client watched you snap.`; return 'Dara holds up her hands and leaves. Your client looks at you a little warily.'; } }
+        { label: '"If it\'s meant to be, it\'s meant to be."', kind: 'through', eff: { momentum: 1 }, preview: '60% chance you lose that prospect.', result: (s) => { if (PP.chance(0.6) && loseProspect(s, target, 'Dara Quill')) return `By Friday, ${target.name} has signed with Dara. It was meant to be, apparently. For her.`; return target ? `Dara texts on Thursday: "${target.name} cancelled. Something about waiting for you?" Lucky.` : 'Nothing happens.'; } },
+        { label: 'Tell Dara to back off', kind: 'around', eff: { energy: -1, trust: -1 }, preview: 'Your client sees you snap. 40% chance you lose the prospect anyway.', result: (s) => { if (PP.chance(0.4) && loseProspect(s, target, 'Dara Quill')) return `Dara smiles and signs ${target.name} anyway. Your client watched you snap.`; return 'Dara holds up her hands and leaves. Your client looks at you a little warily.'; } }
       ]
     },
     {
@@ -8417,7 +8449,10 @@ window.PP = window.PP || {};
       rafael: ['Rafael', 'Santiago', 'Dmitri', 'Kwame', 'Lorenzo', 'Bastian', 'Hamid', 'Ezra'],
       maxine: ['Maxine', 'Maureen', 'Adaeze', 'Philippa', 'Consuelo', 'Annette', 'Bridget', 'Lourdes']
     },
-    life: { hot: 24, warm: 15, cold: 9 }
+    life: { hot: 24, warm: 15, cold: 9 },
+    rivals: ['Velocity Wealth', 'Summit Peak Advisors', 'Bayside Money Group', 'Lighthouse Financial'],
+    // What people say when they come back after a rival let them down.
+    winbackLines: ['They signed me and I never heard from them again.', 'Every call went to voicemail. Every single one.', 'They kept pushing something I told them I didn\'t want.', 'I got a birthday card from them. Printed. With someone else\'s name crossed out.', 'They were great right up until I signed.', 'I asked one question and got a 40-page brochure.']
   });
 
   PP.newCareer = function (agentId) {
@@ -8494,6 +8529,26 @@ window.PP = window.PP || {};
       return cl;
     },
 
+    /* A rival took someone from your pipeline. Remember them: they may come back. */
+    lostToRival(c, p, rival) {
+      if (!p || !p.archetype) return;
+      c.lostTo = (c.lostTo || []).filter((l) => l.name !== p.name).concat({ name: p.name, archetype: p.archetype, temp: p.temp, rival: rival || PP.pick(P.rivals), day: c.days }).slice(-6);
+    },
+    /* Someone asks for a second opinion on a rival's plan. */
+    addReview(c, source) {
+      const all = PP.content.secondOpinions || [];
+      if (!all.length) return null;
+      const seen = c.soSeen || [];
+      const open = (c.reviews || []).map((r) => r.case);
+      const pool = all.filter((x) => !seen.includes(x.id) && !open.includes(x.id));
+      const cs = PP.pick(pool.length ? pool : all.filter((x) => !open.includes(x.id)));
+      if (!cs) return null;
+      c.soSeen = seen.concat(cs.id).slice(-6);
+      const r = { id: PP.uid('r'), case: cs.id, archetype: cs.arch, name: C.newName(c, cs.arch), rival: cs.rival, source, expires: c.days + 12 };
+      c.reviews = (c.reviews || []).concat(r);
+      return r;
+    },
+
     /* One day passes. away = on the trail. Returns notes for the player. */
     tickDay(c, away) {
       const notes = [];
@@ -8510,7 +8565,7 @@ window.PP = window.PP || {};
           const claw = b.status === 'at-risk';
           b.status = 'cancelled'; b.perDay = 0;
           if (claw) c.savings -= P.clawback;
-          note(`${b.name} cancelled. ${claw ? `It was never the right fit. ${C.money(-P.clawback)} clawed back.` : 'They had not heard from you in a long time.'}`, 'bad', 'cancel');
+          note(`${b.name} cancelled. ${claw ? `${b.replaced ? 'The replacement was reviewed, and it should never have happened.' : 'It was never the right fit.'} ${C.money(-P.clawback)} clawed back.` : 'They had not heard from you in a long time.'}`, 'bad', 'cancel');
         } else if (b.status === 'door' && PP.chance(0.02)) {
           b.status = 'life'; b.perDay = 50; b.sat = 8; c.savings += 1000;
           note(`${b.name}, who said "not yet," is ready now and wants to work with you. +${C.money(1000)}, and they join your book.`, 'good', 'return');
@@ -8536,9 +8591,32 @@ window.PP = window.PP || {};
       // Pipeline
       c.pipeline = c.pipeline.filter((p) => {
         if (c.days > p.expires) { note(`${p.name} lost interest while waiting. They are off your pipeline.`, 'bad'); return false; }
-        if (away && PP.chance(0.02)) { note(`A rival agent signed ${p.name} while you were on the trail.`, 'bad', 'poach'); return false; }
+        if (away && PP.chance(0.02)) { const rv = PP.pick(P.rivals); C.lostToRival(c, p, rv); note(`${rv} signed ${p.name} while you were on the trail.`, 'bad', 'poach'); return false; }
         return true;
       });
+      // Win-backs: people a rival took sometimes come back once the rival lets them down.
+      c.lostTo = (c.lostTo || []).filter((l) => {
+        const age = c.days - l.day;
+        if (age > 60) return false;
+        if (age < 10 || !PP.chance(0.05)) return true;
+        const temp = l.temp === 'hot' ? 'hot' : 'warm';
+        c.pipeline.push({ id: PP.uid('p'), archetype: l.archetype, name: l.name, temp, source: 'a second chance', rival: l.rival, winback: true, expires: c.days + P.life[temp] });
+        note(`${l.name} is back. "${PP.pick(P.winbackLines)}" They went with ${l.rival} and want to talk to you again. (Trailhead)`, 'good', 'return');
+        PP.track && PP.track('winback/returned');
+        return false;
+      });
+      // Second opinions: a rival's forgotten clients ask you to look at their paperwork.
+      // Happy clients talk, so these come more often as your book grows.
+      c.reviews = (c.reviews || []).filter((r) => {
+        if (c.days <= r.expires) return true;
+        note(`${r.name} stopped waiting for a second opinion.`, 'bad');
+        return false;
+      });
+      const happy = c.book.filter((b) => ['life', 'steady'].includes(b.status) && b.sat >= 7).length;
+      if (c.days >= 4 && c.reviews.length < 2 && PP.chance(Math.min(0.12, 0.03 + 0.02 * happy))) {
+        const r = C.addReview(c, happy ? 'word of mouth from your clients' : 'word around town');
+        if (r) note(`${r.name} wants a second opinion. Their agent at ${r.rival} hasn't called in years. (Your desk)`, 'good');
+      }
       // Walk-ins and partner leads
       const ws = P.workspaces[c.workspace];
       if (ws.walkIn && PP.chance(ws.walkIn)) { const p = C.addProspect(c, { temp: 'cold', source: 'walked into your office' }); note(`${p.name} walked into your ${c.workspace === 'office' ? 'office' : 'desk at the Co-op'} asking for help.`, 'good'); }
@@ -8559,6 +8637,125 @@ window.PP = window.PP || {};
     if (item.mail === 'cancel') choices.unshift({ label: 'Write back to ask what went wrong', kind: 'prepare', eff: { energy: -1, insight: 1 }, result: 'The reply is kind, and honest: "We never felt looked after." Lesson noted.' });
     if (item.mail === 'return') choices.unshift({ label: 'Write back and welcome them', kind: 'prepare', eff: { trust: 1 }, result: 'Your client notices you smiling.' });
     return { id: 'mail_' + PP.uid('m'), title: 'A carrier pigeon lands on your pack', at: ['travel'], cut: 'mail', text: 'There is a note tied to its leg. ' + item.text, choices };
+  };
+})(window.PP);
+
+</script>
+<script>
+/* Second opinions: someone a rival agent signed (and then forgot) asks you to look at their
+ * paperwork. You review it and tell them the truth. The lesson is the real one: winning a
+ * rival's client comes from serving them better, not from talking them into switching.
+ * Sometimes the honest answer is "keep what you have", and that wins the most trust.
+ *
+ *   { id, arch, rival, ask, verdict: 'keep' | 'fix' | 'replace', lesson,
+ *     papers: [{ icon, label, note, flag: 'ok' | 'gap' | 'wrong' }] }
+ *
+ *   keep     everything fits; replacing it would cost them fees and protection they already have
+ *   fix      the plan is sound apart from one gap
+ *   replace  the plan was built for a life they no longer live
+ */
+(function (PP) {
+  PP.content.secondOpinions = [
+    /* ---- Keep what you have ---- */
+    { id: 'so_golf', arch: 'walter', rival: 'Velocity Wealth', verdict: 'keep',
+      ask: '"Velocity set this up six years ago. My golf buddy says I should roll it all over to his guy. Should I?"',
+      lesson: 'Nothing here is broken. Moving it would cost fees and buy nothing.',
+      papers: [
+        { icon: '🏦', label: 'Retirement savings', note: 'Low-cost funds, on track for his retirement date.', flag: 'ok' },
+        { icon: '🛡️', label: 'Life coverage', note: 'Term policy that ends the year the mortgage is paid off.', flag: 'ok' },
+        { icon: '🏥', label: 'Health cover before Medicare', note: 'Already priced into the retirement budget.', flag: 'ok' },
+        { icon: '📄', label: 'Beneficiaries', note: 'His wife on everything, updated last year.', flag: 'ok' }
+      ] },
+    { id: 'so_teacher', arch: 'maxine', rival: 'Summit Peak Advisors', verdict: 'keep',
+      ask: '"Someone in the staff room said my old agent oversold me. Did he? He never calls, so I can\'t ask."',
+      lesson: 'He never calls, but he did good work. A quiet agent is not the same as a bad plan.',
+      papers: [
+        { icon: '📚', label: 'Pension', note: 'Full credit for 22 years of teaching.', flag: 'ok' },
+        { icon: '💵', label: 'Retirement savings', note: 'Small, steady contributions with low fees.', flag: 'ok' },
+        { icon: '🩹', label: 'Disability cover', note: 'Through the union, replaces most of her pay.', flag: 'ok' },
+        { icon: '📄', label: 'Will', note: 'Updated after her divorce, names her son.', flag: 'ok' }
+      ] },
+    { id: 'so_tab11', arch: 'morgan', rival: 'Bayside Money Group', verdict: 'keep',
+      ask: '"Tab 11 is my current setup. Bayside did it. I would like a second opinion on tab 11. I have printed tab 11."',
+      lesson: 'A careful plan from a careful client. Saying so out loud is worth more than any sale.',
+      papers: [
+        { icon: '🧾', label: 'Budget', note: 'Reviewed every month. Of course it is.', flag: 'ok' },
+        { icon: '🛟', label: 'Emergency fund', note: 'Six months of costs, kept somewhere boring.', flag: 'ok' },
+        { icon: '🛡️', label: 'Life coverage', note: 'Covers the mortgage and both kids through college.', flag: 'ok' },
+        { icon: '🩹', label: 'Disability cover', note: 'Protects the paycheck the whole plan depends on.', flag: 'ok' }
+      ] },
+
+    /* ---- Keep it, fix one gap ---- */
+    { id: 'so_baby', arch: 'taylor', rival: 'Bayside Money Group', verdict: 'fix',
+      ask: '"Bayside set us up when we got married. Now there\'s a baby. Do we have to start over?"',
+      lesson: 'The plan is sound. It just needs to catch up with the baby: cover for the partner too.',
+      papers: [
+        { icon: '🛡️', label: 'Life coverage', note: 'Covers Taylor only. The partner has none.', flag: 'gap' },
+        { icon: '🏦', label: 'Retirement savings', note: 'Both contributing enough to get the full match.', flag: 'ok' },
+        { icon: '🛟', label: 'Emergency fund', note: 'Three months of costs. Fine for now.', flag: 'ok' },
+        { icon: '📄', label: 'Beneficiaries', note: 'Each other, on everything.', flag: 'ok' }
+      ] },
+    { id: 'so_shop', arch: 'rosa', rival: 'Lighthouse Financial', verdict: 'fix',
+      ask: '"Lighthouse did the shop\'s paperwork years ago. Dee keeps asking what happens if one of us leaves. I don\'t know."',
+      lesson: 'Good bones. The one missing piece is an agreement for what happens if a partner leaves.',
+      papers: [
+        { icon: '🏪', label: 'Business insurance', note: 'Building, equipment, liability. All current.', flag: 'ok' },
+        { icon: '🏦', label: 'Retirement savings', note: 'A small-business plan, funded every year.', flag: 'ok' },
+        { icon: '🤝', label: 'Partner agreement', note: 'None. If Dee leaves or dies, nobody knows what happens to the shop.', flag: 'gap' },
+        { icon: '🛡️', label: 'Personal life cover', note: 'Enough for her own family.', flag: 'ok' }
+      ] },
+    { id: 'so_grad', arch: 'mateo', rival: 'Velocity Wealth', verdict: 'fix',
+      ask: '"A guy from Velocity signed me up for stuff at orientation. Then he vanished. Did I mess it up?"',
+      lesson: 'Mostly right. One form change gets the full employer match: free money he was leaving behind.',
+      papers: [
+        { icon: '🏦', label: 'Workplace retirement plan', note: 'Enrolled, but saving 1%. His employer matches up to 5%.', flag: 'gap' },
+        { icon: '🏥', label: 'Health plan', note: 'A sensible pick for someone who rarely sees a doctor.', flag: 'ok' },
+        { icon: '🎓', label: 'Student loans', note: 'On a payment plan he can afford.', flag: 'ok' },
+        { icon: '🏠', label: 'Renters insurance', note: 'Cheap, and it covers the laptop.', flag: 'ok' }
+      ] },
+
+    /* ---- Start over ---- */
+    { id: 'so_widow', arch: 'evelyn', rival: 'Lighthouse Financial', verdict: 'replace',
+      ask: '"Harold\'s agent retired years ago. Nobody has looked at any of this since the funeral."',
+      lesson: 'This plan was built for two people. Her life has changed, so the plan has to change with it.',
+      papers: [
+        { icon: '📄', label: 'Beneficiaries', note: 'Her accounts still name Harold.', flag: 'wrong' },
+        { icon: '💵', label: 'Income plan', note: 'Built around two people\'s costs and two pension checks.', flag: 'wrong' },
+        { icon: '📈', label: 'Investments', note: 'Aggressive picks Harold made at 50. She is 74.', flag: 'wrong' },
+        { icon: '🏠', label: 'Home insurance', note: 'Current and sensible.', flag: 'ok' }
+      ] },
+    { id: 'so_carer', arch: 'lorraine', rival: 'Summit Peak Advisors', verdict: 'replace',
+      ask: '"Summit Peak made my plan before Dad got sick. I cut my hours. I don\'t think any of it fits anymore."',
+      lesson: 'She is right: it fits the life she had before. Starting over is the honest answer here.',
+      papers: [
+        { icon: '🧾', label: 'Budget', note: 'Assumes full-time pay. She works part-time now.', flag: 'wrong' },
+        { icon: '🏦', label: 'Retirement savings', note: 'Stopped when her hours changed. Nobody noticed.', flag: 'wrong' },
+        { icon: '✍️', label: 'Paperwork for Dad', note: 'Nobody is allowed to sign anything for him.', flag: 'wrong' },
+        { icon: '🚗', label: 'Car insurance', note: 'Fine.', flag: 'ok' }
+      ] },
+    { id: 'so_freelance', arch: 'zoe', rival: 'Velocity Wealth', verdict: 'replace',
+      ask: '"Velocity gave me the same plan they give people with salaries. I don\'t have a salary. I have vibes."',
+      lesson: 'A salaried plan for a freelancer: it breaks every lean month. It needs rebuilding around lumpy income.',
+      papers: [
+        { icon: '🔁', label: 'Monthly investing', note: 'A fixed amount every month, whatever she earned. Three overdrafts.', flag: 'wrong' },
+        { icon: '🧾', label: 'Taxes', note: 'Nothing set aside for the quarterly tax bill.', flag: 'wrong' },
+        { icon: '🏦', label: 'Retirement plan', note: 'An employer-style plan she cannot pay into as a freelancer.', flag: 'wrong' },
+        { icon: '🏥', label: 'Health plan', note: 'A reasonable marketplace plan.', flag: 'ok' }
+      ] }
+  ];
+
+  /* What each answer leads to. Telling the truth is what pays off over time. */
+  PP.content.secondOpinionOutcome = function (verdict, choice) {
+    if (choice === verdict) return {
+      keep: { right: true, now: 0, perDay: 15, sat: 9, status: 'steady', referral: true, text: (n) => `You tell ${n} to keep what they have. They look relieved, then surprised: "Nobody has ever told me not to buy something." They ask you to do their reviews from now on, and they are sending a friend your way.` },
+      fix: { right: true, now: 600, perDay: 25, sat: 8, status: 'steady', text: (n) => `You keep everything that works and fix the one gap. ${n} likes that you didn't tear it all up. They move their business to you.` },
+      replace: { right: true, now: 1500, perDay: 40, sat: 8, status: 'life', text: (n) => `You walk ${n} through why the old plan no longer fits, and build a new one around the life they have now. A client for life.` }
+    }[verdict];
+    if (choice === 'replace') return { right: false, now: 2500, perDay: 0, sat: 4, status: 'at-risk', replaced: true, text: (n) => `${n} signs. It is a big commission. But the old plan ${verdict === 'keep' ? 'was fine' : 'only needed one fix'}, and replacing a plan that works costs the client fees and protection they already had. Replacements get reviewed. ${n} may not stay.` };
+    if (choice === 'fix') return verdict === 'keep'
+      ? { right: false, now: 300, perDay: 0, sat: 5, status: 'at-risk', text: (n) => `You find something small to add. ${n} buys it, but nothing needed fixing, and they can tell.` }
+      : { right: false, now: 600, perDay: 15, sat: 6, status: 'steady', text: (n) => `You patch the worst of it. Better than nothing, but the plan still fits a life ${n} no longer lives.` };
+    return { right: false, now: 0, perDay: 0, sat: 0, status: null, text: (n) => `${n} thanks you and goes home reassured. They shouldn't be.` };
   };
 })(window.PP);
 
@@ -9362,6 +9559,7 @@ window.PP = window.PP || {};
       { id: 'a_tourist', fig: 'jogger', who: 'A tourist on a day trip', tell: 'Camera, map, total joy.', kind: 'traveler', warm: 'You give great directions to the lighthouse. Lovely person. Lives four states away.', cold: 'They take your card as a souvenir.' },
       { id: 'a_cousin', fig: 'guest', who: 'Somebody\'s visiting cousin', tell: 'Here for a wedding. Already sunburnt.', kind: 'traveler', warm: 'You chat about the wedding. Nice, but they leave Sunday.', cold: 'They use your card to fix a wobbly table.' },
       { id: 'a_rival', fig: 'rival', who: 'A well-dressed agent from the city', tell: 'Already handing out glossy folders on the pier.', kind: 'rival', warm: 'You introduce yourself. He says "Ah, the local." By lunch he has met everyone you were hoping to meet.', cold: 'You watch him work the pier. You learn something, mostly about hair product.' },
+      { id: 'a_second', fig: 'guest', who: 'Someone back from the city with a thick folder', tell: '"My agent hasn\'t called in three years. Is any of this any good?"', kind: 'second', warm: 'You sit on a bollard and listen. They don\'t want a pitch, just someone who will actually read the folder.', cold: 'You hand over a card and say you are happy to take a look sometime.' },
       { id: 'a_sailor', fig: 'vendor', who: 'A sailor in from the far side of the map', tell: 'Weathered, cheerful, and full of stories about the trail.', kind: 'sailor', warm: 'Over a coffee she sketches the trail she came down. Two places on your map get names.', cold: 'She tells you one useful thing about the weather out there.' },
       { id: 'a_surveyor', fig: 'numbers', who: 'A surveyor back from mapping the far trails', tell: 'Rolled charts under both arms.', kind: 'sailor', warm: 'He lets you copy a corner of his chart. Your map gets clearer.', cold: 'He nods and hurries off with his charts.' },
       { id: 'a_teacher', arch: 'maxine', fig: 'couple', who: 'A teacher starting at the high school', tell: 'Pension paperwork sticking out of a tote bag.', kind: 'resident', bias: { retiree: 2, family: 1 }, warm: 'You help carry a box of textbooks. "Someone said my pension covers everything. Does it?" A prospect.', cold: 'They\'ll "look into it." Maybe they will.' },
@@ -15377,6 +15575,8 @@ window.PP = window.PP || {};
     const unhappy = active.filter((b) => b.sat < 5);
     const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
     const fus = (c.followUps || []).length;
+    const revs = (c.reviews || []).length;
+    if (!c.pipeline.length && !fus && revs) return { head: 'Someone wants a second opinion', text: `${c.reviews[0].name}'s agent at ${c.reviews[0].rival} hasn't called in years. Look over their plan at your desk and tell them the truth.`, go: 'office', label: 'Go to your desk' };
     if (!c.pipeline.length && !fus) return { head: 'Find someone to help', text: 'Nobody is waiting to set out. Make calls from your desk, work the room at Chamber Hall, set up a tent in Market Square, or meet the boats at the Docks.', go: 'office', label: 'Go to your desk' };
     if (unhappy.length) return { head: `${unhappy.length > 1 ? 'Clients are' : unhappy[0].name + ' is'} getting restless`, text: `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. Visit Maple Row before you head out.`, go: 'homes', label: 'Go to Maple Row' };
     if (!c.pipeline.length) return { head: 'A client is calling', text: `${fus > 1 ? 'Clients whose lives changed are' : 'A client whose life changed is'} waiting at the Trailhead.`, go: 'trailhead', label: 'Go to the Trailhead' };
@@ -15540,6 +15740,7 @@ window.PP = window.PP || {};
     return h('div', { class: 'place' },
       h('header', { class: 'place-head' }, h('div', { class: 'eyebrow' }, 'You are at'), h('h3', { class: 'place-title' }, name), h('p', { class: 'small muted' }, pl.blurb)),
       id === 'trailhead' ? requestBoard(c) : null,
+      id === 'office' ? reviewsBox(c) : null,
       acts.length || pl.sections.some((x) => ['plan', 'boats', 'courses'].includes(x)) ? h('h4', { class: 'place-sub' }, 'Things to do here') : null,
       pl.sections.filter((x) => ['plan', 'boats'].includes(x)).map((x) => sec[x]()),
       acts.length ? h('div', { class: 'activity-grid' }, acts.map(activityCard)) : null,
@@ -15564,6 +15765,79 @@ window.PP = window.PP || {};
     return c.practiceName ? `${c.practiceName} · ${base.replace(/^Your /, '')}` : base;
   }
   const activeBook = () => G.career.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
+
+  /* ---- Second opinions: a rival's forgotten clients ask you to look at their plan ---- */
+  function reviewsBox(c) {
+    const list = (c.reviews || []).filter((r) => (PP.content.secondOpinions || []).some((x) => x.id === r.case));
+    if (!list.length) return null;
+    return h('div', { class: 'panel reviews-box' },
+      h('div', { class: 'eyebrow' }, '🗂️ Second opinions'),
+      h('p', { class: 'small muted' }, 'Clients other agents signed and then forgot. Look over their plan and tell them the truth, even if the truth is "keep what you have."'),
+      list.map((r) => {
+        const cl = PP.content.clients[r.archetype] || {}, left = r.expires - c.days;
+        return h('div', { class: 'review-row' },
+          PP.ui.avatar({ name: r.name, hue: cl.hue }, 40),
+          h('div', { class: 'rv-txt' }, h('strong', null, r.name), h('span', { class: 'small muted' }, `Signed by ${r.rival}. Hasn't heard from them since.`),
+            h('span', { class: 'small ' + (left <= 3 ? 'warn' : 'muted') }, `Waits ${left} more day${left === 1 ? '' : 's'}.`)),
+          h('button', { class: 'btn primary', onclick: () => reviewPlan(r) }, 'Review (1 day)'));
+      }));
+  }
+  function reviewPlan(r) {
+    const c = G.career, cs = (PP.content.secondOpinions || []).find((x) => x.id === r.case);
+    if (!cs) return;
+    const base = (PP.content.clients[cs.arch] || {}).name;
+    const say = (t) => (base ? t.split(base).join(r.name) : t);
+    const cl = PP.content.clients[r.archetype] || {};
+    const overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Second opinion' });
+    const card = h('div', { class: 'scene review-scene' });
+    overlay.appendChild(h('div', { class: 'overlay-card' }, card));
+    document.body.appendChild(overlay); document.body.classList.add('modal-open');
+    const close = () => { overlay.remove(); document.body.classList.remove('modal-open'); };
+    // Ethics training shows you one paper's real story before you decide.
+    const peek = (c.skills.judgment || 0) > 0 ? Math.floor(Math.random() * cs.papers.length) : -1;
+    const FLAG = { ok: ['✓', 'Fits'], gap: ['!', 'Gap'], wrong: ['✗', 'No longer fits'] };
+    const paper = (pp, i, shown) => h('li', { class: 'so-paper' + (shown ? ' f-' + pp.flag : '') },
+      h('span', { class: 'sp-icon', 'aria-hidden': 'true' }, pp.icon),
+      h('span', { class: 'sp-txt' }, h('strong', null, pp.label), h('span', null, say(pp.note))),
+      shown ? h('span', { class: 'sp-flag', title: FLAG[pp.flag][1] }, h('b', { 'aria-hidden': 'true' }, FLAG[pp.flag][0]), h('span', null, FLAG[pp.flag][1])) : null);
+    const head = () => [h('div', { class: 'eyebrow' }, 'Second opinion · 1 day'),
+      h('div', { class: 'row tight so-who' }, PP.ui.avatar({ name: r.name, hue: cl.hue }, 48), h('div', null, h('h3', { class: 'scene-title' }, `${r.name}'s plan`), h('div', { class: 'small muted' }, `From ${r.rival}`))),
+      h('p', { class: 'scene-text so-ask' }, say(cs.ask))];
+    const opt = (id, kind, label, hint) => h('button', { class: 'choice', onclick: () => decide(id) }, h('span', { class: 'kind' }, kind), h('span', { class: 'choice-label' }, label), h('span', { class: 'hint' }, hint), h('span', { class: 'chev' }, '›'));
+    card.append(...head(),
+      h('ul', { class: 'so-papers' }, cs.papers.map((pp, i) => paper(pp, i, i === peek))),
+      peek >= 0 ? h('p', { class: 'small muted' }, 'Your ethics training helps you read one of these properly.') : null,
+      h('p', { class: 'pick-prompt' }, 'What do you tell them? Tap one.'),
+      h('div', { class: 'choices' },
+        opt('keep', 'Honest', 'Keep what you have', 'No sale today. Just the truth.'),
+        opt('fix', 'Light touch', 'Keep it, but fix one gap', 'A small change where it is needed.'),
+        opt('replace', 'Big sale', 'Start over with a new plan', 'The biggest commission. Only right if the old plan really no longer fits.')),
+      h('button', { class: 'btn ghost', onclick: close }, 'Not today'));
+    function decide(choice) {
+      const out = PP.content.secondOpinionOutcome(cs.verdict, choice);
+      const right = { keep: 'Keep what you have', fix: 'Keep it, but fix one gap', replace: 'Start over with a new plan' }[cs.verdict];
+      PP.fx && PP.fx.sfx(out.right ? 'great' : 'meh');
+      PP.track && PP.track(`second-opinion/${choice}-${out.right ? 'right' : 'wrong'}`);
+      card.innerHTML = '';
+      card.append(...head(),
+        h('ul', { class: 'so-papers' }, cs.papers.map((pp, i) => paper(pp, i, true))),
+        h('div', { class: 'so-verdict ' + (out.right ? 'good' : 'bad') },
+          h('strong', null, out.right ? 'The honest answer.' : `The honest answer was: ${right.toLowerCase()}.`),
+          h('span', null, say(cs.lesson))),
+        h('button', { class: 'btn primary', onclick: () => { close(); spendDay(() => {
+          c.reviews = (c.reviews || []).filter((x) => x.id !== r.id);
+          const cut = c.partner ? Math.round(out.now * 0.25) : 0;
+          c.savings += out.now - cut;
+          if (out.status) c.book.push({ id: PP.uid('b'), archetype: r.archetype, name: r.name, status: out.status, perDay: out.perDay, sat: out.sat, journey: c.journeys, day: c.days, lastLap: c.days, laps: 0, facts: [], changes: [], from: r.rival, replaced: out.replaced || undefined });
+          const extra = [];
+          if (out.now) extra.push(`+${money(out.now - cut)}${cut ? ` after your partner's share` : ''}.`);
+          if (out.status) extra.push(`${r.name} joins your book${out.perDay ? ` (${money(out.perDay)}/day)` : ''}.`);
+          if (out.referral) { const p = PP.career.addProspect(c, { temp: 'warm', source: `referral from ${r.name}` }); extra.push(`${p.name} is in your pipeline.`); }
+          return out.text(r.name) + (extra.length ? ' ' + extra.join(' ') : '');
+        }); } }, 'Continue'));
+      card.scrollTop = 0;
+    }
+  }
 
   /* Spend a day at the port: do the thing, then the day passes. */
   function spendDay(fn, tab, free) {
@@ -15662,6 +15936,7 @@ window.PP = window.PP || {};
         h('div', { class: 'row tight' }, PP.ui.avatar({ name: p.name, hue: cl.hue }, 44), h('div', null, h('h3', null, p.name), h('div', { class: 'small muted' }, cl.title))),
         h('div', { class: 'row tight' }, h('span', { class: 'pill temp-' + p.temp }, p.temp), h('span', { class: 'small muted' }, `From ${p.source}`)),
         h('p', { class: 'small' }, cl.surface + ' ' + (p.temp === 'hot' ? 'Starts with +2 Trust.' : p.temp === 'cold' ? 'Starts with −1 Trust.' : '')),
+        p.winback ? h('p', { class: 'small good-text' }, `Went with ${p.rival}, and it didn't work out. Starts with +1 Trust: they know what bad service looks like.`) : null,
         p.carry ? h('p', { class: 'small good-text' }, `Paused on day ${p.carry.day} of your journey. You'll pick up where you left off: trust ${p.carry.trust}, everything you learned, and any shortcuts still owed.`) : null,
         h('p', { class: 'small ' + (left <= 4 ? 'warn' : 'muted') }, `Goes cold in ${left} day${left === 1 ? '' : 's'}.`),
         h('button', { class: 'btn primary', onclick: () => packScreen(p) }, p.carry ? `Pick up with ${p.name}` : `Guide ${p.name} on the trail`));
@@ -15864,8 +16139,11 @@ window.PP = window.PP || {};
           PP.shuffle(unknown).slice(0, how === 'warm' ? 2 : 1).forEach((k) => { c.known[k] = true; notes.push(`${PP.content.nodes[k].name} is now named on your map.`); });
           if (!unknown.length) notes.push('You already know every place she mentions.');
         } else if (a.kind === 'rival') {
-          if (c.pipeline.length && PP.chance(how === 'warm' ? 0.2 : 0.4)) { const lost = c.pipeline.splice(Math.floor(Math.random() * c.pipeline.length), 1)[0]; notes.push(`Later you hear ${lost.name} had coffee with him. They are no longer in your pipeline.`); }
+          if (c.pipeline.length && PP.chance(how === 'warm' ? 0.2 : 0.4)) { const lost = c.pipeline.splice(Math.floor(Math.random() * c.pipeline.length), 1)[0]; PP.career.lostToRival(c, lost, 'the agent from the city'); notes.push(`Later you hear ${lost.name} had coffee with him. They are no longer in your pipeline.`); }
           else notes.push('Nobody of yours went with him. This time.');
+        } else if (a.kind === 'second') {
+          const r = how === 'warm' || PP.chance(0.5) ? PP.career.addReview(c, 'the docks') : null;
+          notes.push(r ? `${r.name} would like you to look over their plan from ${r.rival}. (Your desk)` : 'They keep the folder and say they will think about it.');
         } else notes.push('Lovely. Not a prospect.');
         close();
         spendDay(() => `${boat} comes in. ${text} ${notes.join(' ')}`);
@@ -16084,7 +16362,7 @@ window.PP = window.PP || {};
       s.day = carry.day; s.turn = carry.turn; s.trail = (carry.trail || ['port']).slice(); s.walked = (carry.walked || []).slice();
       s.resumed = true;
     } else {
-      const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
+      const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0) + (p.winback ? 1 : 0);
       PP.apply(s, { trust: trustMod });
     }
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
@@ -16153,6 +16431,7 @@ window.PP = window.PP || {};
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
+    if (kind === 'poached' && s.origin && !s.followUp) PP.career.lostToRival(c, s.origin, typeof s.poached === 'string' ? s.poached : null);
     if (kind === 'landed') {
       fit = cl.fit[s.destination] || 'poor';
       if (s.destination === 'not_now' && s.res.trust < 6) fit = 'poor';

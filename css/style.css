@@ -1301,3 +1301,34 @@ html { background: var(--navy); }
 .tf-status:empty { display: none; }
 .import-card .warn { margin: 0; }
 @media (max-width: 560px) { .tf-receive .btn { justify-self: stretch; } }
+
+/* ---- Second opinions ---- */
+.reviews-box { border-left: 4px solid var(--blue); display: grid; gap: 8px; }
+.reviews-box > p { margin: 0; }
+.review-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px dotted var(--edge); }
+.review-row .rv-txt { display: grid; gap: 1px; }
+.review-row .btn { white-space: nowrap; }
+@media (max-width: 420px) {
+  .review-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .review-row .btn { grid-column: 1 / -1; }
+}
+.review-scene .so-who { align-items: center; gap: 12px; margin: 4px 0 2px; }
+.review-scene .so-who .scene-title { margin: 0; }
+.review-scene .so-ask { font-style: italic; }
+.so-papers { list-style: none; margin: 8px 0 4px; padding: 0; display: grid; gap: 8px; }
+.so-paper { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--paper); border: 1px solid var(--parch-3); border-radius: 10px; padding: 10px 12px; }
+.so-paper .sp-icon { font-size: 20px; line-height: 1; text-align: center; }
+.so-paper .sp-txt { display: grid; gap: 1px; font-size: 14px; line-height: 1.35; }
+.so-paper .sp-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.so-paper .sp-flag b { font-size: 13px; }
+.so-paper.f-ok { border-color: #b9cfa3; }
+.so-paper.f-ok .sp-flag { background: var(--meadow); color: var(--green); }
+.so-paper.f-gap { border-color: var(--orange-2); background: #fdf0d8; }
+.so-paper.f-gap .sp-flag { background: var(--orange-2); color: var(--ink); }
+.so-paper.f-wrong { border-color: var(--rose); background: #fbe9e5; }
+.so-paper.f-wrong .sp-flag { background: var(--rose); color: var(--red); }
+@media (max-width: 420px) { .so-paper .sp-flag span { display: none; } }
+.so-verdict { display: grid; gap: 4px; padding: 12px 14px; border-radius: 10px; margin: 10px 0 12px; }
+.so-verdict.good { background: var(--meadow); color: var(--green); }
+.so-verdict.bad { background: #fbe9e5; color: var(--red); }
+.so-verdict span { color: var(--ink); }

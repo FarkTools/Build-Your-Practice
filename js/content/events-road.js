@@ -25,7 +25,7 @@
   const money = (n) => (PP.career ? PP.career.money(n) : '$' + n);
   const hotFirst = { hot: 0, warm: 1, cold: 2 };
   const bestProspect = (s) => pipe(s).slice().sort((a, b) => hotFirst[a.temp] - hotFirst[b.temp])[0];
-  const loseProspect = (s, p) => { if (!s.career || !p) return null; s.career.pipeline = s.career.pipeline.filter((x) => x.id !== p.id); return p; };
+  const loseProspect = (s, p, rival) => { if (!s.career || !p) return null; s.career.pipeline = s.career.pipeline.filter((x) => x.id !== p.id); if (rival) PP.career.lostToRival(s.career, p, rival); return p; };
   const warmUp = (s, p) => { if (!s.career || !p) return; p.temp = p.temp === 'cold' ? 'warm' : 'hot'; p.expires = Math.max(p.expires, s.career.days + 12); };
   const missingSystem = (s) => ['notes', 'discovery', 'focus', 'review'].find((id) => s.career && !PP.career.hasSystem(s.career, id));
   const sysName = (id) => (PP.content.practice.systems[id] ? PP.content.practice.systems[id].name.toLowerCase() : 'system');
@@ -135,8 +135,8 @@
       choices: [
         { label: 'Send a proper note to the prospect right now', kind: 'prepare', hint: 'Costs energy. Shows you remember them.', eff: { energy: -1 }, result: (s) => { warmUp(s, target); return target ? `You write ${target.name} a short, specific note. They reply within the hour: "Oh good, I was hoping to hear from you."` : 'You write a short note.'; } },
         { label: 'Ask your partner to call them', kind: 'help', show: (s) => !!partner(s), eff: { momentum: 1 }, result: (s) => { warmUp(s, target); return `${partner(s).name} calls ${target ? target.name : 'them'} that afternoon. Dara's coffee gets cancelled.`; } },
-        { label: '"If it\'s meant to be, it\'s meant to be."', kind: 'through', eff: { momentum: 1 }, preview: '60% chance you lose that prospect.', result: (s) => { if (PP.chance(0.6) && loseProspect(s, target)) return `By Friday, ${target.name} has signed with Dara. It was meant to be, apparently. For her.`; return target ? `Dara texts on Thursday: "${target.name} cancelled. Something about waiting for you?" Lucky.` : 'Nothing happens.'; } },
-        { label: 'Tell Dara to back off', kind: 'around', eff: { energy: -1, trust: -1 }, preview: 'Your client sees you snap. 40% chance you lose the prospect anyway.', result: (s) => { if (PP.chance(0.4) && loseProspect(s, target)) return `Dara smiles and signs ${target.name} anyway. Your client watched you snap.`; return 'Dara holds up her hands and leaves. Your client looks at you a little warily.'; } }
+        { label: '"If it\'s meant to be, it\'s meant to be."', kind: 'through', eff: { momentum: 1 }, preview: '60% chance you lose that prospect.', result: (s) => { if (PP.chance(0.6) && loseProspect(s, target, 'Dara Quill')) return `By Friday, ${target.name} has signed with Dara. It was meant to be, apparently. For her.`; return target ? `Dara texts on Thursday: "${target.name} cancelled. Something about waiting for you?" Lucky.` : 'Nothing happens.'; } },
+        { label: 'Tell Dara to back off', kind: 'around', eff: { energy: -1, trust: -1 }, preview: 'Your client sees you snap. 40% chance you lose the prospect anyway.', result: (s) => { if (PP.chance(0.4) && loseProspect(s, target, 'Dara Quill')) return `Dara smiles and signs ${target.name} anyway. Your client watched you snap.`; return 'Dara holds up her hands and leaves. Your client looks at you a little warily.'; } }
       ]
     },
     {

@@ -148,6 +148,8 @@
     const unhappy = active.filter((b) => b.sat < 5);
     const soon = c.pipeline.slice().sort((a, b) => a.expires - b.expires)[0];
     const fus = (c.followUps || []).length;
+    const revs = (c.reviews || []).length;
+    if (!c.pipeline.length && !fus && revs) return { head: 'Someone wants a second opinion', text: `${c.reviews[0].name}'s agent at ${c.reviews[0].rival} hasn't called in years. Look over their plan at your desk and tell them the truth.`, go: 'office', label: 'Go to your desk' };
     if (!c.pipeline.length && !fus) return { head: 'Find someone to help', text: 'Nobody is waiting to set out. Make calls from your desk, work the room at Chamber Hall, set up a tent in Market Square, or meet the boats at the Docks.', go: 'office', label: 'Go to your desk' };
     if (unhappy.length) return { head: `${unhappy.length > 1 ? 'Clients are' : unhappy[0].name + ' is'} getting restless`, text: `${unhappy.map((b) => b.name).join(', ')} ${unhappy.length > 1 ? "haven't" : "hasn't"} heard from you in a while. Visit Maple Row before you head out.`, go: 'homes', label: 'Go to Maple Row' };
     if (!c.pipeline.length) return { head: 'A client is calling', text: `${fus > 1 ? 'Clients whose lives changed are' : 'A client whose life changed is'} waiting at the Trailhead.`, go: 'trailhead', label: 'Go to the Trailhead' };
@@ -311,6 +313,7 @@
     return h('div', { class: 'place' },
       h('header', { class: 'place-head' }, h('div', { class: 'eyebrow' }, 'You are at'), h('h3', { class: 'place-title' }, name), h('p', { class: 'small muted' }, pl.blurb)),
       id === 'trailhead' ? requestBoard(c) : null,
+      id === 'office' ? reviewsBox(c) : null,
       acts.length || pl.sections.some((x) => ['plan', 'boats', 'courses'].includes(x)) ? h('h4', { class: 'place-sub' }, 'Things to do here') : null,
       pl.sections.filter((x) => ['plan', 'boats'].includes(x)).map((x) => sec[x]()),
       acts.length ? h('div', { class: 'activity-grid' }, acts.map(activityCard)) : null,
@@ -335,6 +338,79 @@
     return c.practiceName ? `${c.practiceName} · ${base.replace(/^Your /, '')}` : base;
   }
   const activeBook = () => G.career.book.filter((b) => ['life', 'steady', 'at-risk'].includes(b.status));
+
+  /* ---- Second opinions: a rival's forgotten clients ask you to look at their plan ---- */
+  function reviewsBox(c) {
+    const list = (c.reviews || []).filter((r) => (PP.content.secondOpinions || []).some((x) => x.id === r.case));
+    if (!list.length) return null;
+    return h('div', { class: 'panel reviews-box' },
+      h('div', { class: 'eyebrow' }, '🗂️ Second opinions'),
+      h('p', { class: 'small muted' }, 'Clients other agents signed and then forgot. Look over their plan and tell them the truth, even if the truth is "keep what you have."'),
+      list.map((r) => {
+        const cl = PP.content.clients[r.archetype] || {}, left = r.expires - c.days;
+        return h('div', { class: 'review-row' },
+          PP.ui.avatar({ name: r.name, hue: cl.hue }, 40),
+          h('div', { class: 'rv-txt' }, h('strong', null, r.name), h('span', { class: 'small muted' }, `Signed by ${r.rival}. Hasn't heard from them since.`),
+            h('span', { class: 'small ' + (left <= 3 ? 'warn' : 'muted') }, `Waits ${left} more day${left === 1 ? '' : 's'}.`)),
+          h('button', { class: 'btn primary', onclick: () => reviewPlan(r) }, 'Review (1 day)'));
+      }));
+  }
+  function reviewPlan(r) {
+    const c = G.career, cs = (PP.content.secondOpinions || []).find((x) => x.id === r.case);
+    if (!cs) return;
+    const base = (PP.content.clients[cs.arch] || {}).name;
+    const say = (t) => (base ? t.split(base).join(r.name) : t);
+    const cl = PP.content.clients[r.archetype] || {};
+    const overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Second opinion' });
+    const card = h('div', { class: 'scene review-scene' });
+    overlay.appendChild(h('div', { class: 'overlay-card' }, card));
+    document.body.appendChild(overlay); document.body.classList.add('modal-open');
+    const close = () => { overlay.remove(); document.body.classList.remove('modal-open'); };
+    // Ethics training shows you one paper's real story before you decide.
+    const peek = (c.skills.judgment || 0) > 0 ? Math.floor(Math.random() * cs.papers.length) : -1;
+    const FLAG = { ok: ['✓', 'Fits'], gap: ['!', 'Gap'], wrong: ['✗', 'No longer fits'] };
+    const paper = (pp, i, shown) => h('li', { class: 'so-paper' + (shown ? ' f-' + pp.flag : '') },
+      h('span', { class: 'sp-icon', 'aria-hidden': 'true' }, pp.icon),
+      h('span', { class: 'sp-txt' }, h('strong', null, pp.label), h('span', null, say(pp.note))),
+      shown ? h('span', { class: 'sp-flag', title: FLAG[pp.flag][1] }, h('b', { 'aria-hidden': 'true' }, FLAG[pp.flag][0]), h('span', null, FLAG[pp.flag][1])) : null);
+    const head = () => [h('div', { class: 'eyebrow' }, 'Second opinion · 1 day'),
+      h('div', { class: 'row tight so-who' }, PP.ui.avatar({ name: r.name, hue: cl.hue }, 48), h('div', null, h('h3', { class: 'scene-title' }, `${r.name}'s plan`), h('div', { class: 'small muted' }, `From ${r.rival}`))),
+      h('p', { class: 'scene-text so-ask' }, say(cs.ask))];
+    const opt = (id, kind, label, hint) => h('button', { class: 'choice', onclick: () => decide(id) }, h('span', { class: 'kind' }, kind), h('span', { class: 'choice-label' }, label), h('span', { class: 'hint' }, hint), h('span', { class: 'chev' }, '›'));
+    card.append(...head(),
+      h('ul', { class: 'so-papers' }, cs.papers.map((pp, i) => paper(pp, i, i === peek))),
+      peek >= 0 ? h('p', { class: 'small muted' }, 'Your ethics training helps you read one of these properly.') : null,
+      h('p', { class: 'pick-prompt' }, 'What do you tell them? Tap one.'),
+      h('div', { class: 'choices' },
+        opt('keep', 'Honest', 'Keep what you have', 'No sale today. Just the truth.'),
+        opt('fix', 'Light touch', 'Keep it, but fix one gap', 'A small change where it is needed.'),
+        opt('replace', 'Big sale', 'Start over with a new plan', 'The biggest commission. Only right if the old plan really no longer fits.')),
+      h('button', { class: 'btn ghost', onclick: close }, 'Not today'));
+    function decide(choice) {
+      const out = PP.content.secondOpinionOutcome(cs.verdict, choice);
+      const right = { keep: 'Keep what you have', fix: 'Keep it, but fix one gap', replace: 'Start over with a new plan' }[cs.verdict];
+      PP.fx && PP.fx.sfx(out.right ? 'great' : 'meh');
+      PP.track && PP.track(`second-opinion/${choice}-${out.right ? 'right' : 'wrong'}`);
+      card.innerHTML = '';
+      card.append(...head(),
+        h('ul', { class: 'so-papers' }, cs.papers.map((pp, i) => paper(pp, i, true))),
+        h('div', { class: 'so-verdict ' + (out.right ? 'good' : 'bad') },
+          h('strong', null, out.right ? 'The honest answer.' : `The honest answer was: ${right.toLowerCase()}.`),
+          h('span', null, say(cs.lesson))),
+        h('button', { class: 'btn primary', onclick: () => { close(); spendDay(() => {
+          c.reviews = (c.reviews || []).filter((x) => x.id !== r.id);
+          const cut = c.partner ? Math.round(out.now * 0.25) : 0;
+          c.savings += out.now - cut;
+          if (out.status) c.book.push({ id: PP.uid('b'), archetype: r.archetype, name: r.name, status: out.status, perDay: out.perDay, sat: out.sat, journey: c.journeys, day: c.days, lastLap: c.days, laps: 0, facts: [], changes: [], from: r.rival, replaced: out.replaced || undefined });
+          const extra = [];
+          if (out.now) extra.push(`+${money(out.now - cut)}${cut ? ` after your partner's share` : ''}.`);
+          if (out.status) extra.push(`${r.name} joins your book${out.perDay ? ` (${money(out.perDay)}/day)` : ''}.`);
+          if (out.referral) { const p = PP.career.addProspect(c, { temp: 'warm', source: `referral from ${r.name}` }); extra.push(`${p.name} is in your pipeline.`); }
+          return out.text(r.name) + (extra.length ? ' ' + extra.join(' ') : '');
+        }); } }, 'Continue'));
+      card.scrollTop = 0;
+    }
+  }
 
   /* Spend a day at the port: do the thing, then the day passes. */
   function spendDay(fn, tab, free) {
@@ -433,6 +509,7 @@
         h('div', { class: 'row tight' }, PP.ui.avatar({ name: p.name, hue: cl.hue }, 44), h('div', null, h('h3', null, p.name), h('div', { class: 'small muted' }, cl.title))),
         h('div', { class: 'row tight' }, h('span', { class: 'pill temp-' + p.temp }, p.temp), h('span', { class: 'small muted' }, `From ${p.source}`)),
         h('p', { class: 'small' }, cl.surface + ' ' + (p.temp === 'hot' ? 'Starts with +2 Trust.' : p.temp === 'cold' ? 'Starts with −1 Trust.' : '')),
+        p.winback ? h('p', { class: 'small good-text' }, `Went with ${p.rival}, and it didn't work out. Starts with +1 Trust: they know what bad service looks like.`) : null,
         p.carry ? h('p', { class: 'small good-text' }, `Paused on day ${p.carry.day} of your journey. You'll pick up where you left off: trust ${p.carry.trust}, everything you learned, and any shortcuts still owed.`) : null,
         h('p', { class: 'small ' + (left <= 4 ? 'warn' : 'muted') }, `Goes cold in ${left} day${left === 1 ? '' : 's'}.`),
         h('button', { class: 'btn primary', onclick: () => packScreen(p) }, p.carry ? `Pick up with ${p.name}` : `Guide ${p.name} on the trail`));
@@ -635,8 +712,11 @@
           PP.shuffle(unknown).slice(0, how === 'warm' ? 2 : 1).forEach((k) => { c.known[k] = true; notes.push(`${PP.content.nodes[k].name} is now named on your map.`); });
           if (!unknown.length) notes.push('You already know every place she mentions.');
         } else if (a.kind === 'rival') {
-          if (c.pipeline.length && PP.chance(how === 'warm' ? 0.2 : 0.4)) { const lost = c.pipeline.splice(Math.floor(Math.random() * c.pipeline.length), 1)[0]; notes.push(`Later you hear ${lost.name} had coffee with him. They are no longer in your pipeline.`); }
+          if (c.pipeline.length && PP.chance(how === 'warm' ? 0.2 : 0.4)) { const lost = c.pipeline.splice(Math.floor(Math.random() * c.pipeline.length), 1)[0]; PP.career.lostToRival(c, lost, 'the agent from the city'); notes.push(`Later you hear ${lost.name} had coffee with him. They are no longer in your pipeline.`); }
           else notes.push('Nobody of yours went with him. This time.');
+        } else if (a.kind === 'second') {
+          const r = how === 'warm' || PP.chance(0.5) ? PP.career.addReview(c, 'the docks') : null;
+          notes.push(r ? `${r.name} would like you to look over their plan from ${r.rival}. (Your desk)` : 'They keep the folder and say they will think about it.');
         } else notes.push('Lovely. Not a prospect.');
         close();
         spendDay(() => `${boat} comes in. ${text} ${notes.join(' ')}`);
@@ -855,7 +935,7 @@
       s.day = carry.day; s.turn = carry.turn; s.trail = (carry.trail || ['port']).slice(); s.walked = (carry.walked || []).slice();
       s.resumed = true;
     } else {
-      const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0);
+      const trustMod = (p.temp === 'hot' ? 2 : p.temp === 'cold' ? -1 : 0) + P().workspaces[c.workspace].trust + (c.agent === 'changer' && p.source === 'your natural market' ? 1 : 0) + (p.winback ? 1 : 0);
       PP.apply(s, { trust: trustMod });
     }
     s.contacts.forEach((id) => (s.contactUses[id] = 1 + (PP.skill(s, 'resourcefulness') > 0 ? 1 : 0)));
@@ -924,6 +1004,7 @@
     const levelBefore = PP.career.level(Object.assign({}, c, { savings: Math.max(0, c.savings) }));
     let fit = null, pts = 0, pay = null, cut = 0;
     Object.keys(s.map.visited).forEach((k) => (c.known[k] = true));
+    if (kind === 'poached' && s.origin && !s.followUp) PP.career.lostToRival(c, s.origin, typeof s.poached === 'string' ? s.poached : null);
     if (kind === 'landed') {
       fit = cl.fit[s.destination] || 'poor';
       if (s.destination === 'not_now' && s.res.trust < 6) fit = 'poor';

@@ -74,7 +74,10 @@
       rafael: ['Rafael', 'Santiago', 'Dmitri', 'Kwame', 'Lorenzo', 'Bastian', 'Hamid', 'Ezra'],
       maxine: ['Maxine', 'Maureen', 'Adaeze', 'Philippa', 'Consuelo', 'Annette', 'Bridget', 'Lourdes']
     },
-    life: { hot: 24, warm: 15, cold: 9 }
+    life: { hot: 24, warm: 15, cold: 9 },
+    rivals: ['Velocity Wealth', 'Summit Peak Advisors', 'Bayside Money Group', 'Lighthouse Financial'],
+    // What people say when they come back after a rival let them down.
+    winbackLines: ['They signed me and I never heard from them again.', 'Every call went to voicemail. Every single one.', 'They kept pushing something I told them I didn\'t want.', 'I got a birthday card from them. Printed. With someone else\'s name crossed out.', 'They were great right up until I signed.', 'I asked one question and got a 40-page brochure.']
   });
 
   PP.newCareer = function (agentId) {
@@ -151,6 +154,26 @@
       return cl;
     },
 
+    /* A rival took someone from your pipeline. Remember them: they may come back. */
+    lostToRival(c, p, rival) {
+      if (!p || !p.archetype) return;
+      c.lostTo = (c.lostTo || []).filter((l) => l.name !== p.name).concat({ name: p.name, archetype: p.archetype, temp: p.temp, rival: rival || PP.pick(P.rivals), day: c.days }).slice(-6);
+    },
+    /* Someone asks for a second opinion on a rival's plan. */
+    addReview(c, source) {
+      const all = PP.content.secondOpinions || [];
+      if (!all.length) return null;
+      const seen = c.soSeen || [];
+      const open = (c.reviews || []).map((r) => r.case);
+      const pool = all.filter((x) => !seen.includes(x.id) && !open.includes(x.id));
+      const cs = PP.pick(pool.length ? pool : all.filter((x) => !open.includes(x.id)));
+      if (!cs) return null;
+      c.soSeen = seen.concat(cs.id).slice(-6);
+      const r = { id: PP.uid('r'), case: cs.id, archetype: cs.arch, name: C.newName(c, cs.arch), rival: cs.rival, source, expires: c.days + 12 };
+      c.reviews = (c.reviews || []).concat(r);
+      return r;
+    },
+
     /* One day passes. away = on the trail. Returns notes for the player. */
     tickDay(c, away) {
       const notes = [];
@@ -167,7 +190,7 @@
           const claw = b.status === 'at-risk';
           b.status = 'cancelled'; b.perDay = 0;
           if (claw) c.savings -= P.clawback;
-          note(`${b.name} cancelled. ${claw ? `It was never the right fit. ${C.money(-P.clawback)} clawed back.` : 'They had not heard from you in a long time.'}`, 'bad', 'cancel');
+          note(`${b.name} cancelled. ${claw ? `${b.replaced ? 'The replacement was reviewed, and it should never have happened.' : 'It was never the right fit.'} ${C.money(-P.clawback)} clawed back.` : 'They had not heard from you in a long time.'}`, 'bad', 'cancel');
         } else if (b.status === 'door' && PP.chance(0.02)) {
           b.status = 'life'; b.perDay = 50; b.sat = 8; c.savings += 1000;
           note(`${b.name}, who said "not yet," is ready now and wants to work with you. +${C.money(1000)}, and they join your book.`, 'good', 'return');
@@ -193,9 +216,32 @@
       // Pipeline
       c.pipeline = c.pipeline.filter((p) => {
         if (c.days > p.expires) { note(`${p.name} lost interest while waiting. They are off your pipeline.`, 'bad'); return false; }
-        if (away && PP.chance(0.02)) { note(`A rival agent signed ${p.name} while you were on the trail.`, 'bad', 'poach'); return false; }
+        if (away && PP.chance(0.02)) { const rv = PP.pick(P.rivals); C.lostToRival(c, p, rv); note(`${rv} signed ${p.name} while you were on the trail.`, 'bad', 'poach'); return false; }
         return true;
       });
+      // Win-backs: people a rival took sometimes come back once the rival lets them down.
+      c.lostTo = (c.lostTo || []).filter((l) => {
+        const age = c.days - l.day;
+        if (age > 60) return false;
+        if (age < 10 || !PP.chance(0.05)) return true;
+        const temp = l.temp === 'hot' ? 'hot' : 'warm';
+        c.pipeline.push({ id: PP.uid('p'), archetype: l.archetype, name: l.name, temp, source: 'a second chance', rival: l.rival, winback: true, expires: c.days + P.life[temp] });
+        note(`${l.name} is back. "${PP.pick(P.winbackLines)}" They went with ${l.rival} and want to talk to you again. (Trailhead)`, 'good', 'return');
+        PP.track && PP.track('winback/returned');
+        return false;
+      });
+      // Second opinions: a rival's forgotten clients ask you to look at their paperwork.
+      // Happy clients talk, so these come more often as your book grows.
+      c.reviews = (c.reviews || []).filter((r) => {
+        if (c.days <= r.expires) return true;
+        note(`${r.name} stopped waiting for a second opinion.`, 'bad');
+        return false;
+      });
+      const happy = c.book.filter((b) => ['life', 'steady'].includes(b.status) && b.sat >= 7).length;
+      if (c.days >= 4 && c.reviews.length < 2 && PP.chance(Math.min(0.12, 0.03 + 0.02 * happy))) {
+        const r = C.addReview(c, happy ? 'word of mouth from your clients' : 'word around town');
+        if (r) note(`${r.name} wants a second opinion. Their agent at ${r.rival} hasn't called in years. (Your desk)`, 'good');
+      }
       // Walk-ins and partner leads
       const ws = P.workspaces[c.workspace];
       if (ws.walkIn && PP.chance(ws.walkIn)) { const p = C.addProspect(c, { temp: 'cold', source: 'walked into your office' }); note(`${p.name} walked into your ${c.workspace === 'office' ? 'office' : 'desk at the Co-op'} asking for help.`, 'good'); }
